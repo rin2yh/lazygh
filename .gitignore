@@ -1,0 +1,12 @@
+# Go
+*.exe
+*.test
+/dist/
+/bin/
+
+# OS
+.DS_Store
+
+# Editor
+.idea/
+*.swp
