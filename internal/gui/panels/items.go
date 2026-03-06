@@ -2,8 +2,6 @@ package panels
 
 import (
 	"fmt"
-
-	"github.com/jesseduffield/gocui"
 )
 
 type Item struct {
@@ -44,24 +42,6 @@ func NewItemsPanel(formatter ItemFormatter, keepSelectionOnBlur bool) *ItemsPane
 		Formatter:           formatter,
 		KeepSelectionOnBlur: keepSelectionOnBlur,
 	}
-}
-
-func (p *ItemsPanel) Render(v *gocui.View, active bool) {
-	if p.Loading {
-		v.Clear()
-		_ = v.SetCursor(0, 0)
-		_, _ = v.Write([]byte("Loading...\n"))
-		return
-	}
-	p.ListPanel.Render(v, len(p.Items), p.renderRow, p.shouldShowSelection(active))
-}
-
-func (p *ItemsPanel) shouldShowSelection(active bool) bool {
-	return active || p.KeepSelectionOnBlur
-}
-
-func (p *ItemsPanel) renderRow(index int) string {
-	return p.Format(p.Items[index])
 }
 
 func (p *ItemsPanel) Format(item Item) string {

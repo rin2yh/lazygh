@@ -2,6 +2,7 @@ package gh
 
 import (
 	"encoding/json"
+	"os"
 	"os/exec"
 	"strconv"
 )
@@ -32,8 +33,26 @@ func NewClient() *Client {
 	return &Client{execCommand: exec.Command}
 }
 
+func withGHCommandEnv(base []string) []string {
+	env := os.Environ()
+	if len(base) > 0 {
+		env = append(env, base...)
+	}
+	return append(env,
+		"NO_COLOR=1",
+		"CLICOLOR=0",
+		"GH_PAGER=cat",
+	)
+}
+
+func (c *Client) runCommand(args ...string) ([]byte, error) {
+	cmd := c.execCommand("gh", args...)
+	cmd.Env = withGHCommandEnv(cmd.Env)
+	return cmd.Output()
+}
+
 func (c *Client) runJSON(dst any, args ...string) error {
-	out, err := c.execCommand("gh", args...).Output()
+	out, err := c.runCommand(args...)
 	if err != nil {
 		return err
 	}
@@ -44,7 +63,7 @@ func (c *Client) ListRepos() ([]string, error) {
 	type entry struct {
 		NameWithOwner string `json:"nameWithOwner"`
 	}
-	out, err := c.execCommand("gh", "repo", "list", "--json", "nameWithOwner", "--limit", "100").Output()
+	out, err := c.runCommand("repo", "list", "--json", "nameWithOwner", "--limit", "100")
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +95,12 @@ func (c *Client) ListIssues(repo string) ([]IssueItem, error) {
 }
 
 func (c *Client) ViewPR(repo string, number int) (string, error) {
-	out, err := c.execCommand("gh", "pr", "view", strconv.Itoa(number), "--repo", repo).Output()
+	out, err := c.runCommand(
+		"pr", "view", strconv.Itoa(number),
+		"--repo", repo,
+		"--json", "title,body",
+		"--template", "{{.title}}\n\n{{.body}}",
+	)
 	if err != nil {
 		return "", err
 	}
@@ -84,7 +108,12 @@ func (c *Client) ViewPR(repo string, number int) (string, error) {
 }
 
 func (c *Client) ViewIssue(repo string, number int) (string, error) {
-	out, err := c.execCommand("gh", "issue", "view", strconv.Itoa(number), "--repo", repo).Output()
+	out, err := c.runCommand(
+		"issue", "view", strconv.Itoa(number),
+		"--repo", repo,
+		"--json", "title,body",
+		"--template", "{{.title}}\n\n{{.body}}",
+	)
 	if err != nil {
 		return "", err
 	}

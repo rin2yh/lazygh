@@ -2,8 +2,12 @@ package gui
 
 import (
 	"fmt"
+	"os"
+	"strings"
+	"unicode"
 
-	"github.com/jesseduffield/gocui"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mattn/go-runewidth"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/gui/panels"
@@ -31,22 +35,17 @@ type Panels struct {
 }
 
 type Gui struct {
-	g           *gocui.Gui
 	config      *config.Config
 	state       *State
 	panels      *Panels
 	client      gh.ClientInterface
 	reposLoaded bool
+	width       int
+	height      int
 }
 
 func NewGui(cfg *config.Config, client gh.ClientInterface) (*Gui, error) {
-	g := gocui.NewGui()
-	if err := g.Init(); err != nil {
-		return nil, err
-	}
-
-	gui := &Gui{
-		g:      g,
+	return &Gui{
 		config: cfg,
 		state:  &State{ActivePanel: PanelRepos},
 		panels: &Panels{
@@ -56,130 +55,250 @@ func NewGui(cfg *config.Config, client gh.ClientInterface) (*Gui, error) {
 			Detail: panels.NewDetailPanel(),
 		},
 		client: client,
-	}
-
-	g.SetLayout(gui.layout)
-	g.Mouse = false
-
-	if err := gui.setupKeybindings(); err != nil {
-		g.Close()
-		return nil, err
-	}
-
-	return gui, nil
+	}, nil
 }
 
 func (gui *Gui) Run() error {
-	defer gui.g.Close()
-	gui.g.Execute(func(_ *gocui.Gui) error {
-		if gui.client == nil {
-			return nil
-		}
-		gui.panels.Repos.Loading = true
-		gui.renderPanel("repos")
-		go func() {
-			repos, err := gui.client.ListRepos()
-			gui.g.Execute(func(_ *gocui.Gui) error {
-				return gui.applyReposResult(repos, err)
-			})
-		}()
-		return nil
-	})
-	return gui.g.MainLoop()
+	p := tea.NewProgram(&model{gui: gui}, tea.WithAltScreen())
+	_, err := p.Run()
+	return err
 }
 
-var panelViewNames = []string{"repos", "issues", "prs", "detail"}
+type reposLoadedMsg struct {
+	repos []string
+	err   error
+}
 
-func (gui *Gui) activeViewName() string {
-	return panelViewNames[gui.state.ActivePanel]
+type itemsLoadedMsg struct {
+	repo   string
+	issues []gh.IssueItem
+	prs    []gh.PRItem
+	err    error
+}
+
+type detailLoadedMsg struct {
+	content string
+	err     error
+}
+
+type model struct {
+	gui *Gui
+}
+
+func (m *model) Init() tea.Cmd {
+	if m.gui.client == nil {
+		return nil
+	}
+	m.gui.panels.Repos.Loading = true
+	return m.loadReposCmd()
+}
+
+func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.gui.width = msg.Width
+		m.gui.height = msg.Height
+		return m, nil
+	case reposLoadedMsg:
+		m.gui.applyReposResult(msg.repos, msg.err)
+		return m, nil
+	case itemsLoadedMsg:
+		m.gui.applyItemsResult(msg)
+		return m, nil
+	case detailLoadedMsg:
+		m.gui.applyDetailResult(msg)
+		return m, nil
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "q":
+			return m, tea.Quit
+		case "tab":
+			m.gui.nextPanel()
+			return m, nil
+		case "shift+tab":
+			m.gui.prevPanel()
+			return m, nil
+		case "j", "down":
+			m.gui.navigateDown()
+			return m, nil
+		case "k", "up":
+			m.gui.navigateUp()
+			return m, nil
+		case "enter":
+			return m, m.handleEnter()
+		}
+	}
+	return m, nil
+}
+
+func (m *model) View() string {
+	return m.gui.render()
+}
+
+func (m *model) loadReposCmd() tea.Cmd {
+	return func() tea.Msg {
+		repos, err := m.gui.client.ListRepos()
+		return reposLoadedMsg{repos: repos, err: err}
+	}
+}
+
+func (m *model) loadItemsCmd(repo string) tea.Cmd {
+	return func() tea.Msg {
+		issues, err := m.gui.client.ListIssues(repo)
+		if err != nil {
+			return itemsLoadedMsg{repo: repo, err: err}
+		}
+		prs, err := m.gui.client.ListPRs(repo)
+		if err != nil {
+			return itemsLoadedMsg{repo: repo, err: err}
+		}
+		return itemsLoadedMsg{repo: repo, issues: issues, prs: prs}
+	}
+}
+
+func (m *model) loadDetailCmd(repo string, number int, loader detailLoader) tea.Cmd {
+	return func() tea.Msg {
+		content, err := loader(repo, number)
+		return detailLoadedMsg{content: content, err: err}
+	}
+}
+
+func (m *model) handleEnter() tea.Cmd {
+	switch m.gui.state.ActivePanel {
+	case PanelRepos:
+		repo, ok := m.gui.selectedRepo()
+		if !ok || m.gui.client == nil {
+			return nil
+		}
+		m.gui.panels.Issues.Loading = true
+		m.gui.panels.PRs.Loading = true
+		m.gui.panels.Detail.SetContent("Loading items...")
+		return m.loadItemsCmd(repo)
+	case PanelIssues, PanelPRs:
+		if m.gui.client == nil {
+			return nil
+		}
+		repo, ok := m.gui.selectedRepo()
+		if !ok {
+			return nil
+		}
+		itemsPanel, ok := m.gui.activeItemsPanel()
+		if !ok || len(itemsPanel.Items) == 0 {
+			return nil
+		}
+		loader, ok := m.gui.activeDetailLoader()
+		if !ok {
+			return nil
+		}
+		if forced := os.Getenv("LAZYGH_DEBUG_DETAIL_TEXT"); forced != "" {
+			m.gui.panels.Detail.SetContent(forced)
+			return nil
+		}
+		item := itemsPanel.Items[itemsPanel.Selected]
+		m.gui.panels.Detail.SetContent("Loading detail...")
+		return m.loadDetailCmd(repo, item.Number, loader)
+	default:
+		return nil
+	}
 }
 
 func (gui *Gui) showError(msg string, err error) {
 	gui.panels.Detail.SetContent(fmt.Sprintf("%s: %v", msg, err))
-	gui.renderPanel("detail")
 }
 
-func (gui *Gui) renderPanel(name string) {
-	if gui.g == nil {
-		return
-	}
-	v, err := gui.g.View(name)
-	if err != nil {
-		return
-	}
-	switch name {
-	case "repos":
-		gui.panels.Repos.Render(v, gui.state.ActivePanel == PanelRepos)
-	case "issues":
-		gui.panels.Issues.Render(v, gui.state.ActivePanel == PanelIssues)
-	case "prs":
-		gui.panels.PRs.Render(v, gui.state.ActivePanel == PanelPRs)
-	case "detail":
-		gui.panels.Detail.Render(v)
-	}
-}
-
-func (gui *Gui) applyReposResult(repos []string, err error) error {
+func (gui *Gui) applyReposResult(repos []string, err error) {
 	gui.panels.Repos.Loading = false
 	if err != nil {
 		gui.showError("Error loading repos", err)
-		return nil
+		return
 	}
-	gui.setItemsPanel(gui.panels.Repos, "repos", toRepoItems(repos))
+	gui.panels.Repos.Items = toRepoItems(repos)
+	gui.panels.Repos.Selected = 0
 	gui.reposLoaded = true
-	return nil
 }
 
-func (gui *Gui) loadRepos() error {
-	if gui.client == nil {
-		return nil
+func (gui *Gui) applyItemsResult(msg itemsLoadedMsg) {
+	gui.panels.Issues.Loading = false
+	gui.panels.PRs.Loading = false
+	if msg.err != nil {
+		gui.showError("Error loading items", msg.err)
+		return
 	}
-	repos, err := gui.client.ListRepos()
-	return gui.applyReposResult(repos, err)
-}
-
-func (gui *Gui) loadItems() error {
-	if gui.client == nil {
-		return nil
-	}
-	repo, ok := gui.selectedRepo()
-	if !ok {
-		return nil
+	currentRepo, ok := gui.selectedRepo()
+	if !ok || currentRepo != msg.repo {
+		return
 	}
 
-	issues, err := gui.client.ListIssues(repo)
-	if err != nil {
-		gui.showError("Error loading issues", err)
-		return nil
-	}
-
-	prs, err := gui.client.ListPRs(repo)
-	if err != nil {
-		gui.showError("Error loading PRs", err)
-		return nil
-	}
-
-	issueItems := make([]panels.Item, 0, len(issues))
-	for _, issue := range issues {
+	issueItems := make([]panels.Item, 0, len(msg.issues))
+	for _, issue := range msg.issues {
 		issueItems = append(issueItems, panels.Item{Number: issue.Number, Title: issue.Title})
 	}
-	prItems := make([]panels.Item, 0, len(prs))
-	for _, pr := range prs {
+	prItems := make([]panels.Item, 0, len(msg.prs))
+	for _, pr := range msg.prs {
 		prItems = append(prItems, panels.Item{Number: pr.Number, Title: pr.Title})
 	}
-
-	gui.setItemsPanel(gui.panels.Issues, "issues", issueItems)
-	gui.setItemsPanel(gui.panels.PRs, "prs", prItems)
-
+	gui.panels.Issues.Items = issueItems
+	gui.panels.PRs.Items = prItems
+	gui.panels.Issues.Selected = 0
+	gui.panels.PRs.Selected = 0
 	gui.panels.Detail.SetContent("")
-	gui.renderPanel("detail")
-	return nil
 }
 
-func (gui *Gui) setItemsPanel(panel *panels.ItemsPanel, viewName string, items []panels.Item) {
-	panel.Items = items
-	panel.Selected = 0
-	gui.renderPanel(viewName)
+func (gui *Gui) applyDetailResult(msg detailLoadedMsg) {
+	if msg.err != nil {
+		gui.showError("Error loading detail", msg.err)
+		return
+	}
+	gui.panels.Detail.SetContent(msg.content)
+}
+
+func (gui *Gui) nextPanel() {
+	gui.state.ActivePanel = (gui.state.ActivePanel + 1) % panelCount
+}
+
+func (gui *Gui) prevPanel() {
+	if gui.state.ActivePanel == PanelRepos {
+		gui.state.ActivePanel = PanelDetail
+		return
+	}
+	gui.state.ActivePanel--
+}
+
+func (gui *Gui) navigateDown() {
+	panelType, p, ok := gui.listPanelByPanel(gui.state.ActivePanel)
+	if !ok || len(p.Items) == 0 {
+		return
+	}
+	if p.Selected < len(p.Items)-1 {
+		p.Selected++
+	}
+	if panelType != PanelRepos {
+		gui.refreshDetailPreview()
+	}
+}
+
+func (gui *Gui) navigateUp() {
+	panelType, p, ok := gui.listPanelByPanel(gui.state.ActivePanel)
+	if !ok || p.Selected <= 0 {
+		return
+	}
+	p.Selected--
+	if panelType != PanelRepos {
+		gui.refreshDetailPreview()
+	}
+}
+
+func (gui *Gui) listPanelByPanel(panel PanelType) (PanelType, *panels.ItemsPanel, bool) {
+	switch panel {
+	case PanelRepos:
+		return PanelRepos, gui.panels.Repos, true
+	case PanelIssues:
+		return PanelIssues, gui.panels.Issues, true
+	case PanelPRs:
+		return PanelPRs, gui.panels.PRs, true
+	default:
+		return 0, nil, false
+	}
 }
 
 type detailLoader func(repo string, number int) (string, error)
@@ -206,35 +325,6 @@ func (gui *Gui) activeDetailLoader() (detailLoader, bool) {
 	}
 }
 
-func (gui *Gui) loadDetail() error {
-	if gui.client == nil {
-		return nil
-	}
-	repo, ok := gui.selectedRepo()
-	if !ok {
-		return nil
-	}
-	itemsPanel, ok := gui.activeItemsPanel()
-	if !ok || len(itemsPanel.Items) == 0 {
-		return nil
-	}
-	loader, ok := gui.activeDetailLoader()
-	if !ok {
-		return nil
-	}
-
-	item := itemsPanel.Items[itemsPanel.Selected]
-	content, err := loader(repo, item.Number)
-	if err != nil {
-		gui.showError("Error loading detail", err)
-		return nil
-	}
-
-	gui.panels.Detail.SetContent(content)
-	gui.renderPanel("detail")
-	return nil
-}
-
 func (gui *Gui) refreshDetailPreview() {
 	itemsPanel, ok := gui.activeItemsPanel()
 	if !ok || len(itemsPanel.Items) == 0 {
@@ -242,7 +332,6 @@ func (gui *Gui) refreshDetailPreview() {
 	}
 	item := itemsPanel.Items[itemsPanel.Selected]
 	gui.panels.Detail.SetContent(itemsPanel.Format(item))
-	gui.renderPanel("detail")
 }
 
 func toRepoItems(repos []string) []panels.Item {
@@ -258,4 +347,181 @@ func (gui *Gui) selectedRepo() (string, bool) {
 		return "", false
 	}
 	return gui.panels.Repos.Format(gui.panels.Repos.Items[gui.panels.Repos.Selected]), true
+}
+
+func (gui *Gui) render() string {
+	w := gui.width
+	h := gui.height
+	if w <= 0 {
+		w = 120
+	}
+	if h <= 0 {
+		h = 40
+	}
+
+	leftWidth := w * 30 / 100
+	if leftWidth < 1 {
+		leftWidth = 1
+	}
+	if leftWidth > w-2 {
+		leftWidth = w - 2
+	}
+	rightWidth := w - leftWidth - 1
+	if rightWidth < 1 {
+		rightWidth = 1
+	}
+
+	contentHeight := h - 1
+	if contentHeight < 1 {
+		contentHeight = 1
+	}
+
+	reposH := contentHeight / 3
+	issuesH := contentHeight / 3
+	prsH := contentHeight - reposH - issuesH
+
+	leftLines := make([]string, 0, contentHeight)
+	leftLines = append(leftLines, gui.renderItemsPanel("Repositories", gui.panels.Repos, gui.state.ActivePanel == PanelRepos, reposH)...)
+	leftLines = append(leftLines, gui.renderItemsPanel("Issues", gui.panels.Issues, gui.state.ActivePanel == PanelIssues, issuesH)...)
+	leftLines = append(leftLines, gui.renderItemsPanel("PRs", gui.panels.PRs, gui.state.ActivePanel == PanelPRs, prsH)...)
+
+	rightLines := gui.renderDetailPanel("Detail", gui.state.ActivePanel == PanelDetail, rightWidth, contentHeight)
+
+	var b strings.Builder
+	for i := 0; i < contentHeight; i++ {
+		left := ""
+		if i < len(leftLines) {
+			left = leftLines[i]
+		}
+		right := ""
+		if i < len(rightLines) {
+			right = rightLines[i]
+		}
+		b.WriteString(padOrTrim(left, leftWidth))
+		b.WriteRune('│')
+		b.WriteString(padOrTrim(right, rightWidth))
+		b.WriteByte('\n')
+	}
+	b.WriteString(padOrTrim(formatStatusLine(gui.state.ActivePanel), w))
+	return b.String()
+}
+
+func (gui *Gui) renderItemsPanel(title string, panel *panels.ItemsPanel, active bool, height int) []string {
+	if height <= 0 {
+		return nil
+	}
+	lines := make([]string, 0, height)
+	lines = append(lines, formatPanelTitle(title, active))
+	if panel.Loading {
+		for len(lines) < height {
+			if len(lines) == 1 {
+				lines = append(lines, "Loading...")
+			} else {
+				lines = append(lines, "")
+			}
+		}
+		return lines
+	}
+
+	for i := 0; len(lines) < height; i++ {
+		if i >= len(panel.Items) {
+			lines = append(lines, "")
+			continue
+		}
+		prefix := "  "
+		if i == panel.Selected {
+			prefix = "> "
+		}
+		lines = append(lines, prefix+panel.Format(panel.Items[i]))
+	}
+	return lines
+}
+
+func (gui *Gui) renderDetailPanel(title string, active bool, width int, height int) []string {
+	if height <= 0 {
+		return nil
+	}
+	lines := make([]string, 0, height)
+	lines = append(lines, formatPanelTitle(title, active))
+	for _, line := range strings.Split(gui.panels.Detail.Content, "\n") {
+		if len(lines) >= height {
+			break
+		}
+		// lines = append(lines, sanitizeRenderLine(line))
+		lines = append(lines, line)
+	}
+	for len(lines) < height {
+		lines = append(lines, "")
+	}
+	_ = width
+	return lines
+}
+
+func padOrTrim(s string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	// s = sanitizeRenderLine(s)
+	var b strings.Builder
+	col := 0
+	for _, r := range s {
+		rw := runewidth.RuneWidth(r)
+		if rw <= 0 {
+			rw = 1
+		}
+		if col+rw > width {
+			break
+		}
+		b.WriteRune(r)
+		col += rw
+	}
+	if col < width {
+		b.WriteString(strings.Repeat(" ", width-col))
+	}
+	return b.String()
+}
+
+func sanitizeRenderLine(s string) string {
+	// Normalize tabs and remove control/escape sequences to keep column alignment stable.
+	s = strings.ReplaceAll(s, "\r", "")
+	var b strings.Builder
+	runes := []rune(s)
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+		if r == '\x1b' {
+			// CSI
+			if i+1 < len(runes) && runes[i+1] == '[' {
+				i += 2
+				for i < len(runes) && !(runes[i] >= 0x40 && runes[i] <= 0x7e) {
+					i++
+				}
+				continue
+			}
+			// OSC
+			if i+1 < len(runes) && runes[i+1] == ']' {
+				i += 2
+				for i < len(runes) {
+					if runes[i] == '\a' {
+						break
+					}
+					if runes[i] == '\x1b' && i+1 < len(runes) && runes[i+1] == '\\' {
+						i++
+						break
+					}
+					i++
+				}
+				continue
+			}
+			continue
+		}
+		if r == '\t' {
+			b.WriteString("    ")
+			continue
+		}
+		if unicode.IsControl(r) {
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }

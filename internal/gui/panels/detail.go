@@ -1,7 +1,5 @@
 package panels
 
-import "github.com/jesseduffield/gocui"
-
 type DetailPanel struct {
 	Content string
 	ScrollY int
@@ -9,11 +7,6 @@ type DetailPanel struct {
 
 func NewDetailPanel() *DetailPanel {
 	return &DetailPanel{}
-}
-
-func (p *DetailPanel) Render(v *gocui.View) {
-	v.Clear()
-	_, _ = v.Write([]byte(p.Content))
 }
 
 func (p *DetailPanel) SetContent(content string) {
