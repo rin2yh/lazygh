@@ -32,7 +32,7 @@ func formatListRow(row string, selected bool) string {
 	if selected {
 		prefix = "> "
 	}
-	return prefix + normalizeDisplayText(row) + "\n"
+	return prefix + row + "\n"
 }
 
 func calcOriginY(selected, originY, height int) int {

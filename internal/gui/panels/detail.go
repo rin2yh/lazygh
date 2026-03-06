@@ -13,7 +13,7 @@ func NewDetailPanel() *DetailPanel {
 
 func (p *DetailPanel) Render(v *gocui.View) {
 	v.Clear()
-	_, _ = v.Write([]byte(normalizeDisplayText(p.Content)))
+	_, _ = v.Write([]byte(p.Content))
 }
 
 func (p *DetailPanel) SetContent(content string) {

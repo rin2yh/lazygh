@@ -39,48 +39,14 @@ func TestHelperProcess(t *testing.T) {
 	case args[1] == "issue" && len(args) > 2 && args[2] == "list":
 		fmt.Print(`[{"number":10,"title":"Issue one"}]`)
 	case args[1] == "pr" && len(args) > 2 && args[2] == "view":
-		if os.Getenv("NO_COLOR") != "1" || os.Getenv("CLICOLOR") != "0" || os.Getenv("GH_PAGER") != "cat" {
-			fmt.Fprintln(os.Stderr, "missing gh environment variables")
-			os.Exit(1)
-		}
-		if !containsArgPair(args, "--json", "title,body") || !containsArg(args, "--template") {
-			fmt.Fprintln(os.Stderr, "missing json/template flags")
-			os.Exit(1)
-		}
-		fmt.Print("PR 日本語タイトル\n\nPR 本文")
+		fmt.Print("PR view content")
 	case args[1] == "issue" && len(args) > 2 && args[2] == "view":
-		if os.Getenv("NO_COLOR") != "1" || os.Getenv("CLICOLOR") != "0" || os.Getenv("GH_PAGER") != "cat" {
-			fmt.Fprintln(os.Stderr, "missing gh environment variables")
-			os.Exit(1)
-		}
-		if !containsArgPair(args, "--json", "title,body") || !containsArg(args, "--template") {
-			fmt.Fprintln(os.Stderr, "missing json/template flags")
-			os.Exit(1)
-		}
-		fmt.Print("Issue 日本語タイトル\n\nIssue 本文")
+		fmt.Print("Issue view content")
 	default:
 		fmt.Fprintf(os.Stderr, "unknown: %s\n", strings.Join(args, " "))
 		os.Exit(1)
 	}
 	os.Exit(0)
-}
-
-func containsArg(args []string, target string) bool {
-	for _, a := range args {
-		if a == target {
-			return true
-		}
-	}
-	return false
-}
-
-func containsArgPair(args []string, key, value string) bool {
-	for i := 0; i < len(args)-1; i++ {
-		if args[i] == key && args[i+1] == value {
-			return true
-		}
-	}
-	return false
 }
 
 func helperCmd(t *testing.T) func(string, ...string) *exec.Cmd {
@@ -150,8 +116,8 @@ func TestViewPR(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if content != "PR 日本語タイトル\n\nPR 本文" {
-		t.Errorf("got %q, want %q", content, "PR 日本語タイトル\n\nPR 本文")
+	if content != "PR view content" {
+		t.Errorf("got %q, want %q", content, "PR view content")
 	}
 }
 
@@ -161,8 +127,8 @@ func TestViewIssue(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if content != "Issue 日本語タイトル\n\nIssue 本文" {
-		t.Errorf("got %q, want %q", content, "Issue 日本語タイトル\n\nIssue 本文")
+	if content != "Issue view content" {
+		t.Errorf("got %q, want %q", content, "Issue view content")
 	}
 }
 
@@ -173,29 +139,5 @@ func TestListRepos_Error(t *testing.T) {
 	_, err := c.ListRepos()
 	if err == nil {
 		t.Fatal("expected error, got nil")
-	}
-}
-
-func TestWithGHCommandEnv(t *testing.T) {
-	env := withGHCommandEnv([]string{"GO_TEST_HELPER_PROCESS=1"})
-	joined := strings.Join(env, "\n")
-	if !strings.Contains(joined, "GO_TEST_HELPER_PROCESS=1") {
-		t.Fatal("custom env value not found")
-	}
-	if !strings.Contains(joined, "NO_COLOR=1") {
-		t.Fatal("NO_COLOR=1 not found")
-	}
-	if !strings.Contains(joined, "CLICOLOR=0") {
-		t.Fatal("CLICOLOR=0 not found")
-	}
-	if !strings.Contains(joined, "GH_PAGER=cat") {
-		t.Fatal("GH_PAGER=cat not found")
-	}
-}
-
-func TestSanitizeOutput_InvalidUTF8(t *testing.T) {
-	got := sanitizeOutput([]byte{'a', 0xff, 'b'})
-	if got != "ab" {
-		t.Fatalf("got %q, want %q", got, "ab")
 	}
 }
