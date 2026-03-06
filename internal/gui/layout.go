@@ -11,11 +11,14 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 
 	leftWidth := maxX * 30 / 100
 	contentHeight := maxY - statusBarHeight - 1
-	reposHeight := contentHeight * 40 / 100
-	itemsTop := reposHeight + 1
+	leftTop := 1
+	reposBottom := leftTop + (contentHeight / 3) - 1
+	issuesTop := reposBottom + 1
+	issuesBottom := leftTop + (contentHeight * 2 / 3) - 1
+	prsTop := issuesBottom + 1
 
 	// Repos panel (左上)
-	if v, err := g.SetView("repos", 0, 1, leftWidth-1, reposHeight); err != nil {
+	if v, err := g.SetView("repos", 0, leftTop, leftWidth-1, reposBottom); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -27,14 +30,24 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		gui.panels.Repos.Render(v)
 	}
 
-	// Items panel (左下)
-	if v, err := g.SetView("items", 0, itemsTop, leftWidth-1, contentHeight); err != nil {
+	// Issues panel (左中)
+	if v, err := g.SetView("issues", 0, issuesTop, leftWidth-1, issuesBottom); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
-		v.Title = " Items "
+		v.Title = " Issues "
 		v.Wrap = false
-		gui.panels.Items.Render(v)
+		gui.panels.Issues.Render(v)
+	}
+
+	// PRs panel (左下)
+	if v, err := g.SetView("prs", 0, prsTop, leftWidth-1, contentHeight); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		v.Title = " PRs "
+		v.Wrap = false
+		gui.panels.PRs.Render(v)
 	}
 
 	// Detail panel (右)
@@ -68,7 +81,7 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 }
 
 func (gui *Gui) updateBorderColors(g *gocui.Gui) {
-	views := []string{"repos", "items", "detail"}
+	views := []string{"repos", "issues", "prs", "detail"}
 	active := gui.activeViewName()
 	for _, name := range views {
 		v, err := g.View(name)

@@ -13,7 +13,8 @@ type PanelType int
 
 const (
 	PanelRepos PanelType = iota
-	PanelItems
+	PanelIssues
+	PanelPRs
 	PanelDetail
 	panelCount
 )
@@ -24,7 +25,8 @@ type State struct {
 
 type Panels struct {
 	Repos  *panels.ReposPanel
-	Items  *panels.ItemsPanel
+	Issues *panels.ItemsPanel
+	PRs    *panels.ItemsPanel
 	Detail *panels.DetailPanel
 }
 
@@ -49,7 +51,8 @@ func NewGui(cfg *config.Config, client gh.ClientInterface) (*Gui, error) {
 		state:  &State{ActivePanel: PanelRepos},
 		panels: &Panels{
 			Repos:  panels.NewReposPanel(),
-			Items:  panels.NewItemsPanel(),
+			Issues: panels.NewItemsPanel(),
+			PRs:    panels.NewItemsPanel(),
 			Detail: panels.NewDetailPanel(),
 		},
 		client: client,
@@ -85,7 +88,7 @@ func (gui *Gui) Run() error {
 	return gui.g.MainLoop()
 }
 
-var panelViewNames = []string{"repos", "items", "detail"}
+var panelViewNames = []string{"repos", "issues", "prs", "detail"}
 
 func (gui *Gui) activeViewName() string {
 	return panelViewNames[gui.state.ActivePanel]
@@ -107,8 +110,10 @@ func (gui *Gui) renderPanel(name string) {
 	switch name {
 	case "repos":
 		gui.panels.Repos.Render(v)
-	case "items":
-		gui.panels.Items.Render(v)
+	case "issues":
+		gui.panels.Issues.Render(v)
+	case "prs":
+		gui.panels.PRs.Render(v)
 	case "detail":
 		gui.panels.Detail.Render(v)
 	}
@@ -144,55 +149,84 @@ func (gui *Gui) loadItems() error {
 	}
 	repo := gui.panels.Repos.Repos[gui.panels.Repos.Selected]
 
-	prs, err := gui.client.ListPRs(repo)
-	if err != nil {
-		gui.showError("Error loading PRs", err)
-		return nil
-	}
-
 	issues, err := gui.client.ListIssues(repo)
 	if err != nil {
 		gui.showError("Error loading issues", err)
 		return nil
 	}
 
-	items := make([]panels.Item, 0, len(prs)+len(issues))
-	for _, pr := range prs {
-		items = append(items, panels.Item{Kind: panels.ItemKindPR, Number: pr.Number, Title: pr.Title})
-	}
-	for _, issue := range issues {
-		items = append(items, panels.Item{Kind: panels.ItemKindIssue, Number: issue.Number, Title: issue.Title})
+	prs, err := gui.client.ListPRs(repo)
+	if err != nil {
+		gui.showError("Error loading PRs", err)
+		return nil
 	}
 
-	gui.panels.Items.Items = items
-	gui.panels.Items.Selected = 0
-	gui.renderPanel("items")
+	issueItems := make([]panels.Item, 0, len(issues))
+	for _, issue := range issues {
+		issueItems = append(issueItems, panels.Item{Kind: panels.ItemKindIssue, Number: issue.Number, Title: issue.Title})
+	}
+	prItems := make([]panels.Item, 0, len(prs))
+	for _, pr := range prs {
+		prItems = append(prItems, panels.Item{Kind: panels.ItemKindPR, Number: pr.Number, Title: pr.Title})
+	}
+
+	gui.setItemsPanel(gui.panels.Issues, "issues", issueItems)
+	gui.setItemsPanel(gui.panels.PRs, "prs", prItems)
 
 	gui.panels.Detail.SetContent("")
 	gui.renderPanel("detail")
 	return nil
 }
 
+func (gui *Gui) setItemsPanel(panel *panels.ItemsPanel, viewName string, items []panels.Item) {
+	panel.Items = items
+	panel.Selected = 0
+	gui.renderPanel(viewName)
+}
+
+type detailLoader func(repo string, number int) (string, error)
+
+func (gui *Gui) activeItemsPanel() (*panels.ItemsPanel, bool) {
+	switch gui.state.ActivePanel {
+	case PanelIssues:
+		return gui.panels.Issues, true
+	case PanelPRs:
+		return gui.panels.PRs, true
+	default:
+		return nil, false
+	}
+}
+
+func (gui *Gui) activeDetailLoader() (detailLoader, bool) {
+	switch gui.state.ActivePanel {
+	case PanelIssues:
+		return gui.client.ViewIssue, true
+	case PanelPRs:
+		return gui.client.ViewPR, true
+	default:
+		return nil, false
+	}
+}
+
 func (gui *Gui) loadDetail() error {
 	if gui.client == nil {
-		return nil
-	}
-	if len(gui.panels.Items.Items) == 0 {
 		return nil
 	}
 	if len(gui.panels.Repos.Repos) == 0 {
 		return nil
 	}
 	repo := gui.panels.Repos.Repos[gui.panels.Repos.Selected]
-	item := gui.panels.Items.Items[gui.panels.Items.Selected]
-
-	var content string
-	var err error
-	if item.Kind == panels.ItemKindPR {
-		content, err = gui.client.ViewPR(repo, item.Number)
-	} else {
-		content, err = gui.client.ViewIssue(repo, item.Number)
+	itemsPanel, ok := gui.activeItemsPanel()
+	if !ok || len(itemsPanel.Items) == 0 {
+		return nil
 	}
+	loader, ok := gui.activeDetailLoader()
+	if !ok {
+		return nil
+	}
+
+	item := itemsPanel.Items[itemsPanel.Selected]
+	content, err := loader(repo, item.Number)
 	if err != nil {
 		gui.showError("Error loading detail", err)
 		return nil
@@ -204,10 +238,11 @@ func (gui *Gui) loadDetail() error {
 }
 
 func (gui *Gui) refreshDetailPreview() {
-	if len(gui.panels.Items.Items) == 0 {
+	itemsPanel, ok := gui.activeItemsPanel()
+	if !ok || len(itemsPanel.Items) == 0 {
 		return
 	}
-	item := gui.panels.Items.Items[gui.panels.Items.Selected]
+	item := itemsPanel.Items[itemsPanel.Selected]
 	gui.panels.Detail.SetContent(item.String())
 	gui.renderPanel("detail")
 }

@@ -2,6 +2,7 @@ package gui
 
 import (
 	"github.com/jesseduffield/gocui"
+	"github.com/rin2yh/lazygh/internal/gui/panels"
 )
 
 func (gui *Gui) setupKeybindings() error {
@@ -9,7 +10,7 @@ func (gui *Gui) setupKeybindings() error {
 	if err := gui.g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, gui.quit); err != nil {
 		return err
 	}
-	for _, view := range []string{"repos", "items", "detail", ""} {
+	for _, view := range []string{"repos", "issues", "prs", "detail", ""} {
 		if err := gui.g.SetKeybinding(view, 'q', gocui.ModNone, gui.quit); err != nil {
 			return err
 		}
@@ -20,20 +21,25 @@ func (gui *Gui) setupKeybindings() error {
 		return err
 	}
 
-	// Enter: repos → loadItems, items → loadDetail
+	// Enter: repos -> loadItems, issues/prs -> loadDetail
 	if err := gui.g.SetKeybinding("repos", gocui.KeyEnter, gocui.ModNone, func(_ *gocui.Gui, _ *gocui.View) error {
 		return gui.loadItems()
 	}); err != nil {
 		return err
 	}
-	if err := gui.g.SetKeybinding("items", gocui.KeyEnter, gocui.ModNone, func(_ *gocui.Gui, _ *gocui.View) error {
+	if err := gui.g.SetKeybinding("issues", gocui.KeyEnter, gocui.ModNone, func(_ *gocui.Gui, _ *gocui.View) error {
+		return gui.loadDetail()
+	}); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding("prs", gocui.KeyEnter, gocui.ModNone, func(_ *gocui.Gui, _ *gocui.View) error {
 		return gui.loadDetail()
 	}); err != nil {
 		return err
 	}
 
 	// j/↓: 下へ, k/↑: 上へ
-	for _, view := range []string{"repos", "items", "detail"} {
+	for _, view := range []string{"repos", "issues", "prs", "detail"} {
 		v := view
 		navDown := func(g *gocui.Gui, _ *gocui.View) error { return gui.navigateDown(g, v) }
 		navUp := func(g *gocui.Gui, _ *gocui.View) error { return gui.navigateUp(g, v) }
@@ -62,6 +68,17 @@ func (gui *Gui) nextPanel(_ *gocui.Gui, _ *gocui.View) error {
 	return nil
 }
 
+func (gui *Gui) listPanelByViewName(viewName string) (PanelType, *panels.ItemsPanel, bool) {
+	switch viewName {
+	case "issues":
+		return PanelIssues, gui.panels.Issues, true
+	case "prs":
+		return PanelPRs, gui.panels.PRs, true
+	default:
+		return 0, nil, false
+	}
+}
+
 func (gui *Gui) navigateDown(_ *gocui.Gui, viewName string) error {
 	switch viewName {
 	case "repos":
@@ -71,14 +88,14 @@ func (gui *Gui) navigateDown(_ *gocui.Gui, viewName string) error {
 		}
 		p.Selected++
 		gui.renderPanel("repos")
-	case "items":
-		if gui.state.ActivePanel != PanelItems || len(gui.panels.Items.Items) == 0 {
+	default:
+		panelType, p, ok := gui.listPanelByViewName(viewName)
+		if !ok || gui.state.ActivePanel != panelType || len(p.Items) == 0 {
 			return nil
 		}
-		p := gui.panels.Items
 		if p.Selected < len(p.Items)-1 {
 			p.Selected++
-			gui.renderPanel("items")
+			gui.renderPanel(viewName)
 		}
 		gui.refreshDetailPreview()
 	}
@@ -93,13 +110,14 @@ func (gui *Gui) navigateUp(_ *gocui.Gui, viewName string) error {
 			p.Selected--
 			gui.renderPanel("repos")
 		}
-	case "items":
-		p := gui.panels.Items
-		if gui.state.ActivePanel == PanelItems && p.Selected > 0 {
-			p.Selected--
-			gui.renderPanel("items")
-			gui.refreshDetailPreview()
+	default:
+		panelType, p, ok := gui.listPanelByViewName(viewName)
+		if !ok || gui.state.ActivePanel != panelType || p.Selected <= 0 {
+			return nil
 		}
+		p.Selected--
+		gui.renderPanel(viewName)
+		gui.refreshDetailPreview()
 	}
 	return nil
 }
