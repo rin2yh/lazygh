@@ -1,6 +1,8 @@
 package gui
 
 import (
+	"fmt"
+
 	"github.com/jesseduffield/gocui"
 )
 
@@ -18,55 +20,60 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	prsTop := issuesBottom + 1
 
 	// Repos panel (左上)
-	if v, err := g.SetView("repos", 0, leftTop, leftWidth-1, reposBottom); err != nil {
-		if err != gocui.ErrUnknownView {
-			return err
-		}
-		v.Title = " Repositories "
+	if v, err := g.SetView("repos", 0, leftTop, leftWidth-1, reposBottom); err != nil && err != gocui.ErrUnknownView {
+		return err
+	} else {
+		v.Title = formatPanelTitle("Repositories", gui.state.ActivePanel == PanelRepos)
 		v.Wrap = false
 		v.Highlight = true
 		v.SelBgColor = gocui.ColorGreen
 		v.SelFgColor = gocui.ColorBlack
-		gui.panels.Repos.Render(v)
+		if err == gocui.ErrUnknownView {
+			gui.panels.Repos.Render(v)
+		}
 	}
 
 	// Issues panel (左中)
-	if v, err := g.SetView("issues", 0, issuesTop, leftWidth-1, issuesBottom); err != nil {
-		if err != gocui.ErrUnknownView {
-			return err
-		}
-		v.Title = " Issues "
+	if v, err := g.SetView("issues", 0, issuesTop, leftWidth-1, issuesBottom); err != nil && err != gocui.ErrUnknownView {
+		return err
+	} else {
+		v.Title = formatPanelTitle("Issues", gui.state.ActivePanel == PanelIssues)
 		v.Wrap = false
-		gui.panels.Issues.Render(v)
+		if err == gocui.ErrUnknownView {
+			gui.panels.Issues.Render(v)
+		}
 	}
 
 	// PRs panel (左下)
-	if v, err := g.SetView("prs", 0, prsTop, leftWidth-1, contentHeight); err != nil {
-		if err != gocui.ErrUnknownView {
-			return err
-		}
-		v.Title = " PRs "
+	if v, err := g.SetView("prs", 0, prsTop, leftWidth-1, contentHeight); err != nil && err != gocui.ErrUnknownView {
+		return err
+	} else {
+		v.Title = formatPanelTitle("PRs", gui.state.ActivePanel == PanelPRs)
 		v.Wrap = false
-		gui.panels.PRs.Render(v)
+		if err == gocui.ErrUnknownView {
+			gui.panels.PRs.Render(v)
+		}
 	}
 
 	// Detail panel (右)
-	if v, err := g.SetView("detail", leftWidth, 1, maxX-1, contentHeight); err != nil {
-		if err != gocui.ErrUnknownView {
-			return err
-		}
-		v.Title = " Detail "
+	if v, err := g.SetView("detail", leftWidth, 1, maxX-1, contentHeight); err != nil && err != gocui.ErrUnknownView {
+		return err
+	} else {
+		v.Title = formatPanelTitle("Detail", gui.state.ActivePanel == PanelDetail)
 		v.Wrap = true
-		gui.panels.Detail.Render(v)
+		if err == gocui.ErrUnknownView {
+			gui.panels.Detail.Render(v)
+		}
 	}
 
-	// Status bar
-	if v, err := g.SetView("status", 0, contentHeight+1, maxX-1, maxY-1); err != nil {
-		if err != gocui.ErrUnknownView {
-			return err
-		}
+	// Status bar (Frame=false でも1行描画されるように高さを2確保)
+	statusX0, statusY0, statusX1, statusY1 := statusViewBounds(maxX, maxY)
+	if v, err := g.SetView("status", statusX0, statusY0, statusX1, statusY1); err != nil && err != gocui.ErrUnknownView {
+		return err
+	} else {
 		v.Frame = false
-		_, _ = v.Write([]byte("[q]Quit  [tab]Panel  [j/k]Navigate  [enter]Select"))
+		v.Clear()
+		_, _ = v.Write([]byte(formatStatusLine(gui.state.ActivePanel)))
 	}
 
 	// フォーカス設定
@@ -74,24 +81,36 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		return err
 	}
 
-	// アクティブパネルの枠色
-	gui.updateBorderColors(g)
-
 	return nil
 }
 
-func (gui *Gui) updateBorderColors(g *gocui.Gui) {
-	views := []string{"repos", "issues", "prs", "detail"}
-	active := gui.activeViewName()
-	for _, name := range views {
-		v, err := g.View(name)
-		if err != nil {
-			continue
-		}
-		if name == active {
-			v.FgColor = gocui.ColorGreen
-		} else {
-			v.FgColor = gocui.ColorDefault
-		}
+func formatPanelTitle(base string, active bool) string {
+	if active {
+		return fmt.Sprintf("> %s <", base)
 	}
+	return fmt.Sprintf(" %s ", base)
+}
+
+func panelDisplayName(panel PanelType) string {
+	switch panel {
+	case PanelRepos:
+		return "Repositories"
+	case PanelIssues:
+		return "Issues"
+	case PanelPRs:
+		return "PRs"
+	case PanelDetail:
+		return "Detail"
+	default:
+		return "Unknown"
+	}
+}
+
+func formatStatusLine(activePanel PanelType) string {
+	return fmt.Sprintf("Panel: %s  [q]Quit  [tab]Panel  [j/k]Navigate  [enter]Select", panelDisplayName(activePanel))
+}
+
+func statusViewBounds(maxX, maxY int) (int, int, int, int) {
+	contentHeight := maxY - statusBarHeight - 1
+	return 0, contentHeight + 1, maxX - 1, maxY
 }
