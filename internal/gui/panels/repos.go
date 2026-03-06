@@ -25,6 +25,21 @@ func calcOriginY(selected, originY, height int) int {
 	return originY
 }
 
+func calcCursorY(selected, originY, height int) int {
+	if height <= 0 {
+		return 0
+	}
+
+	cursorY := selected - originY
+	if cursorY < 0 {
+		return 0
+	}
+	if cursorY >= height {
+		return height - 1
+	}
+	return cursorY
+}
+
 func adjustScroll(v *gocui.View, selected int) {
 	_, height := v.Size()
 	_, originY := v.Origin()
@@ -34,10 +49,14 @@ func adjustScroll(v *gocui.View, selected int) {
 func (p *ReposPanel) Render(v *gocui.View) {
 	v.Clear()
 	if p.Loading {
+		_ = v.SetCursor(0, 0)
 		_, _ = v.Write([]byte("Loading...\n"))
 		return
 	}
 	adjustScroll(v, p.Selected)
+	_, originY := v.Origin()
+	_, height := v.Size()
+	_ = v.SetCursor(0, calcCursorY(p.Selected, originY, height))
 	for i, repo := range p.Repos {
 		prefix := "  "
 		if i == p.Selected {

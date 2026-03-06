@@ -45,3 +45,26 @@ func TestCalcOriginY(t *testing.T) {
 		}
 	}
 }
+
+func TestCalcCursorY(t *testing.T) {
+	tests := []struct {
+		name     string
+		selected int
+		originY  int
+		height   int
+		want     int
+	}{
+		{"通常", 3, 1, 5, 2},
+		{"originと同じ", 4, 4, 5, 0},
+		{"上にはみ出す", 2, 5, 5, 0},
+		{"下にはみ出す", 12, 5, 5, 4},
+		{"高さ0", 0, 0, 0, 0},
+	}
+	for _, tt := range tests {
+		got := calcCursorY(tt.selected, tt.originY, tt.height)
+		if got != tt.want {
+			t.Errorf("%s: calcCursorY(%d, %d, %d) = %d, want %d",
+				tt.name, tt.selected, tt.originY, tt.height, got, tt.want)
+		}
+	}
+}

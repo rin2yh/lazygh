@@ -21,6 +21,9 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		}
 		v.Title = " Repositories "
 		v.Wrap = false
+		v.Highlight = true
+		v.SelBgColor = gocui.ColorGreen
+		v.SelFgColor = gocui.ColorBlack
 		gui.panels.Repos.Render(v)
 	}
 
