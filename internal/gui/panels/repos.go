@@ -14,7 +14,24 @@ func NewReposPanel() *ReposPanel {
 	}
 }
 
+func calcOriginY(selected, originY, height int) int {
+	if selected < originY {
+		return selected
+	}
+	if selected >= originY+height {
+		return selected - height + 1
+	}
+	return originY
+}
+
+func adjustScroll(v *gocui.View, selected int) {
+	_, height := v.Size()
+	_, originY := v.Origin()
+	_ = v.SetOrigin(0, calcOriginY(selected, originY, height))
+}
+
 func (p *ReposPanel) Render(v *gocui.View) {
+	adjustScroll(v, p.Selected)
 	v.Clear()
 	for i, repo := range p.Repos {
 		prefix := "  "

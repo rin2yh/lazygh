@@ -17,3 +17,28 @@ func TestNewReposPanel(t *testing.T) {
 		t.Errorf("Selected: got %d, want 0", p.Selected)
 	}
 }
+
+func TestCalcOriginY(t *testing.T) {
+	tests := []struct {
+		name     string
+		selected int
+		originY  int
+		height   int
+		want     int
+	}{
+		{"選択が表示範囲内", 3, 0, 5, 0},
+		{"選択が下にはみ出す", 5, 0, 5, 1},
+		{"選択が上にはみ出す", 0, 3, 5, 0},
+		{"originY変更不要(下端ちょうど)", 4, 0, 5, 0},
+		{"スクロール済みで範囲内", 5, 3, 5, 3},
+		{"スクロール済みで上にはみ出す", 2, 3, 5, 2},
+		{"スクロール済みで下にはみ出す", 9, 3, 5, 5},
+	}
+	for _, tt := range tests {
+		got := calcOriginY(tt.selected, tt.originY, tt.height)
+		if got != tt.want {
+			t.Errorf("%s: calcOriginY(%d, %d, %d) = %d, want %d",
+				tt.name, tt.selected, tt.originY, tt.height, got, tt.want)
+		}
+	}
+}

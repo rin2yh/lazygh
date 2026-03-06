@@ -65,18 +65,22 @@ func (gui *Gui) nextPanel(_ *gocui.Gui, _ *gocui.View) error {
 func (gui *Gui) navigateDown(_ *gocui.Gui, viewName string) error {
 	switch viewName {
 	case "repos":
-		if gui.state.ActivePanel == PanelRepos && len(gui.panels.Repos.Repos) > 0 {
-			if gui.panels.Repos.Selected < len(gui.panels.Repos.Repos)-1 {
-				gui.panels.Repos.Selected++
-			}
+		p := gui.panels.Repos
+		if gui.state.ActivePanel != PanelRepos || p.Selected >= len(p.Repos)-1 {
+			return nil
 		}
+		p.Selected++
+		gui.renderPanel("repos")
 	case "items":
-		if gui.state.ActivePanel == PanelItems && len(gui.panels.Items.Items) > 0 {
-			if gui.panels.Items.Selected < len(gui.panels.Items.Items)-1 {
-				gui.panels.Items.Selected++
-			}
-			gui.refreshDetailPreview()
+		if gui.state.ActivePanel != PanelItems || len(gui.panels.Items.Items) == 0 {
+			return nil
 		}
+		p := gui.panels.Items
+		if p.Selected < len(p.Items)-1 {
+			p.Selected++
+			gui.renderPanel("items")
+		}
+		gui.refreshDetailPreview()
 	}
 	return nil
 }
@@ -84,12 +88,16 @@ func (gui *Gui) navigateDown(_ *gocui.Gui, viewName string) error {
 func (gui *Gui) navigateUp(_ *gocui.Gui, viewName string) error {
 	switch viewName {
 	case "repos":
-		if gui.state.ActivePanel == PanelRepos && gui.panels.Repos.Selected > 0 {
-			gui.panels.Repos.Selected--
+		p := gui.panels.Repos
+		if gui.state.ActivePanel == PanelRepos && p.Selected > 0 {
+			p.Selected--
+			gui.renderPanel("repos")
 		}
 	case "items":
-		if gui.state.ActivePanel == PanelItems && gui.panels.Items.Selected > 0 {
-			gui.panels.Items.Selected--
+		p := gui.panels.Items
+		if gui.state.ActivePanel == PanelItems && p.Selected > 0 {
+			p.Selected--
+			gui.renderPanel("items")
 			gui.refreshDetailPreview()
 		}
 	}

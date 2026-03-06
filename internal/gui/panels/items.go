@@ -40,6 +40,7 @@ func NewItemsPanel() *ItemsPanel {
 }
 
 func (p *ItemsPanel) Render(v *gocui.View) {
+	adjustScroll(v, p.Selected)
 	v.Clear()
 	for i, item := range p.Items {
 		prefix := "  "
