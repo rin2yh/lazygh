@@ -18,6 +18,7 @@ func TestFormatListRow(t *testing.T) {
 	}{
 		{name: "Selected", row: "owner/repo", selected: true, want: "> owner/repo\n"},
 		{name: "NotSelected", row: "owner/repo", selected: false, want: "  owner/repo\n"},
+		{name: "Japanese", row: "日本語", selected: false, want: "  日\x00本\x00語\x00\n"},
 	}
 
 	for _, tt := range tests {
