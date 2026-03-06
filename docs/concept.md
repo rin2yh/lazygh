@@ -2,36 +2,34 @@
 
 ## Why lazygh
 
-### 既存プラグインとの差別化
+lazydockerのようなスタンドアロンTUIアプリとして、GitHub操作をターミナルから快適に行えるツール。
 
-既存のNeovim向けGitHubプラグイン（octo.nvim、gh.nvim）はすべてLua実装。
-lazyghはGoバックエンドを採用することで以下の点で差別化する。
+### 既存ツールとの差別化
 
-| 観点 | 既存プラグイン（Lua） | lazygh（Go + Lua） |
-|------|----------------------|-------------------|
-| 並行処理 | Neovimのスレッド制約あり | goroutineで並列API呼び出し |
-| JSON解析 | 速度・型安全性が低い | 静的型付きで高速・安全 |
-| テスタビリティ | Neovim依存でテストが難しい | Goで独立したユニットテスト可能 |
-| 保守性 | 大規模化でコードが複雑になりやすい | 責務分離が明確 |
+| 観点 | gh CLI | lazydocker的TUI | lazygh |
+|------|--------|-----------------|--------|
+| 操作性 | コマンド記憶が必要 | 直感的なナビゲーション | 直感的なナビゲーション |
+| 並行処理 | 単発リクエスト | 対象依存 | goroutineで並列API呼び出し |
+| 認証 | 自前実装 | 自前実装 | gh CLIに委譲 |
+| エディタ統合 | なし | なし | 将来対応 |
 
 ## アーキテクチャ概要
 
 ```
-Neovim (Lua layer)
-    ↕ jobstart / vim.system / RPC
-Go binary (lazygh-server)
+lazygh (Go TUI)
     ↕ exec
 gh CLI
+    ↕
+GitHub API
 ```
 
 ### 各レイヤーの責務
 
-- **Lua layer**: UI描画・キーバインド・Neovim API連携
-- **Go binary**: gh CLIの実行・JSON解析・データ変換・並行処理
-- **gh CLI**: GitHub APIへのアクセス（認証もgh任せ）
+- **lazygh (Go TUI)**: UI描画・キーバインド・データ表示
+- **gh CLI**: GitHub APIへのアクセス・認証管理
+- **GitHub API**: データソース
 
-Go binaryはgh CLIのラッパーとして機能し、複数APIの並列呼び出しやレスポンスの加工を担う。
-Lua側はUIに専念し、GoバイナリとはJSON over stdioで通信する。
+参考UI: [lazydocker](https://github.com/jesseduffield/lazydocker)
 
 ## 設計方針
 
@@ -42,6 +40,28 @@ GitHub API認証・トークン管理はgh CLIに委譲する。
 ### 読み取り優先
 Phase 1は読み取り専用。まずナビゲーションの体験を磨き、書き込み操作は後から追加する。
 
-### シンプルなUI
-Neovimのバッファ・ウィンドウ・フローティングウィンドウを活用したシンプルなUI。
-独自のウィジェットは最小限にとどめる。
+### レイアウト
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ lazygh                                                   │
+├──────────────┬──────────────────────────────────────────┤
+│ Repositories │                                           │
+│              │  Main Content                             │
+│  owner/repo1 │                                           │
+│> owner/repo2 │  (PR一覧 / Issue一覧 / 詳細 / diff)       │
+│              │                                           │
+├──────────────┤                                           │
+│ Items        │                                           │
+│              │                                           │
+│> PR #123 ... │                                           │
+│  Issue #45   │                                           │
+│              │                                           │
+├──────────────┴──────────────────────────────────────────┤
+│ [q]Quit  [tab]Panel  [j/k]Navigate  [enter]Select       │
+└─────────────────────────────────────────────────────────┘
+```
+
+- 左カラム幅: 30%、右: 70%
+- 左上: Repos、左下: Items
+- 下部: ステータスバー

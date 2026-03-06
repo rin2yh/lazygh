@@ -10,3 +10,6 @@
 # Editor
 .idea/
 *.swp
+
+# Claude
+.claude/settings.local.json
