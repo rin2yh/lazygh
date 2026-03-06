@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/rin2yh/lazygh/internal/config"
+	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/gui"
 )
 
@@ -11,7 +12,8 @@ type App struct {
 }
 
 func NewApp(cfg *config.Config) (*App, error) {
-	g, err := gui.NewGui(cfg)
+	client := gh.NewClient()
+	g, err := gui.NewGui(cfg, client)
 	if err != nil {
 		return nil, err
 	}

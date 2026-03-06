@@ -20,6 +20,18 @@ func (gui *Gui) setupKeybindings() error {
 		return err
 	}
 
+	// Enter: repos → loadItems, items → loadDetail
+	if err := gui.g.SetKeybinding("repos", gocui.KeyEnter, gocui.ModNone, func(_ *gocui.Gui, _ *gocui.View) error {
+		return gui.loadItems()
+	}); err != nil {
+		return err
+	}
+	if err := gui.g.SetKeybinding("items", gocui.KeyEnter, gocui.ModNone, func(_ *gocui.Gui, _ *gocui.View) error {
+		return gui.loadDetail()
+	}); err != nil {
+		return err
+	}
+
 	// j/↓: 下へ, k/↑: 上へ
 	for _, view := range []string{"repos", "items", "detail"} {
 		v := view
@@ -63,6 +75,7 @@ func (gui *Gui) navigateDown(_ *gocui.Gui, viewName string) error {
 			if gui.panels.Items.Selected < len(gui.panels.Items.Items)-1 {
 				gui.panels.Items.Selected++
 			}
+			gui.refreshDetailPreview()
 		}
 	}
 	return nil
@@ -77,6 +90,7 @@ func (gui *Gui) navigateUp(_ *gocui.Gui, viewName string) error {
 	case "items":
 		if gui.state.ActivePanel == PanelItems && gui.panels.Items.Selected > 0 {
 			gui.panels.Items.Selected--
+			gui.refreshDetailPreview()
 		}
 	}
 	return nil
