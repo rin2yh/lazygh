@@ -5,6 +5,7 @@ import "github.com/jesseduffield/gocui"
 type ReposPanel struct {
 	Repos    []string
 	Selected int
+	Loading  bool
 }
 
 func NewReposPanel() *ReposPanel {
@@ -31,8 +32,12 @@ func adjustScroll(v *gocui.View, selected int) {
 }
 
 func (p *ReposPanel) Render(v *gocui.View) {
-	adjustScroll(v, p.Selected)
 	v.Clear()
+	if p.Loading {
+		_, _ = v.Write([]byte("Loading...\n"))
+		return
+	}
+	adjustScroll(v, p.Selected)
 	for i, repo := range p.Repos {
 		prefix := "  "
 		if i == p.Selected {

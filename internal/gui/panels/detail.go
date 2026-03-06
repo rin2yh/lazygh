@@ -3,8 +3,8 @@ package panels
 import "github.com/jesseduffield/gocui"
 
 type DetailPanel struct {
-	Content  string
-	ScrollY  int
+	Content string
+	ScrollY int
 }
 
 func NewDetailPanel() *DetailPanel {

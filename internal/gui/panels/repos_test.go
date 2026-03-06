@@ -16,6 +16,9 @@ func TestNewReposPanel(t *testing.T) {
 	if p.Selected != 0 {
 		t.Errorf("Selected: got %d, want 0", p.Selected)
 	}
+	if p.Loading {
+		t.Error("Loading should be false")
+	}
 }
 
 func TestCalcOriginY(t *testing.T) {

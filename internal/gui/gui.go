@@ -69,7 +69,18 @@ func NewGui(cfg *config.Config, client gh.ClientInterface) (*Gui, error) {
 func (gui *Gui) Run() error {
 	defer gui.g.Close()
 	gui.g.Execute(func(_ *gocui.Gui) error {
-		return gui.loadRepos()
+		if gui.client == nil {
+			return nil
+		}
+		gui.panels.Repos.Loading = true
+		gui.renderPanel("repos")
+		go func() {
+			repos, err := gui.client.ListRepos()
+			gui.g.Execute(func(_ *gocui.Gui) error {
+				return gui.applyReposResult(repos, err)
+			})
+		}()
+		return nil
 	})
 	return gui.g.MainLoop()
 }
@@ -103,11 +114,8 @@ func (gui *Gui) renderPanel(name string) {
 	}
 }
 
-func (gui *Gui) loadRepos() error {
-	if gui.client == nil {
-		return nil
-	}
-	repos, err := gui.client.ListRepos()
+func (gui *Gui) applyReposResult(repos []string, err error) error {
+	gui.panels.Repos.Loading = false
 	if err != nil {
 		gui.showError("Error loading repos", err)
 		return nil
@@ -117,6 +125,14 @@ func (gui *Gui) loadRepos() error {
 	gui.reposLoaded = true
 	gui.renderPanel("repos")
 	return nil
+}
+
+func (gui *Gui) loadRepos() error {
+	if gui.client == nil {
+		return nil
+	}
+	repos, err := gui.client.ListRepos()
+	return gui.applyReposResult(repos, err)
 }
 
 func (gui *Gui) loadItems() error {

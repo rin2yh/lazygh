@@ -20,11 +20,11 @@ type mockClient struct {
 	err       error
 }
 
-func (m *mockClient) ListRepos() ([]string, error)              { return m.repos, m.err }
-func (m *mockClient) ListPRs(_ string) ([]gh.PRItem, error)     { return m.prs, m.err }
+func (m *mockClient) ListRepos() ([]string, error)                { return m.repos, m.err }
+func (m *mockClient) ListPRs(_ string) ([]gh.PRItem, error)       { return m.prs, m.err }
 func (m *mockClient) ListIssues(_ string) ([]gh.IssueItem, error) { return m.issues, m.err }
-func (m *mockClient) ViewPR(_ string, _ int) (string, error)    { return m.prView, m.err }
-func (m *mockClient) ViewIssue(_ string, _ int) (string, error) { return m.issueView, m.err }
+func (m *mockClient) ViewPR(_ string, _ int) (string, error)      { return m.prView, m.err }
+func (m *mockClient) ViewIssue(_ string, _ int) (string, error)   { return m.issueView, m.err }
 
 func newTestGui() *Gui {
 	return &Gui{
@@ -174,6 +174,35 @@ func TestRenderPanel_NilGui(t *testing.T) {
 	g.renderPanel("detail")
 }
 
+// --- applyReposResult ---
+
+func TestApplyReposResult_Success(t *testing.T) {
+	g := newTestGui()
+	g.panels.Repos.Loading = true
+	_ = g.applyReposResult([]string{"owner/repo1", "owner/repo2"}, nil)
+	if g.panels.Repos.Loading {
+		t.Error("Loading should be false after success")
+	}
+	if len(g.panels.Repos.Repos) != 2 {
+		t.Fatalf("got %d repos, want 2", len(g.panels.Repos.Repos))
+	}
+	if !g.reposLoaded {
+		t.Error("reposLoaded should be true")
+	}
+}
+
+func TestApplyReposResult_Error(t *testing.T) {
+	g := newTestGui()
+	g.panels.Repos.Loading = true
+	_ = g.applyReposResult(nil, fmt.Errorf("api error"))
+	if g.panels.Repos.Loading {
+		t.Error("Loading should be false after error")
+	}
+	if !strings.Contains(g.panels.Detail.Content, "api error") {
+		t.Errorf("detail content %q should contain error", g.panels.Detail.Content)
+	}
+}
+
 // --- loadRepos ---
 
 func TestLoadRepos_PopulatesPanel(t *testing.T) {
@@ -195,7 +224,6 @@ func TestLoadRepos_PopulatesPanel(t *testing.T) {
 		t.Error("reposLoaded should be true")
 	}
 }
-
 
 func TestLoadRepos_ErrorShowsInDetail(t *testing.T) {
 	mc := &mockClient{err: fmt.Errorf("gh not found")}
@@ -245,7 +273,6 @@ func TestLoadItems_EmptyRepos(t *testing.T) {
 		t.Errorf("items should be empty")
 	}
 }
-
 
 // --- loadDetail ---
 

@@ -17,10 +17,10 @@ func TestNewDetailPanel(t *testing.T) {
 
 func TestDetailPanel_SetContent(t *testing.T) {
 	tests := []struct {
-		name        string
+		name          string
 		initialScroll int
-		content     string
-		wantContent string
+		content       string
+		wantContent   string
 	}{
 		{"WithContent", 5, "hello", "hello"},
 		{"Empty", 0, "", ""},
