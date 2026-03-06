@@ -32,9 +32,9 @@ func newTestGui() *Gui {
 		config: config.Default(),
 		state:  &State{ActivePanel: PanelRepos},
 		panels: &Panels{
-			Repos:  panels.NewReposPanel(),
-			Issues: panels.NewItemsPanel(),
-			PRs:    panels.NewItemsPanel(),
+			Repos:  panels.NewItemsPanel(panels.FormatRepoItem),
+			Issues: panels.NewItemsPanel(panels.FormatIssueItem),
+			PRs:    panels.NewItemsPanel(panels.FormatPRItem),
 			Detail: panels.NewDetailPanel(),
 		},
 	}
@@ -44,6 +44,14 @@ func newTestGuiWithClient(client gh.ClientInterface) *Gui {
 	g := newTestGui()
 	g.client = client
 	return g
+}
+
+func repoItems(repos ...string) []panels.Item {
+	items := make([]panels.Item, 0, len(repos))
+	for _, repo := range repos {
+		items = append(items, panels.Item{Title: repo})
+	}
+	return items
 }
 
 func TestActiveViewName(t *testing.T) {
@@ -89,7 +97,7 @@ func TestNextPanel_Cycle(t *testing.T) {
 func TestNavigateDown_Repos(t *testing.T) {
 	g := newTestGui()
 	g.state.ActivePanel = PanelRepos
-	g.panels.Repos.Repos = []string{"a", "b", "c"}
+	g.panels.Repos.Items = repoItems("a", "b", "c")
 	_ = g.navigateDown(nil, "repos")
 
 	if g.panels.Repos.Selected != 1 {
@@ -108,13 +116,13 @@ func TestNavigateDown_ListPanels(t *testing.T) {
 			name:  "Issues",
 			view:  "issues",
 			panel: PanelIssues,
-			items: []panels.Item{{Kind: panels.ItemKindIssue, Number: 1, Title: "a"}, {Kind: panels.ItemKindIssue, Number: 2, Title: "b"}},
+			items: []panels.Item{{Number: 1, Title: "a"}, {Number: 2, Title: "b"}},
 		},
 		{
 			name:  "PRs",
 			view:  "prs",
 			panel: PanelPRs,
-			items: []panels.Item{{Kind: panels.ItemKindPR, Number: 1, Title: "a"}, {Kind: panels.ItemKindPR, Number: 2, Title: "b"}},
+			items: []panels.Item{{Number: 1, Title: "a"}, {Number: 2, Title: "b"}},
 		},
 	}
 
@@ -146,7 +154,7 @@ func TestNavigateDown_ListPanels(t *testing.T) {
 func TestNavigateUp_Repos(t *testing.T) {
 	g := newTestGui()
 	g.state.ActivePanel = PanelRepos
-	g.panels.Repos.Repos = []string{"a", "b", "c"}
+	g.panels.Repos.Items = repoItems("a", "b", "c")
 	g.panels.Repos.Selected = 2
 	_ = g.navigateUp(nil, "repos")
 
@@ -166,13 +174,13 @@ func TestNavigateUp_ListPanels(t *testing.T) {
 			name:  "Issues",
 			view:  "issues",
 			panel: PanelIssues,
-			items: []panels.Item{{Kind: panels.ItemKindIssue, Number: 1, Title: "a"}, {Kind: panels.ItemKindIssue, Number: 2, Title: "b"}},
+			items: []panels.Item{{Number: 1, Title: "a"}, {Number: 2, Title: "b"}},
 		},
 		{
 			name:  "PRs",
 			view:  "prs",
 			panel: PanelPRs,
-			items: []panels.Item{{Kind: panels.ItemKindPR, Number: 1, Title: "a"}, {Kind: panels.ItemKindPR, Number: 2, Title: "b"}},
+			items: []panels.Item{{Number: 1, Title: "a"}, {Number: 2, Title: "b"}},
 		},
 	}
 
@@ -223,8 +231,11 @@ func TestApplyReposResult_Success(t *testing.T) {
 	if g.panels.Repos.Loading {
 		t.Error("Loading should be false after success")
 	}
-	if len(g.panels.Repos.Repos) != 2 {
-		t.Fatalf("got %d repos, want 2", len(g.panels.Repos.Repos))
+	if len(g.panels.Repos.Items) != 2 {
+		t.Fatalf("got %d repos, want 2", len(g.panels.Repos.Items))
+	}
+	if got := g.panels.Repos.Format(g.panels.Repos.Items[0]); got != "owner/repo1" {
+		t.Errorf("repos[0] = %q, want %q", got, "owner/repo1")
 	}
 	if !g.reposLoaded {
 		t.Error("reposLoaded should be true")
@@ -251,11 +262,11 @@ func TestLoadRepos_PopulatesPanel(t *testing.T) {
 	if err := g.loadRepos(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(g.panels.Repos.Repos) != 2 {
-		t.Fatalf("got %d repos, want 2", len(g.panels.Repos.Repos))
+	if len(g.panels.Repos.Items) != 2 {
+		t.Fatalf("got %d repos, want 2", len(g.panels.Repos.Items))
 	}
-	if g.panels.Repos.Repos[0] != "owner/repo1" {
-		t.Errorf("repos[0] = %q, want %q", g.panels.Repos.Repos[0], "owner/repo1")
+	if got := g.panels.Repos.Format(g.panels.Repos.Items[0]); got != "owner/repo1" {
+		t.Errorf("repos[0] = %q, want %q", got, "owner/repo1")
 	}
 	if g.panels.Repos.Selected != 0 {
 		t.Errorf("Selected = %d, want 0", g.panels.Repos.Selected)
@@ -282,7 +293,7 @@ func TestLoadItems_PopulatesPanels(t *testing.T) {
 		issues: []gh.IssueItem{{Number: 10, Title: "Issue one"}},
 	}
 	g := newTestGuiWithClient(mc)
-	g.panels.Repos.Repos = []string{"owner/repo"}
+	g.panels.Repos.Items = repoItems("owner/repo")
 	g.panels.Repos.Selected = 0
 
 	if err := g.loadItems(); err != nil {
@@ -291,14 +302,14 @@ func TestLoadItems_PopulatesPanels(t *testing.T) {
 	if len(g.panels.Issues.Items) != 1 {
 		t.Fatalf("got %d issues, want 1", len(g.panels.Issues.Items))
 	}
-	if g.panels.Issues.Items[0].Kind != panels.ItemKindIssue {
-		t.Error("issues[0] should be Issue")
+	if got := g.panels.Issues.Format(g.panels.Issues.Items[0]); got != "Issue #10 Issue one" {
+		t.Errorf("issues[0] = %q, want %q", got, "Issue #10 Issue one")
 	}
 	if len(g.panels.PRs.Items) != 2 {
 		t.Fatalf("got %d prs, want 2", len(g.panels.PRs.Items))
 	}
-	if g.panels.PRs.Items[0].Kind != panels.ItemKindPR {
-		t.Error("prs[0] should be PR")
+	if got := g.panels.PRs.Format(g.panels.PRs.Items[0]); got != "PR #1 Fix bug" {
+		t.Errorf("prs[0] = %q, want %q", got, "PR #1 Fix bug")
 	}
 	if g.panels.Issues.Selected != 0 {
 		t.Errorf("Issues.Selected = %d, want 0", g.panels.Issues.Selected)
@@ -335,14 +346,14 @@ func TestLoadDetail(t *testing.T) {
 		{
 			name:  "Issue",
 			panel: PanelIssues,
-			item:  panels.Item{Kind: panels.ItemKindIssue, Number: 10, Title: "Bug"},
+			item:  panels.Item{Number: 10, Title: "Bug"},
 			mc:    &mockClient{issueView: "Issue detail content"},
 			want:  "Issue detail content",
 		},
 		{
 			name:  "PR",
 			panel: PanelPRs,
-			item:  panels.Item{Kind: panels.ItemKindPR, Number: 1, Title: "Fix"},
+			item:  panels.Item{Number: 1, Title: "Fix"},
 			mc:    &mockClient{prView: "PR detail content"},
 			want:  "PR detail content",
 		},
@@ -352,7 +363,7 @@ func TestLoadDetail(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := newTestGuiWithClient(tt.mc)
 			g.state.ActivePanel = tt.panel
-			g.panels.Repos.Repos = []string{"owner/repo"}
+			g.panels.Repos.Items = repoItems("owner/repo")
 			switch tt.panel {
 			case PanelIssues:
 				g.panels.Issues.Items = []panels.Item{tt.item}
@@ -382,7 +393,7 @@ func TestLoadDetail_NoopCases(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := newTestGuiWithClient(&mockClient{})
 			g.state.ActivePanel = tt.panel
-			g.panels.Repos.Repos = []string{"owner/repo"}
+			g.panels.Repos.Items = repoItems("owner/repo")
 			g.panels.Detail.SetContent("keep")
 			if err := g.loadDetail(); err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -400,13 +411,13 @@ func TestNilClient(t *testing.T) {
 		if err := g.loadRepos(); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if len(g.panels.Repos.Repos) != 0 {
-			t.Errorf("repos should be empty, got %v", g.panels.Repos.Repos)
+		if len(g.panels.Repos.Items) != 0 {
+			t.Errorf("repos should be empty, got %v", g.panels.Repos.Items)
 		}
 	})
 	t.Run("LoadItems", func(t *testing.T) {
 		g := newTestGui()
-		g.panels.Repos.Repos = []string{"owner/repo"}
+		g.panels.Repos.Items = repoItems("owner/repo")
 		if err := g.loadItems(); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -414,8 +425,8 @@ func TestNilClient(t *testing.T) {
 	t.Run("LoadDetail", func(t *testing.T) {
 		g := newTestGui()
 		g.state.ActivePanel = PanelPRs
-		g.panels.Repos.Repos = []string{"owner/repo"}
-		g.panels.PRs.Items = []panels.Item{{Kind: panels.ItemKindPR, Number: 1, Title: "x"}}
+		g.panels.Repos.Items = repoItems("owner/repo")
+		g.panels.PRs.Items = []panels.Item{{Number: 1, Title: "x"}}
 		if err := g.loadDetail(); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -433,12 +444,12 @@ func TestRefreshDetailPreview_SetsContent(t *testing.T) {
 		{
 			name:  "Issues",
 			panel: PanelIssues,
-			item:  panels.Item{Kind: panels.ItemKindIssue, Number: 7, Title: "My Issue"},
+			item:  panels.Item{Number: 7, Title: "My Issue"},
 		},
 		{
 			name:  "PRs",
 			panel: PanelPRs,
-			item:  panels.Item{Kind: panels.ItemKindPR, Number: 42, Title: "My PR"},
+			item:  panels.Item{Number: 42, Title: "My PR"},
 		},
 	}
 
@@ -454,7 +465,10 @@ func TestRefreshDetailPreview_SetsContent(t *testing.T) {
 			}
 			g.refreshDetailPreview()
 
-			want := tt.item.String()
+			want := panels.FormatIssueItem(tt.item)
+			if tt.panel == PanelPRs {
+				want = panels.FormatPRItem(tt.item)
+			}
 			if g.panels.Detail.Content != want {
 				t.Errorf("got %q, want %q", g.panels.Detail.Content, want)
 			}

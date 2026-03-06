@@ -24,7 +24,7 @@ type State struct {
 }
 
 type Panels struct {
-	Repos  *panels.ReposPanel
+	Repos  *panels.ItemsPanel
 	Issues *panels.ItemsPanel
 	PRs    *panels.ItemsPanel
 	Detail *panels.DetailPanel
@@ -50,9 +50,9 @@ func NewGui(cfg *config.Config, client gh.ClientInterface) (*Gui, error) {
 		config: cfg,
 		state:  &State{ActivePanel: PanelRepos},
 		panels: &Panels{
-			Repos:  panels.NewReposPanel(),
-			Issues: panels.NewItemsPanel(),
-			PRs:    panels.NewItemsPanel(),
+			Repos:  panels.NewItemsPanel(panels.FormatRepoItem),
+			Issues: panels.NewItemsPanel(panels.FormatIssueItem),
+			PRs:    panels.NewItemsPanel(panels.FormatPRItem),
 			Detail: panels.NewDetailPanel(),
 		},
 		client: client,
@@ -125,10 +125,8 @@ func (gui *Gui) applyReposResult(repos []string, err error) error {
 		gui.showError("Error loading repos", err)
 		return nil
 	}
-	gui.panels.Repos.Repos = repos
-	gui.panels.Repos.Selected = 0
+	gui.setItemsPanel(gui.panels.Repos, "repos", toRepoItems(repos))
 	gui.reposLoaded = true
-	gui.renderPanel("repos")
 	return nil
 }
 
@@ -144,10 +142,10 @@ func (gui *Gui) loadItems() error {
 	if gui.client == nil {
 		return nil
 	}
-	if len(gui.panels.Repos.Repos) == 0 {
+	repo, ok := gui.selectedRepo()
+	if !ok {
 		return nil
 	}
-	repo := gui.panels.Repos.Repos[gui.panels.Repos.Selected]
 
 	issues, err := gui.client.ListIssues(repo)
 	if err != nil {
@@ -163,11 +161,11 @@ func (gui *Gui) loadItems() error {
 
 	issueItems := make([]panels.Item, 0, len(issues))
 	for _, issue := range issues {
-		issueItems = append(issueItems, panels.Item{Kind: panels.ItemKindIssue, Number: issue.Number, Title: issue.Title})
+		issueItems = append(issueItems, panels.Item{Number: issue.Number, Title: issue.Title})
 	}
 	prItems := make([]panels.Item, 0, len(prs))
 	for _, pr := range prs {
-		prItems = append(prItems, panels.Item{Kind: panels.ItemKindPR, Number: pr.Number, Title: pr.Title})
+		prItems = append(prItems, panels.Item{Number: pr.Number, Title: pr.Title})
 	}
 
 	gui.setItemsPanel(gui.panels.Issues, "issues", issueItems)
@@ -212,10 +210,10 @@ func (gui *Gui) loadDetail() error {
 	if gui.client == nil {
 		return nil
 	}
-	if len(gui.panels.Repos.Repos) == 0 {
+	repo, ok := gui.selectedRepo()
+	if !ok {
 		return nil
 	}
-	repo := gui.panels.Repos.Repos[gui.panels.Repos.Selected]
 	itemsPanel, ok := gui.activeItemsPanel()
 	if !ok || len(itemsPanel.Items) == 0 {
 		return nil
@@ -243,6 +241,21 @@ func (gui *Gui) refreshDetailPreview() {
 		return
 	}
 	item := itemsPanel.Items[itemsPanel.Selected]
-	gui.panels.Detail.SetContent(item.String())
+	gui.panels.Detail.SetContent(itemsPanel.Format(item))
 	gui.renderPanel("detail")
+}
+
+func toRepoItems(repos []string) []panels.Item {
+	items := make([]panels.Item, 0, len(repos))
+	for _, repo := range repos {
+		items = append(items, panels.Item{Title: repo})
+	}
+	return items
+}
+
+func (gui *Gui) selectedRepo() (string, bool) {
+	if len(gui.panels.Repos.Items) == 0 {
+		return "", false
+	}
+	return gui.panels.Repos.Format(gui.panels.Repos.Items[gui.panels.Repos.Selected]), true
 }

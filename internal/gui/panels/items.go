@@ -6,47 +6,61 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
-type ItemKind int
-
-const (
-	ItemKindPR ItemKind = iota
-	ItemKindIssue
-)
-
 type Item struct {
-	Kind   ItemKind
 	Number int
 	Title  string
 }
 
-func (it Item) String() string {
-	kind := "PR"
-	if it.Kind == ItemKindIssue {
-		kind = "Issue"
-	}
-	return fmt.Sprintf("%s #%d %s", kind, it.Number, it.Title)
+type ItemFormatter func(Item) string
+
+func FormatRepoItem(item Item) string {
+	return item.Title
+}
+
+func FormatIssueItem(item Item) string {
+	return fmt.Sprintf("Issue #%d %s", item.Number, item.Title)
+}
+
+func FormatPRItem(item Item) string {
+	return fmt.Sprintf("PR #%d %s", item.Number, item.Title)
 }
 
 type ItemsPanel struct {
-	Items    []Item
-	Selected int
+	ListPanel
+	Items     []Item
+	Loading   bool
+	Formatter ItemFormatter
 }
 
-func NewItemsPanel() *ItemsPanel {
+func NewItemsPanel(formatter ItemFormatter) *ItemsPanel {
+	if formatter == nil {
+		formatter = FormatRepoItem
+	}
 	return &ItemsPanel{
-		Items:    []Item{},
-		Selected: 0,
+		ListPanel: NewListPanel(),
+		Items:     []Item{},
+		Loading:   false,
+		Formatter: formatter,
 	}
 }
 
 func (p *ItemsPanel) Render(v *gocui.View) {
-	adjustScroll(v, p.Selected)
-	v.Clear()
-	for i, item := range p.Items {
-		prefix := "  "
-		if i == p.Selected {
-			prefix = "> "
-		}
-		_, _ = v.Write([]byte(prefix + item.String() + "\n"))
+	if p.Loading {
+		v.Clear()
+		_ = v.SetCursor(0, 0)
+		_, _ = v.Write([]byte("Loading...\n"))
+		return
 	}
+	p.ListPanel.Render(v, len(p.Items), p.renderRow)
+}
+
+func (p *ItemsPanel) renderRow(index int) string {
+	return p.Format(p.Items[index])
+}
+
+func (p *ItemsPanel) Format(item Item) string {
+	if p.Formatter == nil {
+		return FormatRepoItem(item)
+	}
+	return p.Formatter(item)
 }

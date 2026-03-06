@@ -2,22 +2,29 @@ package panels
 
 import "testing"
 
-func TestNewReposPanel(t *testing.T) {
-	p := NewReposPanel()
-	if p == nil {
-		t.Fatal("NewReposPanel returned nil")
-	}
-	if p.Repos == nil {
-		t.Error("Repos should not be nil")
-	}
-	if len(p.Repos) != 0 {
-		t.Errorf("Repos length: got %d, want 0", len(p.Repos))
-	}
+func TestNewListPanel(t *testing.T) {
+	p := NewListPanel()
 	if p.Selected != 0 {
 		t.Errorf("Selected: got %d, want 0", p.Selected)
 	}
-	if p.Loading {
-		t.Error("Loading should be false")
+}
+
+func TestFormatListRow(t *testing.T) {
+	tests := []struct {
+		name     string
+		row      string
+		selected bool
+		want     string
+	}{
+		{name: "Selected", row: "owner/repo", selected: true, want: "> owner/repo\n"},
+		{name: "NotSelected", row: "owner/repo", selected: false, want: "  owner/repo\n"},
+	}
+
+	for _, tt := range tests {
+		got := formatListRow(tt.row, tt.selected)
+		if got != tt.want {
+			t.Errorf("%s: got %q, want %q", tt.name, got, tt.want)
+		}
 	}
 }
 

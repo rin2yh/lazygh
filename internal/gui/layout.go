@@ -39,6 +39,9 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	} else {
 		v.Title = formatPanelTitle("Issues", gui.state.ActivePanel == PanelIssues)
 		v.Wrap = false
+		v.Highlight = true
+		v.SelBgColor = gocui.ColorGreen
+		v.SelFgColor = gocui.ColorBlack
 		if err == gocui.ErrUnknownView {
 			gui.panels.Issues.Render(v)
 		}
@@ -50,6 +53,9 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	} else {
 		v.Title = formatPanelTitle("PRs", gui.state.ActivePanel == PanelPRs)
 		v.Wrap = false
+		v.Highlight = true
+		v.SelBgColor = gocui.ColorGreen
+		v.SelFgColor = gocui.ColorBlack
 		if err == gocui.ErrUnknownView {
 			gui.panels.PRs.Render(v)
 		}
