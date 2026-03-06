@@ -23,7 +23,7 @@ func TestFormatters(t *testing.T) {
 }
 
 func TestNewItemsPanel(t *testing.T) {
-	p := NewItemsPanel(FormatIssueItem)
+	p := NewItemsPanel(FormatIssueItem, false)
 	if p == nil {
 		t.Fatal("NewItemsPanel returned nil")
 	}
@@ -39,10 +39,13 @@ func TestNewItemsPanel(t *testing.T) {
 	if p.Loading {
 		t.Error("Loading should be false")
 	}
+	if p.KeepSelectionOnBlur {
+		t.Error("KeepSelectionOnBlur should be false")
+	}
 }
 
 func TestItemsPanelRenderRow(t *testing.T) {
-	p := NewItemsPanel(FormatIssueItem)
+	p := NewItemsPanel(FormatIssueItem, false)
 	p.Items = []Item{
 		{Number: 7, Title: "issue"},
 		{Number: 42, Title: "pr"},
@@ -65,9 +68,44 @@ func TestItemsPanelRenderRow(t *testing.T) {
 }
 
 func TestItemsPanelFormat_DefaultFormatter(t *testing.T) {
-	p := NewItemsPanel(nil)
+	p := NewItemsPanel(nil, false)
 	got := p.Format(Item{Title: "owner/repo"})
 	if got != "owner/repo" {
 		t.Errorf("got %q, want %q", got, "owner/repo")
+	}
+}
+
+func TestItemsPanelShouldShowSelection(t *testing.T) {
+	tests := []struct {
+		name      string
+		panel     *ItemsPanel
+		active    bool
+		wantShown bool
+	}{
+		{
+			name:      "ActivePanel",
+			panel:     NewItemsPanel(FormatIssueItem, false),
+			active:    true,
+			wantShown: true,
+		},
+		{
+			name:      "InactiveNoKeep",
+			panel:     NewItemsPanel(FormatIssueItem, false),
+			active:    false,
+			wantShown: false,
+		},
+		{
+			name:      "InactiveKeep",
+			panel:     NewItemsPanel(FormatRepoItem, true),
+			active:    false,
+			wantShown: true,
+		},
+	}
+
+	for _, tt := range tests {
+		got := tt.panel.shouldShowSelection(tt.active)
+		if got != tt.wantShown {
+			t.Errorf("%s: got %v, want %v", tt.name, got, tt.wantShown)
+		}
 	}
 }

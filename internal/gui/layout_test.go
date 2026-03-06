@@ -93,3 +93,23 @@ func TestStatusViewBounds_HasOneVisibleRow(t *testing.T) {
 		t.Errorf("visibleRows = %d, want %d", visibleRows, 1)
 	}
 }
+
+func TestShouldHighlightListPanel(t *testing.T) {
+	tests := []struct {
+		name                string
+		active              bool
+		keepSelectionOnBlur bool
+		want                bool
+	}{
+		{name: "Active", active: true, keepSelectionOnBlur: false, want: true},
+		{name: "InactiveAndKeep", active: false, keepSelectionOnBlur: true, want: true},
+		{name: "InactiveAndNoKeep", active: false, keepSelectionOnBlur: false, want: false},
+	}
+
+	for _, tt := range tests {
+		got := shouldHighlightListPanel(tt.active, tt.keepSelectionOnBlur)
+		if got != tt.want {
+			t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
+		}
+	}
+}

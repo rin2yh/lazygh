@@ -12,7 +12,7 @@ func NewListPanel() ListPanel {
 
 type RowRenderer func(index int) string
 
-func (p *ListPanel) Render(v *gocui.View, count int, renderRow RowRenderer) {
+func (p *ListPanel) Render(v *gocui.View, count int, renderRow RowRenderer, showSelection bool) {
 	adjustScroll(v, p.Selected)
 	v.Clear()
 	if count == 0 || renderRow == nil {
@@ -23,7 +23,7 @@ func (p *ListPanel) Render(v *gocui.View, count int, renderRow RowRenderer) {
 	_, height := v.Size()
 	_ = v.SetCursor(0, calcCursorY(p.Selected, originY, height))
 	for i := 0; i < count; i++ {
-		_, _ = v.Write([]byte(formatListRow(renderRow(i), i == p.Selected)))
+		_, _ = v.Write([]byte(formatListRow(renderRow(i), showSelection && i == p.Selected)))
 	}
 }
 

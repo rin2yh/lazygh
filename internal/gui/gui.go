@@ -50,9 +50,9 @@ func NewGui(cfg *config.Config, client gh.ClientInterface) (*Gui, error) {
 		config: cfg,
 		state:  &State{ActivePanel: PanelRepos},
 		panels: &Panels{
-			Repos:  panels.NewItemsPanel(panels.FormatRepoItem),
-			Issues: panels.NewItemsPanel(panels.FormatIssueItem),
-			PRs:    panels.NewItemsPanel(panels.FormatPRItem),
+			Repos:  panels.NewItemsPanel(panels.FormatRepoItem, true),
+			Issues: panels.NewItemsPanel(panels.FormatIssueItem, false),
+			PRs:    panels.NewItemsPanel(panels.FormatPRItem, false),
 			Detail: panels.NewDetailPanel(),
 		},
 		client: client,
@@ -109,11 +109,11 @@ func (gui *Gui) renderPanel(name string) {
 	}
 	switch name {
 	case "repos":
-		gui.panels.Repos.Render(v)
+		gui.panels.Repos.Render(v, gui.state.ActivePanel == PanelRepos)
 	case "issues":
-		gui.panels.Issues.Render(v)
+		gui.panels.Issues.Render(v, gui.state.ActivePanel == PanelIssues)
 	case "prs":
-		gui.panels.PRs.Render(v)
+		gui.panels.PRs.Render(v, gui.state.ActivePanel == PanelPRs)
 	case "detail":
 		gui.panels.Detail.Render(v)
 	}

@@ -25,11 +25,11 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	} else {
 		v.Title = formatPanelTitle("Repositories", gui.state.ActivePanel == PanelRepos)
 		v.Wrap = false
-		v.Highlight = true
+		v.Highlight = shouldHighlightListPanel(gui.state.ActivePanel == PanelRepos, gui.panels.Repos.KeepSelectionOnBlur)
 		v.SelBgColor = gocui.ColorGreen
 		v.SelFgColor = gocui.ColorBlack
 		if err == gocui.ErrUnknownView {
-			gui.panels.Repos.Render(v)
+			gui.panels.Repos.Render(v, gui.state.ActivePanel == PanelRepos)
 		}
 	}
 
@@ -39,11 +39,11 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	} else {
 		v.Title = formatPanelTitle("Issues", gui.state.ActivePanel == PanelIssues)
 		v.Wrap = false
-		v.Highlight = true
+		v.Highlight = shouldHighlightListPanel(gui.state.ActivePanel == PanelIssues, gui.panels.Issues.KeepSelectionOnBlur)
 		v.SelBgColor = gocui.ColorGreen
 		v.SelFgColor = gocui.ColorBlack
 		if err == gocui.ErrUnknownView {
-			gui.panels.Issues.Render(v)
+			gui.panels.Issues.Render(v, gui.state.ActivePanel == PanelIssues)
 		}
 	}
 
@@ -53,11 +53,11 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	} else {
 		v.Title = formatPanelTitle("PRs", gui.state.ActivePanel == PanelPRs)
 		v.Wrap = false
-		v.Highlight = true
+		v.Highlight = shouldHighlightListPanel(gui.state.ActivePanel == PanelPRs, gui.panels.PRs.KeepSelectionOnBlur)
 		v.SelBgColor = gocui.ColorGreen
 		v.SelFgColor = gocui.ColorBlack
 		if err == gocui.ErrUnknownView {
-			gui.panels.PRs.Render(v)
+			gui.panels.PRs.Render(v, gui.state.ActivePanel == PanelPRs)
 		}
 	}
 
@@ -119,4 +119,8 @@ func formatStatusLine(activePanel PanelType) string {
 func statusViewBounds(maxX, maxY int) (int, int, int, int) {
 	contentHeight := maxY - statusBarHeight - 1
 	return 0, contentHeight + 1, maxX - 1, maxY
+}
+
+func shouldHighlightListPanel(active bool, keepSelectionOnBlur bool) bool {
+	return active || keepSelectionOnBlur
 }

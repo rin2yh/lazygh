@@ -27,31 +27,37 @@ func FormatPRItem(item Item) string {
 
 type ItemsPanel struct {
 	ListPanel
-	Items     []Item
-	Loading   bool
-	Formatter ItemFormatter
+	Items               []Item
+	Loading             bool
+	Formatter           ItemFormatter
+	KeepSelectionOnBlur bool
 }
 
-func NewItemsPanel(formatter ItemFormatter) *ItemsPanel {
+func NewItemsPanel(formatter ItemFormatter, keepSelectionOnBlur bool) *ItemsPanel {
 	if formatter == nil {
 		formatter = FormatRepoItem
 	}
 	return &ItemsPanel{
-		ListPanel: NewListPanel(),
-		Items:     []Item{},
-		Loading:   false,
-		Formatter: formatter,
+		ListPanel:           NewListPanel(),
+		Items:               []Item{},
+		Loading:             false,
+		Formatter:           formatter,
+		KeepSelectionOnBlur: keepSelectionOnBlur,
 	}
 }
 
-func (p *ItemsPanel) Render(v *gocui.View) {
+func (p *ItemsPanel) Render(v *gocui.View, active bool) {
 	if p.Loading {
 		v.Clear()
 		_ = v.SetCursor(0, 0)
 		_, _ = v.Write([]byte("Loading...\n"))
 		return
 	}
-	p.ListPanel.Render(v, len(p.Items), p.renderRow)
+	p.ListPanel.Render(v, len(p.Items), p.renderRow, p.shouldShowSelection(active))
+}
+
+func (p *ItemsPanel) shouldShowSelection(active bool) bool {
+	return active || p.KeepSelectionOnBlur
 }
 
 func (p *ItemsPanel) renderRow(index int) string {

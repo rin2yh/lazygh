@@ -65,6 +65,9 @@ func (gui *Gui) quit(_ *gocui.Gui, _ *gocui.View) error {
 
 func (gui *Gui) nextPanel(_ *gocui.Gui, _ *gocui.View) error {
 	gui.state.ActivePanel = (gui.state.ActivePanel + 1) % panelCount
+	gui.renderPanel("repos")
+	gui.renderPanel("issues")
+	gui.renderPanel("prs")
 	return nil
 }
 

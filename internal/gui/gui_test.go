@@ -32,9 +32,9 @@ func newTestGui() *Gui {
 		config: config.Default(),
 		state:  &State{ActivePanel: PanelRepos},
 		panels: &Panels{
-			Repos:  panels.NewItemsPanel(panels.FormatRepoItem),
-			Issues: panels.NewItemsPanel(panels.FormatIssueItem),
-			PRs:    panels.NewItemsPanel(panels.FormatPRItem),
+			Repos:  panels.NewItemsPanel(panels.FormatRepoItem, true),
+			Issues: panels.NewItemsPanel(panels.FormatIssueItem, false),
+			PRs:    panels.NewItemsPanel(panels.FormatPRItem, false),
 			Detail: panels.NewDetailPanel(),
 		},
 	}
