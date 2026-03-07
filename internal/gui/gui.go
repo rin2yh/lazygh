@@ -325,7 +325,6 @@ func (gui *Gui) renderDetailPanel(title string, active bool, width int, height i
 	for len(lines) < height {
 		lines = append(lines, "")
 	}
-	_ = width
 	return lines
 }
 
@@ -357,11 +356,6 @@ func wrapText(content string, width int) string {
 	srcLines := strings.Split(content, "\n")
 	dstLines := make([]string, 0, len(srcLines))
 	for _, line := range srcLines {
-		if line == "" {
-			dstLines = append(dstLines, "")
-			continue
-		}
-
 		var b strings.Builder
 		col := 0
 		for _, r := range line {
