@@ -12,6 +12,9 @@ type App struct {
 }
 
 func NewApp(cfg *config.Config) (*App, error) {
+	if err := gh.ValidateCLI(); err != nil {
+		return nil, err
+	}
 	client := gh.NewClient()
 	g, err := gui.NewGui(cfg, client)
 	if err != nil {

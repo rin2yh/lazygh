@@ -141,3 +141,41 @@ func TestListRepos_Error(t *testing.T) {
 		t.Fatal("expected error, got nil")
 	}
 }
+
+func TestValidateCLI_OK(t *testing.T) {
+	orig := lookPath
+	t.Cleanup(func() {
+		lookPath = orig
+	})
+	lookPath = func(file string) (string, error) {
+		if file != "gh" {
+			t.Fatalf("unexpected file lookup: %s", file)
+		}
+		return "/usr/local/bin/gh", nil
+	}
+
+	if err := ValidateCLI(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestValidateCLI_Error(t *testing.T) {
+	orig := lookPath
+	t.Cleanup(func() {
+		lookPath = orig
+	})
+	lookPath = func(file string) (string, error) {
+		if file != "gh" {
+			t.Fatalf("unexpected file lookup: %s", file)
+		}
+		return "", exec.ErrNotFound
+	}
+
+	err := ValidateCLI()
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "gh CLI is required") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}

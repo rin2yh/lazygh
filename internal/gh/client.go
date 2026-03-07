@@ -2,6 +2,7 @@ package gh
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
@@ -29,8 +30,17 @@ type Client struct {
 	execCommand func(name string, args ...string) *exec.Cmd
 }
 
+var lookPath = exec.LookPath
+
 func NewClient() *Client {
 	return &Client{execCommand: exec.Command}
+}
+
+func ValidateCLI() error {
+	if _, err := lookPath("gh"); err != nil {
+		return fmt.Errorf("gh CLI is required but was not found in PATH: %w", err)
+	}
+	return nil
 }
 
 func withGHCommandEnv(base []string) []string {
