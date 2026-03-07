@@ -219,7 +219,7 @@ func (s *State) SelectedRepo() (string, bool) {
 	if s.ReposSelected < 0 || s.ReposSelected >= len(s.Repos) {
 		return "", false
 	}
-	return FormatRepoItem(s.Repos[s.ReposSelected]), true
+	return s.Repos[s.ReposSelected].Title, true
 }
 
 func (s *State) refreshDetailPreview() {
@@ -266,7 +266,7 @@ func (s *State) showError(msg string, err error) {
 func toRepoItems(repos []string) []Item {
 	items := make([]Item, 0, len(repos))
 	for _, repo := range repos {
-		items = append(items, Item{Title: sanitizeSingleLine(repo)})
+		items = append(items, Item{Title: repo})
 	}
 	return items
 }

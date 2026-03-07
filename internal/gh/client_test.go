@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -142,40 +143,49 @@ func TestListRepos_Error(t *testing.T) {
 	}
 }
 
-func TestValidateCLI_OK(t *testing.T) {
-	orig := lookPath
-	t.Cleanup(func() {
-		lookPath = orig
-	})
-	lookPath = func(file string) (string, error) {
-		if file != "gh" {
-			t.Fatalf("unexpected file lookup: %s", file)
-		}
-		return "/usr/local/bin/gh", nil
+func TestValidateCLI(t *testing.T) {
+	tests := []struct {
+		name      string
+		setupPath func(t *testing.T) string
+		wantErr   bool
+	}{
+		{
+			name: "ok",
+			setupPath: func(t *testing.T) string {
+				dir := t.TempDir()
+				ghPath := filepath.Join(dir, "gh")
+				if err := os.WriteFile(ghPath, []byte("#!/bin/sh\n"), 0o755); err != nil {
+					t.Fatalf("write fake gh failed: %v", err)
+				}
+				return dir
+			},
+		},
+		{
+			name: "error",
+			setupPath: func(t *testing.T) string {
+				return t.TempDir()
+			},
+			wantErr: true,
+		},
 	}
 
-	if err := ValidateCLI(); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("PATH", tt.setupPath(t))
 
-func TestValidateCLI_Error(t *testing.T) {
-	orig := lookPath
-	t.Cleanup(func() {
-		lookPath = orig
-	})
-	lookPath = func(file string) (string, error) {
-		if file != "gh" {
-			t.Fatalf("unexpected file lookup: %s", file)
-		}
-		return "", exec.ErrNotFound
-	}
-
-	err := ValidateCLI()
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-	if !strings.Contains(err.Error(), "gh CLI is required") {
-		t.Fatalf("unexpected error: %v", err)
+			err := ValidateCLI()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if !strings.Contains(err.Error(), "gh CLI is required") {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
 	}
 }

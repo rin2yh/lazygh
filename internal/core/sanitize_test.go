@@ -2,21 +2,33 @@ package core
 
 import "testing"
 
-func TestSanitizeSingleLine(t *testing.T) {
-	in := "ok\x1b[31mred\x00\tline\nnext"
-	got := sanitizeSingleLine(in)
-	want := "ok[31mred line next"
-	if got != want {
-		t.Fatalf("got %q, want %q", got, want)
+func TestSanitize(t *testing.T) {
+	tests := []struct {
+		name string
+		run  func(string) string
+		in   string
+		want string
+	}{
+		{
+			name: "single line",
+			run:  sanitizeSingleLine,
+			in:   "ok\x1b[31mred\x00\tline\nnext",
+			want: "ok[31mred line next",
+		},
+		{
+			name: "multi line",
+			run:  sanitizeMultiline,
+			in:   "title\x1b[31m\r\nbody\x00\nend",
+			want: "title[31m\nbody\nend",
+		},
 	}
-}
 
-func TestSanitizeMultiline(t *testing.T) {
-	in := "title\x1b[31m\r\nbody\x00\nend"
-	got := sanitizeMultiline(in)
-	want := "title[31m\nbody\nend"
-	if got != want {
-		t.Fatalf("got %q, want %q", got, want)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.run(tt.in); got != tt.want {
+				t.Fatalf("got %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 
