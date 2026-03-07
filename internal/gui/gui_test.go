@@ -179,3 +179,39 @@ func TestNavigateDetailPanelScroll(t *testing.T) {
 		t.Fatalf("expected detail viewport to scroll up, got offset=%d", g.detailViewport.YOffset)
 	}
 }
+
+func TestWrapText(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		width   int
+		want    string
+	}{
+		{
+			name:    "wrap long line",
+			content: "abcdefghij",
+			width:   4,
+			want:    "abcd\nefgh\nij",
+		},
+		{
+			name:    "keep existing line breaks",
+			content: "abcde\nfghij",
+			width:   3,
+			want:    "abc\nde\nfgh\nij",
+		},
+		{
+			name:    "no wrap when width is enough",
+			content: "abc",
+			width:   10,
+			want:    "abc",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := wrapText(tt.content, tt.width); got != tt.want {
+				t.Fatalf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

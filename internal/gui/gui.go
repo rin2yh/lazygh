@@ -342,10 +342,44 @@ func (gui *Gui) syncDetailViewport(width int, height int, content string) {
 		gui.detailViewportWidth = width
 		gui.detailViewportHeight = height
 	}
-	if gui.detailViewportBody != content {
-		gui.detailViewport.SetContent(content)
-		gui.detailViewportBody = content
+	wrapped := wrapText(content, width)
+	if gui.detailViewportBody != wrapped {
+		gui.detailViewport.SetContent(wrapped)
+		gui.detailViewportBody = wrapped
 	}
+}
+
+func wrapText(content string, width int) string {
+	if width <= 0 || content == "" {
+		return content
+	}
+
+	srcLines := strings.Split(content, "\n")
+	dstLines := make([]string, 0, len(srcLines))
+	for _, line := range srcLines {
+		if line == "" {
+			dstLines = append(dstLines, "")
+			continue
+		}
+
+		var b strings.Builder
+		col := 0
+		for _, r := range line {
+			rw := runewidth.RuneWidth(r)
+			if rw <= 0 {
+				rw = 1
+			}
+			if col > 0 && col+rw > width {
+				dstLines = append(dstLines, b.String())
+				b.Reset()
+				col = 0
+			}
+			b.WriteRune(r)
+			col += rw
+		}
+		dstLines = append(dstLines, b.String())
+	}
+	return strings.Join(dstLines, "\n")
 }
 
 func padOrTrim(s string, width int) string {
