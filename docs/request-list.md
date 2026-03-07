@@ -1,9 +1,10 @@
 # request-list
 
-- Issue、PRでローディングが入らない
-- Issueの詳細表示
-- PRの詳細表示
-- 危険文字のサニタイズ
 - Detailsの長文折り返し（見切れ改善）
 - Issues空欄時のプレースホルダ表示
 - ステータスバーにShift+Tabを明記
+- パネルのフレームをつける（選択状態で色がつく）
+- サイドバーの操作系をlazygit, lazydockerと揃える（hlでパネル移動、jkでパネル内の上下移動など）
+- Detailsの下にコマンドログを入れる
+- PR, Issue一覧でCloseとかも取れるようにする
+- Detailsの下にコマンドログパネルを出す

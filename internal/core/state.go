@@ -107,7 +107,7 @@ func (s *State) ApplyDetailResult(content string, err error) {
 		s.showError("Error loading detail", err)
 		return
 	}
-	s.DetailContent = content
+	s.DetailContent = sanitizeMultiline(content)
 }
 
 func (s *State) NextPanel() {
@@ -260,25 +260,25 @@ func (s *State) selectedPR() (Item, bool) {
 }
 
 func (s *State) showError(msg string, err error) {
-	s.DetailContent = fmt.Sprintf("%s: %v", msg, err)
+	s.DetailContent = sanitizeMultiline(fmt.Sprintf("%s: %v", msg, err))
 }
 
 func toRepoItems(repos []string) []Item {
 	items := make([]Item, 0, len(repos))
 	for _, repo := range repos {
-		items = append(items, Item{Title: repo})
+		items = append(items, Item{Title: sanitizeSingleLine(repo)})
 	}
 	return items
 }
 
 func FormatRepoItem(item Item) string {
-	return item.Title
+	return sanitizeSingleLine(item.Title)
 }
 
 func FormatIssueItem(item Item) string {
-	return fmt.Sprintf("Issue #%d %s", item.Number, item.Title)
+	return fmt.Sprintf("Issue #%d %s", item.Number, sanitizeSingleLine(item.Title))
 }
 
 func FormatPRItem(item Item) string {
-	return fmt.Sprintf("PR #%d %s", item.Number, item.Title)
+	return fmt.Sprintf("PR #%d %s", item.Number, sanitizeSingleLine(item.Title))
 }
