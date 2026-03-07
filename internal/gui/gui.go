@@ -248,9 +248,9 @@ func (gui *Gui) render() string {
 	prsH := contentHeight - reposH - issuesH
 
 	leftLines := make([]string, 0, contentHeight)
-	leftLines = append(leftLines, gui.renderItemsPanel("Repositories", gui.state.Repos, gui.state.ReposSelected, gui.state.ReposLoading, core.FormatRepoItem, gui.state.ActivePanel == PanelRepos, reposH)...)
-	leftLines = append(leftLines, gui.renderItemsPanel("Issues", gui.state.Issues, gui.state.IssuesSelected, gui.state.IssuesLoading, core.FormatIssueItem, gui.state.ActivePanel == PanelIssues, issuesH)...)
-	leftLines = append(leftLines, gui.renderItemsPanel("PRs", gui.state.PRs, gui.state.PRsSelected, gui.state.PRsLoading, core.FormatPRItem, gui.state.ActivePanel == PanelPRs, prsH)...)
+	leftLines = append(leftLines, gui.renderItemsPanel("Repositories", gui.state.Repos, gui.state.ReposSelected, gui.state.ReposLoading, core.FormatRepoItem, gui.state.ActivePanel == PanelRepos, reposH, "")...)
+	leftLines = append(leftLines, gui.renderItemsPanel("Issues", gui.state.Issues, gui.state.IssuesSelected, gui.state.IssuesLoading, core.FormatIssueItem, gui.state.ActivePanel == PanelIssues, issuesH, "No issues")...)
+	leftLines = append(leftLines, gui.renderItemsPanel("PRs", gui.state.PRs, gui.state.PRsSelected, gui.state.PRsLoading, core.FormatPRItem, gui.state.ActivePanel == PanelPRs, prsH, "")...)
 
 	rightLines := gui.renderDetailPanel("Detail", gui.state.ActivePanel == PanelDetail, rightWidth, contentHeight)
 
@@ -273,7 +273,7 @@ func (gui *Gui) render() string {
 	return b.String()
 }
 
-func (gui *Gui) renderItemsPanel(title string, items []core.Item, selected int, loading bool, formatter func(core.Item) string, active bool, height int) []string {
+func (gui *Gui) renderItemsPanel(title string, items []core.Item, selected int, loading bool, formatter func(core.Item) string, active bool, height int, emptyPlaceholder string) []string {
 	if height <= 0 {
 		return nil
 	}
@@ -283,6 +283,16 @@ func (gui *Gui) renderItemsPanel(title string, items []core.Item, selected int, 
 		for len(lines) < height {
 			if len(lines) == 1 {
 				lines = append(lines, "Loading...")
+			} else {
+				lines = append(lines, "")
+			}
+		}
+		return lines
+	}
+	if len(items) == 0 {
+		for len(lines) < height {
+			if len(lines) == 1 {
+				lines = append(lines, emptyPlaceholder)
 			} else {
 				lines = append(lines, "")
 			}

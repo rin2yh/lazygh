@@ -215,3 +215,15 @@ func TestWrapText(t *testing.T) {
 		})
 	}
 }
+
+func TestRenderItemsPanel_EmptyPlaceholder(t *testing.T) {
+	g := newTestGuiWithClient(&mockClient{})
+	lines := g.renderItemsPanel("Issues", nil, 0, false, core.FormatIssueItem, true, 3, "No issues")
+
+	if len(lines) != 3 {
+		t.Fatalf("got %d lines, want 3", len(lines))
+	}
+	if lines[1] != "No issues" {
+		t.Fatalf("got %q, want %q", lines[1], "No issues")
+	}
+}
