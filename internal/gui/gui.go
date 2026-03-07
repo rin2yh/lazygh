@@ -1,60 +1,46 @@
 package gui
 
 import (
-	"fmt"
 	"os"
 	"strings"
-	"unicode"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mattn/go-runewidth"
 	"github.com/rin2yh/lazygh/internal/config"
+	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/gui/panels"
 )
 
-type PanelType int
+type PanelType = core.PanelType
 
 const (
-	PanelRepos PanelType = iota
-	PanelIssues
-	PanelPRs
-	PanelDetail
-	panelCount
+	PanelRepos  = core.PanelRepos
+	PanelIssues = core.PanelIssues
+	PanelPRs    = core.PanelPRs
+	PanelDetail = core.PanelDetail
 )
 
-type State struct {
-	ActivePanel PanelType
-}
-
-type Panels struct {
-	Repos  *panels.ItemsPanel
-	Issues *panels.ItemsPanel
-	PRs    *panels.ItemsPanel
-	Detail *panels.DetailPanel
-}
-
 type Gui struct {
-	config      *config.Config
-	state       *State
-	panels      *Panels
-	client      gh.ClientInterface
-	reposLoaded bool
-	width       int
-	height      int
+	config *config.Config
+	state  *core.State
+	client gh.ClientInterface
+
+	detailViewport       viewport.Model
+	detailViewportWidth  int
+	detailViewportHeight int
+	detailViewportBody   string
 }
 
 func NewGui(cfg *config.Config, client gh.ClientInterface) (*Gui, error) {
+	vp := viewport.New(1, 1)
 	return &Gui{
-		config: cfg,
-		state:  &State{ActivePanel: PanelRepos},
-		panels: &Panels{
-			Repos:  panels.NewItemsPanel(panels.FormatRepoItem, true),
-			Issues: panels.NewItemsPanel(panels.FormatIssueItem, false),
-			PRs:    panels.NewItemsPanel(panels.FormatPRItem, false),
-			Detail: panels.NewDetailPanel(),
-		},
-		client: client,
+		config:               cfg,
+		state:                core.NewState(),
+		client:               client,
+		detailViewport:       vp,
+		detailViewportWidth:  1,
+		detailViewportHeight: 1,
 	}, nil
 }
 
@@ -71,8 +57,8 @@ type reposLoadedMsg struct {
 
 type itemsLoadedMsg struct {
 	repo   string
-	issues []gh.IssueItem
-	prs    []gh.PRItem
+	issues []core.Item
+	prs    []core.Item
 	err    error
 }
 
@@ -89,15 +75,14 @@ func (m *model) Init() tea.Cmd {
 	if m.gui.client == nil {
 		return nil
 	}
-	m.gui.panels.Repos.Loading = true
+	m.gui.state.BeginLoadRepos()
 	return m.loadReposCmd()
 }
 
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.gui.width = msg.Width
-		m.gui.height = msg.Height
+		m.gui.state.SetWindowSize(msg.Width, msg.Height)
 		return m, nil
 	case reposLoadedMsg:
 		m.gui.applyReposResult(msg.repos, msg.err)
@@ -142,6 +127,22 @@ func (m *model) loadReposCmd() tea.Cmd {
 	}
 }
 
+func toCoreIssues(issues []gh.IssueItem) []core.Item {
+	items := make([]core.Item, 0, len(issues))
+	for _, issue := range issues {
+		items = append(items, core.Item{Number: issue.Number, Title: issue.Title})
+	}
+	return items
+}
+
+func toCorePRs(prs []gh.PRItem) []core.Item {
+	items := make([]core.Item, 0, len(prs))
+	for _, pr := range prs {
+		items = append(items, core.Item{Number: pr.Number, Title: pr.Title})
+	}
+	return items
+}
+
 func (m *model) loadItemsCmd(repo string) tea.Cmd {
 	return func() tea.Msg {
 		issues, err := m.gui.client.ListIssues(repo)
@@ -152,9 +153,11 @@ func (m *model) loadItemsCmd(repo string) tea.Cmd {
 		if err != nil {
 			return itemsLoadedMsg{repo: repo, err: err}
 		}
-		return itemsLoadedMsg{repo: repo, issues: issues, prs: prs}
+		return itemsLoadedMsg{repo: repo, issues: toCoreIssues(issues), prs: toCorePRs(prs)}
 	}
 }
+
+type detailLoader func(repo string, number int) (string, error)
 
 func (m *model) loadDetailCmd(repo string, number int, loader detailLoader) tea.Cmd {
 	return func() tea.Msg {
@@ -164,194 +167,58 @@ func (m *model) loadDetailCmd(repo string, number int, loader detailLoader) tea.
 }
 
 func (m *model) handleEnter() tea.Cmd {
-	switch m.gui.state.ActivePanel {
-	case PanelRepos:
-		repo, ok := m.gui.selectedRepo()
-		if !ok || m.gui.client == nil {
-			return nil
-		}
-		m.gui.panels.Issues.Loading = true
-		m.gui.panels.PRs.Loading = true
-		m.gui.panels.Detail.SetContent("Loading items...")
-		return m.loadItemsCmd(repo)
-	case PanelIssues, PanelPRs:
-		if m.gui.client == nil {
-			return nil
-		}
-		repo, ok := m.gui.selectedRepo()
-		if !ok {
-			return nil
-		}
-		itemsPanel, ok := m.gui.activeItemsPanel()
-		if !ok || len(itemsPanel.Items) == 0 {
-			return nil
-		}
-		loader, ok := m.gui.activeDetailLoader()
-		if !ok {
-			return nil
-		}
-		if forced := os.Getenv("LAZYGH_DEBUG_DETAIL_TEXT"); forced != "" {
-			m.gui.panels.Detail.SetContent(forced)
-			return nil
-		}
-		item := itemsPanel.Items[itemsPanel.Selected]
-		m.gui.panels.Detail.SetContent("Loading detail...")
-		return m.loadDetailCmd(repo, item.Number, loader)
+	action := m.gui.state.PlanEnter(m.gui.client != nil, os.Getenv("LAZYGH_DEBUG_DETAIL_TEXT"))
+	switch action.Kind {
+	case core.EnterLoadItems:
+		return m.loadItemsCmd(action.Repo)
+	case core.EnterLoadIssueDetail:
+		return m.loadDetailCmd(action.Repo, action.Number, m.gui.client.ViewIssue)
+	case core.EnterLoadPRDetail:
+		return m.loadDetailCmd(action.Repo, action.Number, m.gui.client.ViewPR)
 	default:
 		return nil
 	}
 }
 
-func (gui *Gui) showError(msg string, err error) {
-	gui.panels.Detail.SetContent(fmt.Sprintf("%s: %v", msg, err))
-}
-
 func (gui *Gui) applyReposResult(repos []string, err error) {
-	gui.panels.Repos.Loading = false
-	if err != nil {
-		gui.showError("Error loading repos", err)
-		return
-	}
-	gui.panels.Repos.Items = toRepoItems(repos)
-	gui.panels.Repos.Selected = 0
-	gui.reposLoaded = true
+	gui.state.ApplyReposResult(repos, err)
 }
 
 func (gui *Gui) applyItemsResult(msg itemsLoadedMsg) {
-	gui.panels.Issues.Loading = false
-	gui.panels.PRs.Loading = false
-	if msg.err != nil {
-		gui.showError("Error loading items", msg.err)
-		return
-	}
-	currentRepo, ok := gui.selectedRepo()
-	if !ok || currentRepo != msg.repo {
-		return
-	}
-
-	issueItems := make([]panels.Item, 0, len(msg.issues))
-	for _, issue := range msg.issues {
-		issueItems = append(issueItems, panels.Item{Number: issue.Number, Title: issue.Title})
-	}
-	prItems := make([]panels.Item, 0, len(msg.prs))
-	for _, pr := range msg.prs {
-		prItems = append(prItems, panels.Item{Number: pr.Number, Title: pr.Title})
-	}
-	gui.panels.Issues.Items = issueItems
-	gui.panels.PRs.Items = prItems
-	gui.panels.Issues.Selected = 0
-	gui.panels.PRs.Selected = 0
-	gui.panels.Detail.SetContent("")
+	gui.state.ApplyItemsResult(msg.repo, msg.issues, msg.prs, msg.err)
 }
 
 func (gui *Gui) applyDetailResult(msg detailLoadedMsg) {
-	if msg.err != nil {
-		gui.showError("Error loading detail", msg.err)
-		return
-	}
-	gui.panels.Detail.SetContent(msg.content)
+	gui.state.ApplyDetailResult(msg.content, msg.err)
 }
 
 func (gui *Gui) nextPanel() {
-	gui.state.ActivePanel = (gui.state.ActivePanel + 1) % panelCount
+	gui.state.NextPanel()
 }
 
 func (gui *Gui) prevPanel() {
-	if gui.state.ActivePanel == PanelRepos {
-		gui.state.ActivePanel = PanelDetail
-		return
-	}
-	gui.state.ActivePanel--
+	gui.state.PrevPanel()
 }
 
 func (gui *Gui) navigateDown() {
-	panelType, p, ok := gui.listPanelByPanel(gui.state.ActivePanel)
-	if !ok || len(p.Items) == 0 {
+	if gui.state.ActivePanel == PanelDetail {
+		gui.detailViewport.LineDown(1)
 		return
 	}
-	if p.Selected < len(p.Items)-1 {
-		p.Selected++
-	}
-	if panelType != PanelRepos {
-		gui.refreshDetailPreview()
-	}
+	gui.state.NavigateDown()
 }
 
 func (gui *Gui) navigateUp() {
-	panelType, p, ok := gui.listPanelByPanel(gui.state.ActivePanel)
-	if !ok || p.Selected <= 0 {
+	if gui.state.ActivePanel == PanelDetail {
+		gui.detailViewport.LineUp(1)
 		return
 	}
-	p.Selected--
-	if panelType != PanelRepos {
-		gui.refreshDetailPreview()
-	}
-}
-
-func (gui *Gui) listPanelByPanel(panel PanelType) (PanelType, *panels.ItemsPanel, bool) {
-	switch panel {
-	case PanelRepos:
-		return PanelRepos, gui.panels.Repos, true
-	case PanelIssues:
-		return PanelIssues, gui.panels.Issues, true
-	case PanelPRs:
-		return PanelPRs, gui.panels.PRs, true
-	default:
-		return 0, nil, false
-	}
-}
-
-type detailLoader func(repo string, number int) (string, error)
-
-func (gui *Gui) activeItemsPanel() (*panels.ItemsPanel, bool) {
-	switch gui.state.ActivePanel {
-	case PanelIssues:
-		return gui.panels.Issues, true
-	case PanelPRs:
-		return gui.panels.PRs, true
-	default:
-		return nil, false
-	}
-}
-
-func (gui *Gui) activeDetailLoader() (detailLoader, bool) {
-	switch gui.state.ActivePanel {
-	case PanelIssues:
-		return gui.client.ViewIssue, true
-	case PanelPRs:
-		return gui.client.ViewPR, true
-	default:
-		return nil, false
-	}
-}
-
-func (gui *Gui) refreshDetailPreview() {
-	itemsPanel, ok := gui.activeItemsPanel()
-	if !ok || len(itemsPanel.Items) == 0 {
-		return
-	}
-	item := itemsPanel.Items[itemsPanel.Selected]
-	gui.panels.Detail.SetContent(itemsPanel.Format(item))
-}
-
-func toRepoItems(repos []string) []panels.Item {
-	items := make([]panels.Item, 0, len(repos))
-	for _, repo := range repos {
-		items = append(items, panels.Item{Title: repo})
-	}
-	return items
-}
-
-func (gui *Gui) selectedRepo() (string, bool) {
-	if len(gui.panels.Repos.Items) == 0 {
-		return "", false
-	}
-	return gui.panels.Repos.Format(gui.panels.Repos.Items[gui.panels.Repos.Selected]), true
+	gui.state.NavigateUp()
 }
 
 func (gui *Gui) render() string {
-	w := gui.width
-	h := gui.height
+	w := gui.state.Width
+	h := gui.state.Height
 	if w <= 0 {
 		w = 120
 	}
@@ -381,9 +248,9 @@ func (gui *Gui) render() string {
 	prsH := contentHeight - reposH - issuesH
 
 	leftLines := make([]string, 0, contentHeight)
-	leftLines = append(leftLines, gui.renderItemsPanel("Repositories", gui.panels.Repos, gui.state.ActivePanel == PanelRepos, reposH)...)
-	leftLines = append(leftLines, gui.renderItemsPanel("Issues", gui.panels.Issues, gui.state.ActivePanel == PanelIssues, issuesH)...)
-	leftLines = append(leftLines, gui.renderItemsPanel("PRs", gui.panels.PRs, gui.state.ActivePanel == PanelPRs, prsH)...)
+	leftLines = append(leftLines, gui.renderItemsPanel("Repositories", gui.state.Repos, gui.state.ReposSelected, gui.state.ReposLoading, core.FormatRepoItem, gui.state.ActivePanel == PanelRepos, reposH)...)
+	leftLines = append(leftLines, gui.renderItemsPanel("Issues", gui.state.Issues, gui.state.IssuesSelected, gui.state.IssuesLoading, core.FormatIssueItem, gui.state.ActivePanel == PanelIssues, issuesH)...)
+	leftLines = append(leftLines, gui.renderItemsPanel("PRs", gui.state.PRs, gui.state.PRsSelected, gui.state.PRsLoading, core.FormatPRItem, gui.state.ActivePanel == PanelPRs, prsH)...)
 
 	rightLines := gui.renderDetailPanel("Detail", gui.state.ActivePanel == PanelDetail, rightWidth, contentHeight)
 
@@ -406,13 +273,13 @@ func (gui *Gui) render() string {
 	return b.String()
 }
 
-func (gui *Gui) renderItemsPanel(title string, panel *panels.ItemsPanel, active bool, height int) []string {
+func (gui *Gui) renderItemsPanel(title string, items []core.Item, selected int, loading bool, formatter func(core.Item) string, active bool, height int) []string {
 	if height <= 0 {
 		return nil
 	}
 	lines := make([]string, 0, height)
 	lines = append(lines, formatPanelTitle(title, active))
-	if panel.Loading {
+	if loading {
 		for len(lines) < height {
 			if len(lines) == 1 {
 				lines = append(lines, "Loading...")
@@ -424,15 +291,15 @@ func (gui *Gui) renderItemsPanel(title string, panel *panels.ItemsPanel, active 
 	}
 
 	for i := 0; len(lines) < height; i++ {
-		if i >= len(panel.Items) {
+		if i >= len(items) {
 			lines = append(lines, "")
 			continue
 		}
 		prefix := "  "
-		if i == panel.Selected {
+		if i == selected {
 			prefix = "> "
 		}
-		lines = append(lines, prefix+panel.Format(panel.Items[i]))
+		lines = append(lines, prefix+formatter(items[i]))
 	}
 	return lines
 }
@@ -441,13 +308,18 @@ func (gui *Gui) renderDetailPanel(title string, active bool, width int, height i
 	if height <= 0 {
 		return nil
 	}
+	bodyHeight := height - 1
+	if bodyHeight < 1 {
+		bodyHeight = 1
+	}
+	gui.syncDetailViewport(width, bodyHeight, gui.state.DetailContent)
+
 	lines := make([]string, 0, height)
 	lines = append(lines, formatPanelTitle(title, active))
-	for _, line := range strings.Split(gui.panels.Detail.Content, "\n") {
+	for _, line := range strings.Split(gui.detailViewport.View(), "\n") {
 		if len(lines) >= height {
 			break
 		}
-		// lines = append(lines, sanitizeRenderLine(line))
 		lines = append(lines, line)
 	}
 	for len(lines) < height {
@@ -457,11 +329,29 @@ func (gui *Gui) renderDetailPanel(title string, active bool, width int, height i
 	return lines
 }
 
+func (gui *Gui) syncDetailViewport(width int, height int, content string) {
+	if width < 1 {
+		width = 1
+	}
+	if height < 1 {
+		height = 1
+	}
+	if gui.detailViewportWidth != width || gui.detailViewportHeight != height {
+		gui.detailViewport.Width = width
+		gui.detailViewport.Height = height
+		gui.detailViewportWidth = width
+		gui.detailViewportHeight = height
+	}
+	if gui.detailViewportBody != content {
+		gui.detailViewport.SetContent(content)
+		gui.detailViewportBody = content
+	}
+}
+
 func padOrTrim(s string, width int) string {
 	if width <= 0 {
 		return ""
 	}
-	// s = sanitizeRenderLine(s)
 	var b strings.Builder
 	col := 0
 	for _, r := range s {
@@ -477,51 +367,6 @@ func padOrTrim(s string, width int) string {
 	}
 	if col < width {
 		b.WriteString(strings.Repeat(" ", width-col))
-	}
-	return b.String()
-}
-
-func sanitizeRenderLine(s string) string {
-	// Normalize tabs and remove control/escape sequences to keep column alignment stable.
-	s = strings.ReplaceAll(s, "\r", "")
-	var b strings.Builder
-	runes := []rune(s)
-	for i := 0; i < len(runes); i++ {
-		r := runes[i]
-		if r == '\x1b' {
-			// CSI
-			if i+1 < len(runes) && runes[i+1] == '[' {
-				i += 2
-				for i < len(runes) && !(runes[i] >= 0x40 && runes[i] <= 0x7e) {
-					i++
-				}
-				continue
-			}
-			// OSC
-			if i+1 < len(runes) && runes[i+1] == ']' {
-				i += 2
-				for i < len(runes) {
-					if runes[i] == '\a' {
-						break
-					}
-					if runes[i] == '\x1b' && i+1 < len(runes) && runes[i+1] == '\\' {
-						i++
-						break
-					}
-					i++
-				}
-				continue
-			}
-			continue
-		}
-		if r == '\t' {
-			b.WriteString("    ")
-			continue
-		}
-		if unicode.IsControl(r) {
-			continue
-		}
-		b.WriteRune(r)
 	}
 	return b.String()
 }

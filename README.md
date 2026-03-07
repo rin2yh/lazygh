@@ -57,3 +57,19 @@ lazygh
 | `j` / `↓` | Navigate down |
 | `k` / `↑` | Navigate up |
 | `Enter` | Select |
+
+## ローカル実ghスモーク
+
+実gh（モックなし）をローカルで軽く確認する最小手順:
+
+```sh
+gh auth status
+go build -o lazygh ./cmd/lazygh
+./lazygh
+```
+
+確認観点:
+
+- 起動時にRepositoriesが表示される
+- Repo選択でIssues/PRsが表示される
+- `q` で終了できる

@@ -12,7 +12,7 @@ go build -o lazygh ./cmd/lazygh
 go test ./...
 
 # 特定パッケージのテスト
-go test ./internal/gui/panels/...
+go test ./internal/core/...
 
 # フォーマット
 go fmt ./...
@@ -38,8 +38,8 @@ lazygh (Go TUI)  →  gh CLI  →  GitHub API
 | `cmd/lazygh` | エントリーポイント、設定・App初期化 |
 | `internal/app` | `App` 構造体（GUI・設定の統合コンテナ） |
 | `internal/gh` | `gh` CLI の `exec` ラッパー。`ClientInterface` でモック可能 |
-| `internal/gui` | `gocui` ベースの TUI、パネル間状態管理、キーバインド |
-| `internal/gui/panels` | 3パネル（Repos・Items・Detail）の描画ロジック |
+| `internal/core` | UI状態遷移とドメインロジック |
+| `internal/gui` | `bubbletea` ベースの TUIアダプタ・描画 |
 | `internal/config` | テーマ・キーバインド設定の読み込み |
 
 ### パネル構成

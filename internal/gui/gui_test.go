@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/rin2yh/lazygh/internal/config"
+	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/gui/panels"
 )
 
 type mockClient struct {
@@ -29,10 +29,10 @@ func newTestGuiWithClient(client gh.ClientInterface) *Gui {
 	return g
 }
 
-func repoItems(repos ...string) []panels.Item {
-	items := make([]panels.Item, 0, len(repos))
+func repoItems(repos ...string) []core.Item {
+	items := make([]core.Item, 0, len(repos))
 	for _, repo := range repos {
-		items = append(items, panels.Item{Title: repo})
+		items = append(items, core.Item{Title: repo})
 	}
 	return items
 }
@@ -52,66 +52,66 @@ func TestPanelCycle(t *testing.T) {
 func TestNavigateListPanels(t *testing.T) {
 	g := newTestGuiWithClient(&mockClient{})
 	g.state.ActivePanel = PanelPRs
-	g.panels.PRs.Items = []panels.Item{{Number: 1, Title: "a"}, {Number: 2, Title: "b"}}
+	g.state.PRs = []core.Item{{Number: 1, Title: "a"}, {Number: 2, Title: "b"}}
 
 	g.navigateDown()
-	if g.panels.PRs.Selected != 1 {
-		t.Fatalf("got %d, want 1", g.panels.PRs.Selected)
+	if g.state.PRsSelected != 1 {
+		t.Fatalf("got %d, want 1", g.state.PRsSelected)
 	}
 
 	g.navigateUp()
-	if g.panels.PRs.Selected != 0 {
-		t.Fatalf("got %d, want 0", g.panels.PRs.Selected)
+	if g.state.PRsSelected != 0 {
+		t.Fatalf("got %d, want 0", g.state.PRsSelected)
 	}
 }
 
 func TestApplyReposResult(t *testing.T) {
 	g := newTestGuiWithClient(&mockClient{})
-	g.panels.Repos.Loading = true
+	g.state.ReposLoading = true
 	g.applyReposResult([]string{"owner/repo1", "owner/repo2"}, nil)
-	if !g.reposLoaded {
+	if !g.state.ReposLoaded {
 		t.Fatal("reposLoaded should be true")
 	}
-	if g.panels.Repos.Loading {
+	if g.state.ReposLoading {
 		t.Fatal("Loading should be false")
 	}
-	if len(g.panels.Repos.Items) != 2 {
-		t.Fatalf("got %d, want 2", len(g.panels.Repos.Items))
+	if len(g.state.Repos) != 2 {
+		t.Fatalf("got %d, want 2", len(g.state.Repos))
 	}
 }
 
 func TestApplyItemsResult(t *testing.T) {
 	g := newTestGuiWithClient(&mockClient{})
-	g.panels.Repos.Items = repoItems("owner/repo")
-	g.panels.Issues.Loading = true
-	g.panels.PRs.Loading = true
+	g.state.Repos = repoItems("owner/repo")
+	g.state.IssuesLoading = true
+	g.state.PRsLoading = true
 
 	g.applyItemsResult(itemsLoadedMsg{
 		repo:   "owner/repo",
-		issues: []gh.IssueItem{{Number: 10, Title: "Issue one"}},
-		prs:    []gh.PRItem{{Number: 1, Title: "Fix bug"}},
+		issues: []core.Item{{Number: 10, Title: "Issue one"}},
+		prs:    []core.Item{{Number: 1, Title: "Fix bug"}},
 	})
 
-	if g.panels.Issues.Loading || g.panels.PRs.Loading {
+	if g.state.IssuesLoading || g.state.PRsLoading {
 		t.Fatal("loading flags should be false")
 	}
-	if got := g.panels.Issues.Format(g.panels.Issues.Items[0]); got != "Issue #10 Issue one" {
+	if got := core.FormatIssueItem(g.state.Issues[0]); got != "Issue #10 Issue one" {
 		t.Fatalf("unexpected issue row: %q", got)
 	}
-	if got := g.panels.PRs.Format(g.panels.PRs.Items[0]); got != "PR #1 Fix bug" {
+	if got := core.FormatPRItem(g.state.PRs[0]); got != "PR #1 Fix bug" {
 		t.Fatalf("unexpected pr row: %q", got)
 	}
 }
 
 func TestApplyItemsResult_MismatchRepoIgnored(t *testing.T) {
 	g := newTestGuiWithClient(&mockClient{})
-	g.panels.Repos.Items = repoItems("owner/repo")
+	g.state.Repos = repoItems("owner/repo")
 	g.applyItemsResult(itemsLoadedMsg{
 		repo:   "other/repo",
-		issues: []gh.IssueItem{{Number: 10, Title: "Issue one"}},
-		prs:    []gh.PRItem{{Number: 1, Title: "Fix bug"}},
+		issues: []core.Item{{Number: 10, Title: "Issue one"}},
+		prs:    []core.Item{{Number: 1, Title: "Fix bug"}},
 	})
-	if len(g.panels.Issues.Items) != 0 || len(g.panels.PRs.Items) != 0 {
+	if len(g.state.Issues) != 0 || len(g.state.PRs) != 0 {
 		t.Fatal("items should remain empty when repo mismatched")
 	}
 }
@@ -119,15 +119,15 @@ func TestApplyItemsResult_MismatchRepoIgnored(t *testing.T) {
 func TestApplyDetailResult(t *testing.T) {
 	g := newTestGuiWithClient(&mockClient{})
 	g.applyDetailResult(detailLoadedMsg{content: "hello"})
-	if g.panels.Detail.Content != "hello" {
-		t.Fatalf("got %q, want hello", g.panels.Detail.Content)
+	if g.state.DetailContent != "hello" {
+		t.Fatalf("got %q, want hello", g.state.DetailContent)
 	}
 }
 
 func TestApplyDetailResult_Error(t *testing.T) {
 	g := newTestGuiWithClient(&mockClient{})
 	g.applyDetailResult(detailLoadedMsg{err: errors.New("boom")})
-	if g.panels.Detail.Content == "" {
+	if g.state.DetailContent == "" {
 		t.Fatal("error message should be shown")
 	}
 }
@@ -135,7 +135,7 @@ func TestApplyDetailResult_Error(t *testing.T) {
 func TestModelHandleEnterRepos(t *testing.T) {
 	mc := &mockClient{issues: []gh.IssueItem{{Number: 1, Title: "i"}}, prs: []gh.PRItem{{Number: 2, Title: "p"}}}
 	g := newTestGuiWithClient(mc)
-	g.panels.Repos.Items = repoItems("owner/repo")
+	g.state.Repos = repoItems("owner/repo")
 	m := &model{gui: g}
 	cmd := m.handleEnter()
 	if cmd == nil {
@@ -151,8 +151,8 @@ func TestModelHandleEnterDetail(t *testing.T) {
 	mc := &mockClient{prView: "detail"}
 	g := newTestGuiWithClient(mc)
 	g.state.ActivePanel = PanelPRs
-	g.panels.Repos.Items = repoItems("owner/repo")
-	g.panels.PRs.Items = []panels.Item{{Number: 1, Title: "x"}}
+	g.state.Repos = repoItems("owner/repo")
+	g.state.PRs = []core.Item{{Number: 1, Title: "x"}}
 	m := &model{gui: g}
 	cmd := m.handleEnter()
 	if cmd == nil {
@@ -161,5 +161,21 @@ func TestModelHandleEnterDetail(t *testing.T) {
 	msg := cmd().(detailLoadedMsg)
 	if msg.err != nil || msg.content != "detail" {
 		t.Fatalf("unexpected msg: %+v", msg)
+	}
+}
+
+func TestNavigateDetailPanelScroll(t *testing.T) {
+	g := newTestGuiWithClient(&mockClient{})
+	g.state.ActivePanel = PanelDetail
+	g.syncDetailViewport(20, 2, "line1\nline2\nline3\nline4")
+
+	g.navigateDown()
+	if g.detailViewport.YOffset <= 0 {
+		t.Fatalf("expected detail viewport to scroll down, got offset=%d", g.detailViewport.YOffset)
+	}
+
+	g.navigateUp()
+	if g.detailViewport.YOffset != 0 {
+		t.Fatalf("expected detail viewport to scroll up, got offset=%d", g.detailViewport.YOffset)
 	}
 }
