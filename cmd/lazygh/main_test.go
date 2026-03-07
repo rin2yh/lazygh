@@ -69,9 +69,25 @@ func TestLazyghE2E_FakeGHViaPTY(t *testing.T) {
 	defer s.closeAndWait()
 
 	s.waitLogContains("repo list", 3*time.Second)
-	s.writeInput([]byte("\r"))
-	s.waitLogContains("issue list", 3*time.Second)
-	s.waitLogContains("pr list", 3*time.Second)
-	s.writeInput([]byte{3})
+	selectRepoAndWaitLists(t, s, 4*time.Second)
 	s.assertLogContainsAll("repo list", "issue list", "pr list")
+}
+
+func selectRepoAndWaitLists(t *testing.T, s *e2eSession, timeout time.Duration) {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		s.writeInput([]byte("\r"))
+		time.Sleep(80 * time.Millisecond)
+
+		logBytes, err := os.ReadFile(s.logPath)
+		if err != nil {
+			continue
+		}
+		logText := string(logBytes)
+		if strings.Contains(logText, "issue list") && strings.Contains(logText, "pr list") {
+			return
+		}
+	}
+	t.Fatalf("repo select did not trigger issue/pr list in time. output:\n%s", s.output.String())
 }

@@ -100,6 +100,11 @@ func (s *e2eSession) writeInput(in []byte) {
 
 func (s *e2eSession) closeAndWait() {
 	s.t.Helper()
+	// Prefer graceful quit to avoid hanging process in slow/instrumented test binaries.
+	_, _ = s.ptmx.Write([]byte("q"))
+	time.Sleep(50 * time.Millisecond)
+	_, _ = s.ptmx.Write([]byte{3})
+
 	exitDone := make(chan error, 1)
 	go func() {
 		exitDone <- s.runCmd.Wait()
