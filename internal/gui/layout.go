@@ -9,13 +9,14 @@ func formatPanelTitle(base string, active bool) string {
 	return fmt.Sprintf(" %s ", base)
 }
 
-func formatStatusLine(_ string) string {
-	return fmt.Sprintf("[q]Quit  [j/k]Move  [enter]Reload detail")
+func formatStatusLine(loading bool) string {
+	line := "[q]Quit  [j/k]Move  [enter]Reload detail"
+	if loading {
+		return fmt.Sprintf("Loading...  | %s", line)
+	}
+	return line
 }
 
 func formatRepoLine(repo string) string {
-	if repo == "" {
-		repo = "(resolving...)"
-	}
 	return repo
 }

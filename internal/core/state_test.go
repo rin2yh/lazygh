@@ -22,6 +22,26 @@ func TestApplyPRsResult(t *testing.T) {
 	if s.DetailContent != "PR #1 Fix bug" {
 		t.Fatalf("got %q, want %q", s.DetailContent, "PR #1 Fix bug")
 	}
+	if s.Loading != LoadingNone {
+		t.Fatalf("got %v, want %v", s.Loading, LoadingNone)
+	}
+}
+
+func TestBeginLoadPRs_OnlySetsLoadingState(t *testing.T) {
+	s := NewState()
+	s.DetailContent = "keep"
+
+	s.BeginLoadPRs()
+
+	if !s.PRsLoading {
+		t.Fatal("prs loading should be true")
+	}
+	if s.Loading != LoadingPRs {
+		t.Fatalf("got %v, want %v", s.Loading, LoadingPRs)
+	}
+	if s.DetailContent != "keep" {
+		t.Fatalf("got %q, want %q", s.DetailContent, "keep")
+	}
 }
 
 func TestApplyPRsResult_Empty(t *testing.T) {
@@ -67,6 +87,7 @@ func TestNavigatePRs(t *testing.T) {
 func TestPlanEnter_LoadPRDetail(t *testing.T) {
 	s := NewState()
 	s.ApplyPRsResult("owner/repo", []Item{{Number: 7, Title: "Fix bug"}}, nil)
+	before := s.DetailContent
 	action := s.PlanEnter(true, "")
 	if action.Kind != EnterLoadPRDetail {
 		t.Fatalf("got %v, want %v", action.Kind, EnterLoadPRDetail)
@@ -74,12 +95,22 @@ func TestPlanEnter_LoadPRDetail(t *testing.T) {
 	if action.Repo != "owner/repo" || action.Number != 7 {
 		t.Fatalf("unexpected action: %+v", action)
 	}
+	if s.Loading != LoadingDetail {
+		t.Fatalf("got %v, want %v", s.Loading, LoadingDetail)
+	}
+	if s.DetailContent != before {
+		t.Fatalf("got %q, want %q", s.DetailContent, before)
+	}
 }
 
 func TestApplyDetailResult_Error(t *testing.T) {
 	s := NewState()
+	s.Loading = LoadingDetail
 	s.ApplyDetailResult("", errors.New("boom"))
 	if s.DetailContent == "" {
 		t.Fatal("error message should be set")
+	}
+	if s.Loading != LoadingNone {
+		t.Fatalf("got %v, want %v", s.Loading, LoadingNone)
 	}
 }

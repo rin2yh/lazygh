@@ -56,6 +56,9 @@ func TestApplyPRsResult(t *testing.T) {
 	if got := core.FormatPRItem(g.state.PRs[0]); got != "PR #1 Fix bug" {
 		t.Fatalf("unexpected pr row: %q", got)
 	}
+	if g.state.Loading != core.LoadingNone {
+		t.Fatalf("got %v, want %v", g.state.Loading, core.LoadingNone)
+	}
 }
 
 func TestApplyPRsResult_Error(t *testing.T) {
@@ -159,6 +162,19 @@ func TestRenderPRPanel_EmptyPlaceholder(t *testing.T) {
 	}
 	if lines[1] != "No pull requests" {
 		t.Fatalf("got %q, want %q", lines[1], "No pull requests")
+	}
+}
+
+func TestRenderPRPanel_LoadingHidesLoadingText(t *testing.T) {
+	g := newTestGuiWithClient(&mockClient{})
+	g.state.BeginLoadPRs()
+	lines := g.renderPRPanel("PRs", 3)
+
+	if len(lines) != 3 {
+		t.Fatalf("got %d lines, want 3", len(lines))
+	}
+	if lines[1] != "" {
+		t.Fatalf("got %q, want empty line", lines[1])
 	}
 }
 

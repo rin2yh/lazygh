@@ -32,10 +32,18 @@ func TestFormatPanelTitle(t *testing.T) {
 }
 
 func TestFormatStatusLine(t *testing.T) {
-	got := formatStatusLine("owner/repo")
+	got := formatStatusLine(false)
 
 	if got != "[q]Quit  [j/k]Move  [enter]Reload detail" {
 		t.Errorf("got %q, want %q", got, "[q]Quit  [j/k]Move  [enter]Reload detail")
+	}
+}
+
+func TestFormatStatusLine_Loading(t *testing.T) {
+	got := formatStatusLine(true)
+
+	if got != "Loading...  | [q]Quit  [j/k]Move  [enter]Reload detail" {
+		t.Errorf("got %q, want %q", got, "Loading...  | [q]Quit  [j/k]Move  [enter]Reload detail")
 	}
 }
 
@@ -48,7 +56,7 @@ func TestFormatRepoLine(t *testing.T) {
 
 func TestFormatRepoLine_Resolving(t *testing.T) {
 	got := formatRepoLine("")
-	if got != "(resolving...)" {
-		t.Fatalf("got %q, want %q", got, "(resolving...)")
+	if got != "" {
+		t.Fatalf("got %q, want empty string", got)
 	}
 }

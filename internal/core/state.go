@@ -14,6 +14,14 @@ const (
 	EnterLoadPRDetail
 )
 
+type LoadingKind int
+
+const (
+	LoadingNone LoadingKind = iota
+	LoadingPRs
+	LoadingDetail
+)
+
 type EnterAction struct {
 	Kind   EnterActionKind
 	Repo   string
@@ -28,6 +36,7 @@ type State struct {
 	PRsSelected int
 
 	DetailContent string
+	Loading       LoadingKind
 
 	Width  int
 	Height int
@@ -46,11 +55,12 @@ func (s *State) SetWindowSize(width int, height int) {
 
 func (s *State) BeginLoadPRs() {
 	s.PRsLoading = true
-	s.DetailContent = "Loading PRs..."
+	s.Loading = LoadingPRs
 }
 
 func (s *State) ApplyPRsResult(repo string, prs []Item, err error) {
 	s.PRsLoading = false
+	s.Loading = LoadingNone
 	if err != nil {
 		s.showError("Error loading PRs", err)
 		return
@@ -71,6 +81,7 @@ func (s *State) ApplyDetailResult(content string, err error) {
 		s.showError("Error loading detail", err)
 		return
 	}
+	s.Loading = LoadingNone
 	s.DetailContent = sanitizeMultiline(content)
 }
 
@@ -97,10 +108,11 @@ func (s *State) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
 		return EnterAction{}
 	}
 	if forcedDetailText != "" {
+		s.Loading = LoadingNone
 		s.DetailContent = forcedDetailText
 		return EnterAction{}
 	}
-	s.DetailContent = "Loading detail..."
+	s.Loading = LoadingDetail
 	return EnterAction{Kind: EnterLoadPRDetail, Repo: s.Repo, Number: item.Number}
 }
 
@@ -123,6 +135,7 @@ func (s *State) selectedPR() (Item, bool) {
 }
 
 func (s *State) showError(msg string, err error) {
+	s.Loading = LoadingNone
 	s.DetailContent = sanitizeMultiline(fmt.Sprintf("%s: %v", msg, err))
 }
 

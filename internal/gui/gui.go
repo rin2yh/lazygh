@@ -196,7 +196,7 @@ func (gui *Gui) render() string {
 		b.WriteString(padOrTrim(right, rightWidth))
 		b.WriteByte('\n')
 	}
-	b.WriteString(padOrTrim(formatStatusLine(gui.state.Repo), w))
+	b.WriteString(padOrTrim(formatStatusLine(gui.state.Loading != core.LoadingNone), w))
 	return b.String()
 }
 
@@ -209,11 +209,7 @@ func (gui *Gui) renderPRPanel(title string, height int) []string {
 
 	if gui.state.PRsLoading {
 		for len(lines) < height {
-			if len(lines) == 1 {
-				lines = append(lines, "Loading...")
-			} else {
-				lines = append(lines, "")
-			}
+			lines = append(lines, "")
 		}
 		return lines
 	}
