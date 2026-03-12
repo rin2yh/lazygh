@@ -7,60 +7,57 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rin2yh/lazygh/pkg/test/fake"
 	"github.com/rin2yh/lazygh/pkg/test/fixture"
+	"github.com/rin2yh/lazygh/pkg/test/stub"
 )
 
-// TestHelperProcess は実際のテストではなく、fake gh コマンドとして動作する。
-func TestHelperProcess(t *testing.T) {
+// TestFakeProcess は実際のテストではなく、fake gh コマンドとして動作する。
+func TestFakeProcess(t *testing.T) {
 	if os.Getenv("GO_TEST_HELPER_PROCESS") != "1" {
 		return
 	}
 
-	args := os.Args
-	sep := -1
-	for i, a := range args {
-		if a == "--" {
-			sep = i
-			break
-		}
-	}
-	if sep < 0 || sep+1 >= len(args) {
-		os.Exit(1)
-	}
-	args = args[sep+1:]
-
-	if len(args) < 2 {
-		os.Exit(1)
+	table := map[string]fake.Response{
+		"repo view": {
+			Stdout:   `{"nameWithOwner":"owner/repo1"}`,
+			ExitCode: 0,
+		},
+		"pr list": {
+			Stdout:   `[{"number":1,"title":"Fix bug"},{"number":2,"title":"Add feature"}]`,
+			ExitCode: 0,
+		},
+		"pr view": {
+			Stdout:   "PR view content",
+			ExitCode: 0,
+		},
 	}
 
-	switch {
-	case args[1] == "repo" && len(args) > 2 && args[2] == "view":
-		fmt.Print(`{"nameWithOwner":"owner/repo1"}`)
-	case args[1] == "pr" && len(args) > 2 && args[2] == "list":
-		fmt.Print(`[{"number":1,"title":"Fix bug"},{"number":2,"title":"Add feature"}]`)
-	case args[1] == "pr" && len(args) > 2 && args[2] == "view":
-		fmt.Print("PR view content")
-	default:
-		fmt.Fprintf(os.Stderr, "unknown: %s\n", strings.Join(args, " "))
+	gh := fake.Gh{Table: table}
+
+	ghArgs, err := gh.ParseArgs(os.Args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	os.Exit(0)
-}
 
-func helperCmd(t *testing.T) func(string, ...string) *exec.Cmd {
-	t.Helper()
-	return func(name string, args ...string) *exec.Cmd {
-		cs := []string{"-test.run=TestHelperProcess", "--", name}
-		cs = append(cs, args...)
-		cmd := exec.Command(os.Args[0], cs...)
-		cmd.Env = []string{"GO_TEST_HELPER_PROCESS=1"}
-		return cmd
+	key, ok := gh.Key(ghArgs)
+	if !ok {
+		fmt.Fprintf(os.Stderr, "unknown: %s\n", strings.Join(ghArgs, " "))
+		os.Exit(1)
 	}
+	resp, ok := gh.Find(key)
+	if !ok {
+		fmt.Fprintf(os.Stderr, "unknown: %s\n", strings.Join(ghArgs, " "))
+		os.Exit(1)
+	}
+	gh.Write(resp)
+	os.Exit(resp.ExitCode)
 }
 
 func newTestClient(t *testing.T) *Client {
 	t.Helper()
-	return &Client{execCommand: helperCmd(t)}
+	return &Client{execCommand: stub.NewCommand(t, "TestFakeProcess", "GO_TEST_HELPER_PROCESS")}
 }
 
 func TestResolveCurrentRepo(t *testing.T) {

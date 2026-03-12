@@ -1,4 +1,4 @@
-package main
+package e2e
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 	"github.com/creack/pty"
 )
 
-type e2eSession struct {
+type Session struct {
 	t        *testing.T
 	logPath  string
 	runCmd   *exec.Cmd
@@ -22,7 +22,7 @@ type e2eSession struct {
 	copyDone chan struct{}
 }
 
-func newE2ESession(t *testing.T, helperBin string) *e2eSession {
+func NewSession(t *testing.T, processBin string) *Session {
 	t.Helper()
 	tmpDir := t.TempDir()
 	fakeBin := filepath.Join(tmpDir, "fake-bin")
@@ -32,20 +32,20 @@ func newE2ESession(t *testing.T, helperBin string) *e2eSession {
 
 	logPath := filepath.Join(tmpDir, "fake-gh.log")
 	ghPath := filepath.Join(fakeBin, "gh")
-	wrapper := fmt.Sprintf("#!/bin/sh\nexec '%s' -test.run '^TestFakeGHHelperProcess$' -- \"$@\"\n", helperBin)
+	wrapper := fmt.Sprintf("#!/bin/sh\nexec '%s' -test.run '^TestFakeGHProcess$' -- \"$@\"\n", processBin)
 	if err := os.WriteFile(ghPath, []byte(wrapper), 0o755); err != nil {
 		t.Fatalf("write fake gh wrapper failed: %v", err)
 	}
 
 	binPath := filepath.Join(tmpDir, "lazygh-test-bin")
-	buildCmd(t, "go", "build", "-o", binPath, ".")
+	buildCommand(t, "go", "build", "-o", binPath, ".")
 
 	runCmd := exec.Command(binPath)
 	runCmd.Env = append(
 		os.Environ(),
 		"PATH="+fakeBin+string(os.PathListSeparator)+os.Getenv("PATH"),
 		"FAKE_GH_LOG="+logPath,
-		"GO_WANT_FAKE_GH_HELPER=1",
+		"GO_WANT_FAKE_GH_PROCESS=1",
 		"TERM=dumb",
 		"NO_COLOR=1",
 	)
@@ -55,7 +55,7 @@ func newE2ESession(t *testing.T, helperBin string) *e2eSession {
 		t.Fatalf("pty start failed: %v", err)
 	}
 
-	s := &e2eSession{
+	s := &Session{
 		t:        t,
 		logPath:  logPath,
 		runCmd:   runCmd,
@@ -69,7 +69,7 @@ func newE2ESession(t *testing.T, helperBin string) *e2eSession {
 	return s
 }
 
-func buildCmd(t *testing.T, name string, args ...string) {
+func buildCommand(t *testing.T, name string, args ...string) {
 	t.Helper()
 	cmd := exec.Command(name, args...)
 	cmd.Env = os.Environ()
@@ -78,12 +78,11 @@ func buildCmd(t *testing.T, name string, args ...string) {
 	}
 }
 
-func (s *e2eSession) waitLogContains(want string, timeout time.Duration) {
+func (s *Session) WaitLogContains(want string, timeout time.Duration) {
 	s.t.Helper()
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		b, err := os.ReadFile(s.logPath)
-		if err == nil && strings.Contains(string(b), want) {
+		if s.HasLogEntry(want) {
 			return
 		}
 		time.Sleep(20 * time.Millisecond)
@@ -91,16 +90,23 @@ func (s *e2eSession) waitLogContains(want string, timeout time.Duration) {
 	s.t.Fatalf("fake gh log did not contain %q in time. output:\n%s", want, s.output.String())
 }
 
-func (s *e2eSession) writeInput(in []byte) {
+func (s *Session) HasLogEntry(want string) bool {
+	b, err := os.ReadFile(s.logPath)
+	if err != nil {
+		return false
+	}
+	return strings.Contains(string(b), want)
+}
+
+func (s *Session) WriteInput(in []byte) {
 	s.t.Helper()
 	if _, err := s.ptmx.Write(in); err != nil {
 		s.t.Fatalf("write input failed: %v", err)
 	}
 }
 
-func (s *e2eSession) closeAndWait() {
+func (s *Session) CloseAndWait() {
 	s.t.Helper()
-	// Prefer graceful quit to avoid hanging process in slow/instrumented test binaries.
 	_, _ = s.ptmx.Write([]byte("q"))
 	time.Sleep(50 * time.Millisecond)
 	_, _ = s.ptmx.Write([]byte{3})
@@ -124,7 +130,7 @@ func (s *e2eSession) closeAndWait() {
 	<-s.copyDone
 }
 
-func (s *e2eSession) assertLogContainsAll(wants ...string) {
+func (s *Session) AssertLogContainsAll(wants ...string) {
 	s.t.Helper()
 	logBytes, err := os.ReadFile(s.logPath)
 	if err != nil {

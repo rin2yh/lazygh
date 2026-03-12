@@ -7,48 +7,58 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/rin2yh/lazygh/pkg/test/e2e"
+	"github.com/rin2yh/lazygh/pkg/test/fake"
 )
 
-func TestFakeGHHelperProcess(t *testing.T) {
-	if os.Getenv("GO_WANT_FAKE_GH_HELPER") != "1" {
+func TestFakeGHProcess(t *testing.T) {
+	if os.Getenv("GO_WANT_FAKE_GH_PROCESS") != "1" {
 		return
 	}
 
-	args := os.Args
-	sep := -1
-	for i, a := range args {
-		if a == "--" {
-			sep = i
-			break
-		}
-	}
-	if sep < 0 || sep+1 >= len(args) {
-		fmt.Fprintln(os.Stderr, "missing -- separator")
-		os.Exit(1)
-	}
-	ghArgs := args[sep+1:]
-	if logPath := os.Getenv("FAKE_GH_LOG"); logPath != "" {
-		f, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
-		if err == nil {
-			_, _ = f.WriteString(strings.Join(ghArgs, " ") + "\n")
-			_ = f.Close()
-		}
+	table := map[string]fake.Response{
+		"repo view": {
+			Stdout:   `{"nameWithOwner":"owner/repo1"}`,
+			ExitCode: 0,
+		},
+		"pr list": {
+			Stdout:   `[{"number":1,"title":"Fix bug"}]`,
+			ExitCode: 0,
+		},
+		"pr view": {
+			Stdout:   "PR detail",
+			ExitCode: 0,
+		},
 	}
 
-	switch {
-	case len(ghArgs) >= 2 && ghArgs[0] == "repo" && ghArgs[1] == "view":
-		fmt.Print(`{"nameWithOwner":"owner/repo1"}`)
-		os.Exit(0)
-	case len(ghArgs) >= 2 && ghArgs[0] == "pr" && ghArgs[1] == "list":
-		fmt.Print(`[{"number":1,"title":"Fix bug"}]`)
-		os.Exit(0)
-	case len(ghArgs) >= 2 && ghArgs[0] == "pr" && ghArgs[1] == "view":
-		fmt.Print("PR detail")
-		os.Exit(0)
-	default:
+	gh := fake.Gh{
+		Table:   table,
+		LogPath: os.Getenv("FAKE_GH_LOG"),
+	}
+
+	ghArgs, err := gh.ParseArgs(os.Args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if err := gh.Log(ghArgs); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to append fake log: %v\n", err)
+		os.Exit(1)
+	}
+
+	key, ok := gh.Key(ghArgs)
+	if !ok {
 		fmt.Fprintf(os.Stderr, "unexpected gh args: %s\n", strings.Join(ghArgs, " "))
 		os.Exit(1)
 	}
+	resp, ok := gh.Find(key)
+	if !ok {
+		fmt.Fprintf(os.Stderr, "unexpected gh args: %s\n", strings.Join(ghArgs, " "))
+		os.Exit(1)
+	}
+	gh.Write(resp)
+	os.Exit(resp.ExitCode)
 }
 
 func TestLazyghE2E_FakeGHViaPTY(t *testing.T) {
@@ -59,31 +69,27 @@ func TestLazyghE2E_FakeGHViaPTY(t *testing.T) {
 		t.Skip("pty e2e is not supported on windows")
 	}
 
-	s := newE2ESession(t, os.Args[0])
-	defer s.closeAndWait()
+	s := e2e.NewSession(t, os.Args[0])
+	defer s.CloseAndWait()
 
-	s.waitLogContains("repo view", 3*time.Second)
-	s.waitLogContains("pr list", 3*time.Second)
-	s.assertLogContainsAll("repo view", "pr list")
+	s.WaitLogContains("repo view", 3*time.Second)
+	s.WaitLogContains("pr list", 3*time.Second)
+	s.AssertLogContainsAll("repo view", "pr list")
 
 	openPRDetailAndWait(t, s, 4*time.Second)
-	s.assertLogContainsAll("pr view")
+	s.AssertLogContainsAll("pr view")
 }
 
-func openPRDetailAndWait(t *testing.T, s *e2eSession, timeout time.Duration) {
+func openPRDetailAndWait(t *testing.T, s *e2e.Session, timeout time.Duration) {
 	t.Helper()
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		s.writeInput([]byte("\r"))
+		s.WriteInput([]byte("\r"))
 		time.Sleep(80 * time.Millisecond)
 
-		logBytes, err := os.ReadFile(s.logPath)
-		if err != nil {
-			continue
-		}
-		if strings.Contains(string(logBytes), "pr view") {
+		if s.HasLogEntry("pr view") {
 			return
 		}
 	}
-	t.Fatalf("opening pr detail did not trigger pr view in time. output:\n%s", s.output.String())
+	t.Fatal("opening pr detail did not trigger pr view in time")
 }
