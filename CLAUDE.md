@@ -42,20 +42,6 @@ lazygh (Go TUI)  →  gh CLI  →  GitHub API
 | `internal/gui` | `bubbletea` ベースの TUIアダプタ・描画 |
 | `internal/config` | テーマ・キーバインド設定の読み込み |
 
-### パネル構成
-
-```
-┌──────────────┬─────────────────────────┐
-│ Repositories │                          │
-│              │  Detail (PR/Issue 詳細)  │
-├──────────────┤                          │
-│ Items        │                          │
-│ (PR/Issue)   │                          │
-└──────────────┴─────────────────────────┘
-```
-
-左カラム 30% / 右カラム 70%。フォーカス移動: `Tab` / `Shift+Tab`。
-
 ### テスト戦略
 
 `gh` コマンドをモックするため `exec.Cmd` を差し替える仕組みを使用。各テストファイルに `TestHelperProcess` 関数を定義し、`ghExecCommand` 変数経由で fake コマンドを注入する。
