@@ -5,44 +5,74 @@ import (
 	"testing"
 )
 
-func TestPanelCycle(t *testing.T) {
+func TestApplyPRsResult(t *testing.T) {
 	s := NewState()
-	s.NextPanel()
-	if s.ActivePanel != PanelIssues {
-		t.Fatalf("got %v, want %v", s.ActivePanel, PanelIssues)
+	s.BeginLoadPRs()
+	s.ApplyPRsResult("owner/repo", []Item{{Number: 1, Title: "Fix bug"}}, nil)
+
+	if s.PRsLoading {
+		t.Fatal("prs loading should be false")
 	}
-	s.PrevPanel()
-	if s.ActivePanel != PanelRepos {
-		t.Fatalf("got %v, want %v", s.ActivePanel, PanelRepos)
+	if s.Repo != "owner/repo" {
+		t.Fatalf("got %q, want owner/repo", s.Repo)
+	}
+	if len(s.PRs) != 1 {
+		t.Fatalf("got %d, want 1", len(s.PRs))
+	}
+	if s.DetailContent != "PR #1 Fix bug" {
+		t.Fatalf("got %q, want %q", s.DetailContent, "PR #1 Fix bug")
 	}
 }
 
-func TestApplyReposResult(t *testing.T) {
+func TestApplyPRsResult_Empty(t *testing.T) {
 	s := NewState()
-	s.ReposLoading = true
-	s.ApplyReposResult([]string{"owner/repo1"}, nil)
-	if s.ReposLoading {
-		t.Fatal("repos loading should be false")
-	}
-	if !s.ReposLoaded {
-		t.Fatal("repos loaded should be true")
-	}
-	if len(s.Repos) != 1 {
-		t.Fatalf("got %d, want 1", len(s.Repos))
+	s.BeginLoadPRs()
+	s.ApplyPRsResult("owner/repo", nil, nil)
+
+	if s.DetailContent != "No pull requests" {
+		t.Fatalf("got %q, want %q", s.DetailContent, "No pull requests")
 	}
 }
 
-func TestApplyItemsResult(t *testing.T) {
+func TestApplyPRsResult_Error(t *testing.T) {
 	s := NewState()
-	s.Repos = []Item{{Title: "owner/repo"}}
-	s.ApplyItemsResult(
-		"owner/repo",
-		[]Item{{Number: 10, Title: "Issue one"}},
-		[]Item{{Number: 1, Title: "Fix bug"}},
-		nil,
-	)
-	if len(s.Issues) != 1 || len(s.PRs) != 1 {
-		t.Fatal("issues/prs should be loaded")
+	s.BeginLoadPRs()
+	s.ApplyPRsResult("", nil, errors.New("boom"))
+	if s.DetailContent == "" {
+		t.Fatal("error message should be set")
+	}
+}
+
+func TestNavigatePRs(t *testing.T) {
+	s := NewState()
+	s.ApplyPRsResult("owner/repo", []Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
+
+	s.NavigateDown()
+	if s.PRsSelected != 1 {
+		t.Fatalf("got %d, want 1", s.PRsSelected)
+	}
+	if s.DetailContent != "PR #2 two" {
+		t.Fatalf("got %q, want %q", s.DetailContent, "PR #2 two")
+	}
+
+	s.NavigateUp()
+	if s.PRsSelected != 0 {
+		t.Fatalf("got %d, want 0", s.PRsSelected)
+	}
+	if s.DetailContent != "PR #1 one" {
+		t.Fatalf("got %q, want %q", s.DetailContent, "PR #1 one")
+	}
+}
+
+func TestPlanEnter_LoadPRDetail(t *testing.T) {
+	s := NewState()
+	s.ApplyPRsResult("owner/repo", []Item{{Number: 7, Title: "Fix bug"}}, nil)
+	action := s.PlanEnter(true, "")
+	if action.Kind != EnterLoadPRDetail {
+		t.Fatalf("got %v, want %v", action.Kind, EnterLoadPRDetail)
+	}
+	if action.Repo != "owner/repo" || action.Number != 7 {
+		t.Fatalf("unexpected action: %+v", action)
 	}
 }
 
@@ -51,14 +81,5 @@ func TestApplyDetailResult_Error(t *testing.T) {
 	s.ApplyDetailResult("", errors.New("boom"))
 	if s.DetailContent == "" {
 		t.Fatal("error message should be set")
-	}
-}
-
-func TestPlanEnter_LoadItems(t *testing.T) {
-	s := NewState()
-	s.Repos = []Item{{Title: "owner/repo"}}
-	action := s.PlanEnter(true, "")
-	if action.Kind != EnterLoadItems {
-		t.Fatalf("got %v, want %v", action.Kind, EnterLoadItems)
 	}
 }

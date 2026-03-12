@@ -15,57 +15,44 @@ import (
 )
 
 type controlledClient struct {
-	repos     []string
-	issues    []gh.IssueItem
-	prs       []gh.PRItem
-	issueView string
-	prView    string
-	err       error
+	repo   string
+	prs    []gh.PRItem
+	prView string
+	err    error
 
-	reposCalled  chan struct{}
-	itemsCalled  chan struct{}
-	detailCalled chan struct{}
+	resolveCalled chan struct{}
+	prsCalled     chan struct{}
+	detailCalled  chan struct{}
 
-	releaseRepos  <-chan struct{}
-	releaseItems  <-chan struct{}
-	releaseDetail <-chan struct{}
+	releaseResolve <-chan struct{}
+	releasePRs     <-chan struct{}
+	releaseDetail  <-chan struct{}
 
-	reposOnce  sync.Once
-	itemsOnce  sync.Once
-	detailOnce sync.Once
+	resolveOnce sync.Once
+	prsOnce     sync.Once
+	detailOnce  sync.Once
 }
 
-func (c *controlledClient) ListRepos() ([]string, error) {
-	c.reposOnce.Do(func() { close(c.reposCalled) })
-	if c.releaseRepos != nil {
-		<-c.releaseRepos
+func (c *controlledClient) ResolveCurrentRepo() (string, error) {
+	c.resolveOnce.Do(func() { close(c.resolveCalled) })
+	if c.releaseResolve != nil {
+		<-c.releaseResolve
 	}
 	if c.err != nil {
-		return nil, c.err
+		return "", c.err
 	}
-	return c.repos, nil
+	return c.repo, nil
 }
 
 func (c *controlledClient) ListPRs(_ string) ([]gh.PRItem, error) {
-	c.itemsOnce.Do(func() { close(c.itemsCalled) })
-	if c.releaseItems != nil {
-		<-c.releaseItems
+	c.prsOnce.Do(func() { close(c.prsCalled) })
+	if c.releasePRs != nil {
+		<-c.releasePRs
 	}
 	if c.err != nil {
 		return nil, c.err
 	}
 	return c.prs, nil
-}
-
-func (c *controlledClient) ListIssues(_ string) ([]gh.IssueItem, error) {
-	c.itemsOnce.Do(func() { close(c.itemsCalled) })
-	if c.releaseItems != nil {
-		<-c.releaseItems
-	}
-	if c.err != nil {
-		return nil, c.err
-	}
-	return c.issues, nil
 }
 
 func (c *controlledClient) ViewPR(_ string, _ int) (string, error) {
@@ -79,33 +66,21 @@ func (c *controlledClient) ViewPR(_ string, _ int) (string, error) {
 	return c.prView, nil
 }
 
-func (c *controlledClient) ViewIssue(_ string, _ int) (string, error) {
-	c.detailOnce.Do(func() { close(c.detailCalled) })
-	if c.releaseDetail != nil {
-		<-c.releaseDetail
-	}
-	if c.err != nil {
-		return "", c.err
-	}
-	return c.issueView, nil
-}
-
 func TestProgramE2E_MainFlow(t *testing.T) {
-	releaseRepos := make(chan struct{})
-	releaseItems := make(chan struct{})
+	releaseResolve := make(chan struct{})
+	releasePRs := make(chan struct{})
 	releaseDetail := make(chan struct{})
 
 	client := &controlledClient{
-		repos:         []string{"owner/repo1"},
-		issues:        []gh.IssueItem{{Number: 10, Title: "Issue one"}},
-		prs:           []gh.PRItem{{Number: 1, Title: "Fix bug"}},
-		issueView:     "Issue detail",
-		reposCalled:   make(chan struct{}),
-		itemsCalled:   make(chan struct{}),
-		detailCalled:  make(chan struct{}),
-		releaseRepos:  releaseRepos,
-		releaseItems:  releaseItems,
-		releaseDetail: releaseDetail,
+		repo:           "owner/repo1",
+		prs:            []gh.PRItem{{Number: 1, Title: "Fix bug"}},
+		prView:         "PR detail",
+		resolveCalled:  make(chan struct{}),
+		prsCalled:      make(chan struct{}),
+		detailCalled:   make(chan struct{}),
+		releaseResolve: releaseResolve,
+		releasePRs:     releasePRs,
+		releaseDetail:  releaseDetail,
 	}
 	g, err := NewGui(config.Default(), client)
 	if err != nil {
@@ -125,34 +100,24 @@ func TestProgramE2E_MainFlow(t *testing.T) {
 		runDone <- runErr
 	}()
 
-	waitChan(t, client.reposCalled, "ListRepos was not called")
-	if !g.state.ReposLoading {
-		t.Fatal("repos panel should stay loading before release")
+	waitChan(t, client.resolveCalled, "ResolveCurrentRepo was not called")
+	if !g.state.PRsLoading {
+		t.Fatal("prs panel should stay loading before release")
 	}
-	close(releaseRepos)
+	close(releaseResolve)
+
+	waitChan(t, client.prsCalled, "ListPRs was not called")
+	close(releasePRs)
 
 	waitUntil(t, func() bool {
-		return g.state.ReposLoaded && len(g.state.Repos) == 1
-	}, "repos were not loaded")
+		return g.state.Repo == "owner/repo1" && len(g.state.PRs) == 1
+	}, "prs were not loaded")
 
 	p.Send(tea.KeyMsg{Type: tea.KeyEnter})
-	waitChan(t, client.itemsCalled, "ListIssues/ListPRs was not called")
-	close(releaseItems)
-
-	waitUntil(t, func() bool {
-		return len(g.state.Issues) == 1 && len(g.state.PRs) == 1
-	}, "issues/prs were not loaded")
-
-	p.Send(tea.KeyMsg{Type: tea.KeyTab})
-	waitUntil(t, func() bool {
-		return g.state.ActivePanel == PanelIssues
-	}, "active panel did not move to issues")
-
-	p.Send(tea.KeyMsg{Type: tea.KeyEnter})
-	waitChan(t, client.detailCalled, "ViewIssue/ViewPR was not called")
+	waitChan(t, client.detailCalled, "ViewPR was not called")
 	close(releaseDetail)
 	waitUntil(t, func() bool {
-		return g.state.DetailContent == "Issue detail"
+		return g.state.DetailContent == "PR detail"
 	}, "detail content was not updated")
 
 	p.Send(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
@@ -167,12 +132,12 @@ func TestProgramE2E_MainFlow(t *testing.T) {
 	}
 }
 
-func TestProgramE2E_ShowErrorWhenRepoLoadFails(t *testing.T) {
+func TestProgramE2E_ShowErrorWhenInitialLoadFails(t *testing.T) {
 	client := &controlledClient{
-		err:          errors.New("boom"),
-		reposCalled:  make(chan struct{}),
-		itemsCalled:  make(chan struct{}),
-		detailCalled: make(chan struct{}),
+		err:           errors.New("boom"),
+		resolveCalled: make(chan struct{}),
+		prsCalled:     make(chan struct{}),
+		detailCalled:  make(chan struct{}),
 	}
 	g, err := NewGui(config.Default(), client)
 	if err != nil {
@@ -192,9 +157,9 @@ func TestProgramE2E_ShowErrorWhenRepoLoadFails(t *testing.T) {
 		runDone <- runErr
 	}()
 
-	waitChan(t, client.reposCalled, "ListRepos was not called")
+	waitChan(t, client.resolveCalled, "ResolveCurrentRepo was not called")
 	waitUntil(t, func() bool {
-		return strings.Contains(g.state.DetailContent, "Error loading repos")
+		return strings.Contains(g.state.DetailContent, "Error loading PRs")
 	}, "error message was not shown")
 
 	p.Send(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})

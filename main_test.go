@@ -36,17 +36,11 @@ func TestFakeGHHelperProcess(t *testing.T) {
 	}
 
 	switch {
-	case len(ghArgs) >= 2 && ghArgs[0] == "repo" && ghArgs[1] == "list":
-		fmt.Print(`[{"nameWithOwner":"owner/repo1"}]`)
-		os.Exit(0)
-	case len(ghArgs) >= 2 && ghArgs[0] == "issue" && ghArgs[1] == "list":
-		fmt.Print(`[{"number":10,"title":"Issue one"}]`)
+	case len(ghArgs) >= 2 && ghArgs[0] == "repo" && ghArgs[1] == "view":
+		fmt.Print(`{"nameWithOwner":"owner/repo1"}`)
 		os.Exit(0)
 	case len(ghArgs) >= 2 && ghArgs[0] == "pr" && ghArgs[1] == "list":
 		fmt.Print(`[{"number":1,"title":"Fix bug"}]`)
-		os.Exit(0)
-	case len(ghArgs) >= 2 && ghArgs[0] == "issue" && ghArgs[1] == "view":
-		fmt.Print("Issue detail")
 		os.Exit(0)
 	case len(ghArgs) >= 2 && ghArgs[0] == "pr" && ghArgs[1] == "view":
 		fmt.Print("PR detail")
@@ -68,12 +62,15 @@ func TestLazyghE2E_FakeGHViaPTY(t *testing.T) {
 	s := newE2ESession(t, os.Args[0])
 	defer s.closeAndWait()
 
-	s.waitLogContains("repo list", 3*time.Second)
-	selectRepoAndWaitLists(t, s, 4*time.Second)
-	s.assertLogContainsAll("repo list", "issue list", "pr list")
+	s.waitLogContains("repo view", 3*time.Second)
+	s.waitLogContains("pr list", 3*time.Second)
+	s.assertLogContainsAll("repo view", "pr list")
+
+	openPRDetailAndWait(t, s, 4*time.Second)
+	s.assertLogContainsAll("pr view")
 }
 
-func selectRepoAndWaitLists(t *testing.T, s *e2eSession, timeout time.Duration) {
+func openPRDetailAndWait(t *testing.T, s *e2eSession, timeout time.Duration) {
 	t.Helper()
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
@@ -84,10 +81,9 @@ func selectRepoAndWaitLists(t *testing.T, s *e2eSession, timeout time.Duration) 
 		if err != nil {
 			continue
 		}
-		logText := string(logBytes)
-		if strings.Contains(logText, "issue list") && strings.Contains(logText, "pr list") {
+		if strings.Contains(string(logBytes), "pr view") {
 			return
 		}
 	}
-	t.Fatalf("repo select did not trigger issue/pr list in time. output:\n%s", s.output.String())
+	t.Fatalf("opening pr detail did not trigger pr view in time. output:\n%s", s.output.String())
 }

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```sh
 # ビルド
-go build -o lazygh ./cmd/lazygh
+go build -o lazygh .
 
 # テスト（全パッケージ）
 go test ./...
@@ -35,7 +35,7 @@ lazygh (Go TUI)  →  gh CLI  →  GitHub API
 
 | パッケージ | 責務 |
 |-----------|------|
-| `cmd/lazygh` | エントリーポイント、設定・App初期化 |
+| `.` (`main`) | エントリーポイント、設定・App初期化 |
 | `internal/app` | `App` 構造体（GUI・設定の統合コンテナ） |
 | `internal/gh` | `gh` CLI の `exec` ラッパー。`ClientInterface` でモック可能 |
 | `internal/core` | UI状態遷移とドメインロジック |

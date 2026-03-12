@@ -2,16 +2,6 @@ package core
 
 import "fmt"
 
-type PanelType int
-
-const (
-	PanelRepos PanelType = iota
-	PanelIssues
-	PanelPRs
-	PanelDetail
-	panelCount
-)
-
 type Item struct {
 	Number int
 	Title  string
@@ -21,8 +11,6 @@ type EnterActionKind int
 
 const (
 	EnterNone EnterActionKind = iota
-	EnterLoadItems
-	EnterLoadIssueDetail
 	EnterLoadPRDetail
 )
 
@@ -33,16 +21,7 @@ type EnterAction struct {
 }
 
 type State struct {
-	ActivePanel PanelType
-
-	Repos         []Item
-	ReposLoading  bool
-	ReposSelected int
-	ReposLoaded   bool
-
-	Issues         []Item
-	IssuesLoading  bool
-	IssuesSelected int
+	Repo string
 
 	PRs         []Item
 	PRsLoading  bool
@@ -56,10 +35,7 @@ type State struct {
 
 func NewState() *State {
 	return &State{
-		ActivePanel: PanelRepos,
-		Repos:       []Item{},
-		Issues:      []Item{},
-		PRs:         []Item{},
+		PRs: []Item{},
 	}
 }
 
@@ -68,38 +44,26 @@ func (s *State) SetWindowSize(width int, height int) {
 	s.Height = height
 }
 
-func (s *State) BeginLoadRepos() {
-	s.ReposLoading = true
+func (s *State) BeginLoadPRs() {
+	s.PRsLoading = true
+	s.DetailContent = "Loading PRs..."
 }
 
-func (s *State) ApplyReposResult(repos []string, err error) {
-	s.ReposLoading = false
-	if err != nil {
-		s.showError("Error loading repos", err)
-		return
-	}
-	s.Repos = toRepoItems(repos)
-	s.ReposSelected = 0
-	s.ReposLoaded = true
-}
-
-func (s *State) ApplyItemsResult(repo string, issues []Item, prs []Item, err error) {
-	s.IssuesLoading = false
+func (s *State) ApplyPRsResult(repo string, prs []Item, err error) {
 	s.PRsLoading = false
 	if err != nil {
-		s.showError("Error loading items", err)
-		return
-	}
-	currentRepo, ok := s.SelectedRepo()
-	if !ok || currentRepo != repo {
+		s.showError("Error loading PRs", err)
 		return
 	}
 
-	s.Issues = issues
+	s.Repo = repo
 	s.PRs = prs
-	s.IssuesSelected = 0
 	s.PRsSelected = 0
-	s.DetailContent = ""
+	if len(prs) == 0 {
+		s.DetailContent = "No pull requests"
+		return
+	}
+	s.DetailContent = FormatPRItem(prs[s.PRsSelected])
 }
 
 func (s *State) ApplyDetailResult(content string, err error) {
@@ -110,143 +74,42 @@ func (s *State) ApplyDetailResult(content string, err error) {
 	s.DetailContent = sanitizeMultiline(content)
 }
 
-func (s *State) NextPanel() {
-	s.ActivePanel = (s.ActivePanel + 1) % panelCount
-}
-
-func (s *State) PrevPanel() {
-	if s.ActivePanel == PanelRepos {
-		s.ActivePanel = PanelDetail
-		return
-	}
-	s.ActivePanel--
-}
-
 func (s *State) NavigateDown() {
-	switch s.ActivePanel {
-	case PanelRepos:
-		if s.ReposSelected < len(s.Repos)-1 {
-			s.ReposSelected++
-		}
-	case PanelIssues:
-		if s.IssuesSelected < len(s.Issues)-1 {
-			s.IssuesSelected++
-		}
-		s.refreshDetailPreview()
-	case PanelPRs:
-		if s.PRsSelected < len(s.PRs)-1 {
-			s.PRsSelected++
-		}
-		s.refreshDetailPreview()
+	if s.PRsSelected < len(s.PRs)-1 {
+		s.PRsSelected++
 	}
+	s.refreshDetailPreview()
 }
 
 func (s *State) NavigateUp() {
-	switch s.ActivePanel {
-	case PanelRepos:
-		if s.ReposSelected > 0 {
-			s.ReposSelected--
-		}
-	case PanelIssues:
-		if s.IssuesSelected > 0 {
-			s.IssuesSelected--
-		}
-		s.refreshDetailPreview()
-	case PanelPRs:
-		if s.PRsSelected > 0 {
-			s.PRsSelected--
-		}
-		s.refreshDetailPreview()
+	if s.PRsSelected > 0 {
+		s.PRsSelected--
 	}
+	s.refreshDetailPreview()
 }
 
 func (s *State) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
-	switch s.ActivePanel {
-	case PanelRepos:
-		repo, ok := s.SelectedRepo()
-		if !ok || !hasClient {
-			return EnterAction{}
-		}
-		s.IssuesLoading = true
-		s.PRsLoading = true
-		s.DetailContent = "Loading items..."
-		return EnterAction{Kind: EnterLoadItems, Repo: repo}
-	case PanelIssues:
-		if !hasClient {
-			return EnterAction{}
-		}
-		repo, ok := s.SelectedRepo()
-		if !ok {
-			return EnterAction{}
-		}
-		item, ok := s.selectedIssue()
-		if !ok {
-			return EnterAction{}
-		}
-		if forcedDetailText != "" {
-			s.DetailContent = forcedDetailText
-			return EnterAction{}
-		}
-		s.DetailContent = "Loading detail..."
-		return EnterAction{Kind: EnterLoadIssueDetail, Repo: repo, Number: item.Number}
-	case PanelPRs:
-		if !hasClient {
-			return EnterAction{}
-		}
-		repo, ok := s.SelectedRepo()
-		if !ok {
-			return EnterAction{}
-		}
-		item, ok := s.selectedPR()
-		if !ok {
-			return EnterAction{}
-		}
-		if forcedDetailText != "" {
-			s.DetailContent = forcedDetailText
-			return EnterAction{}
-		}
-		s.DetailContent = "Loading detail..."
-		return EnterAction{Kind: EnterLoadPRDetail, Repo: repo, Number: item.Number}
-	default:
+	if !hasClient || s.PRsLoading {
 		return EnterAction{}
 	}
-}
-
-func (s *State) SelectedRepo() (string, bool) {
-	if len(s.Repos) == 0 {
-		return "", false
+	item, ok := s.selectedPR()
+	if !ok {
+		return EnterAction{}
 	}
-	if s.ReposSelected < 0 || s.ReposSelected >= len(s.Repos) {
-		return "", false
+	if forcedDetailText != "" {
+		s.DetailContent = forcedDetailText
+		return EnterAction{}
 	}
-	return s.Repos[s.ReposSelected].Title, true
+	s.DetailContent = "Loading detail..."
+	return EnterAction{Kind: EnterLoadPRDetail, Repo: s.Repo, Number: item.Number}
 }
 
 func (s *State) refreshDetailPreview() {
-	switch s.ActivePanel {
-	case PanelIssues:
-		item, ok := s.selectedIssue()
-		if !ok {
-			return
-		}
-		s.DetailContent = FormatIssueItem(item)
-	case PanelPRs:
-		item, ok := s.selectedPR()
-		if !ok {
-			return
-		}
-		s.DetailContent = FormatPRItem(item)
+	item, ok := s.selectedPR()
+	if !ok {
+		return
 	}
-}
-
-func (s *State) selectedIssue() (Item, bool) {
-	if len(s.Issues) == 0 {
-		return Item{}, false
-	}
-	if s.IssuesSelected < 0 || s.IssuesSelected >= len(s.Issues) {
-		return Item{}, false
-	}
-	return s.Issues[s.IssuesSelected], true
+	s.DetailContent = FormatPRItem(item)
 }
 
 func (s *State) selectedPR() (Item, bool) {
@@ -261,22 +124,6 @@ func (s *State) selectedPR() (Item, bool) {
 
 func (s *State) showError(msg string, err error) {
 	s.DetailContent = sanitizeMultiline(fmt.Sprintf("%s: %v", msg, err))
-}
-
-func toRepoItems(repos []string) []Item {
-	items := make([]Item, 0, len(repos))
-	for _, repo := range repos {
-		items = append(items, Item{Title: repo})
-	}
-	return items
-}
-
-func FormatRepoItem(item Item) string {
-	return sanitizeSingleLine(item.Title)
-}
-
-func FormatIssueItem(item Item) string {
-	return fmt.Sprintf("Issue #%d %s", item.Number, sanitizeSingleLine(item.Title))
 }
 
 func FormatPRItem(item Item) string {

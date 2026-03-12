@@ -8,8 +8,6 @@ func TestDefault(t *testing.T) {
 		{"ActiveBorderColor", cfg.Theme.ActiveBorderColor, "green"},
 		{"InactiveBorderColor", cfg.Theme.InactiveBorderColor, "white"},
 		{"Quit", cfg.KeyBindings.Quit, "q"},
-		{"NextPanel", cfg.KeyBindings.NextPanel, "Tab"},
-		{"PrevPanel", cfg.KeyBindings.PrevPanel, "ShiftTab"},
 		{"NavigateDown", cfg.KeyBindings.NavigateDown, "j"},
 		{"NavigateUp", cfg.KeyBindings.NavigateUp, "k"},
 		{"Select", cfg.KeyBindings.Select, "Enter"},

@@ -32,12 +32,7 @@ func TestSanitize(t *testing.T) {
 	}
 }
 
-func TestFormatItemsSanitizeTitle(t *testing.T) {
-	issue := FormatIssueItem(Item{Number: 1, Title: "bad\x1b[31m\ntitle"})
-	if issue != "Issue #1 bad[31m title" {
-		t.Fatalf("unexpected issue format: %q", issue)
-	}
-
+func TestFormatPRItemSanitizeTitle(t *testing.T) {
 	pr := FormatPRItem(Item{Number: 2, Title: "bad\x00title"})
 	if pr != "PR #2 badtitle" {
 		t.Fatalf("unexpected pr format: %q", pr)

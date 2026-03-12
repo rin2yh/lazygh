@@ -12,15 +12,6 @@ import (
 	"github.com/rin2yh/lazygh/internal/gh"
 )
 
-type PanelType = core.PanelType
-
-const (
-	PanelRepos  = core.PanelRepos
-	PanelIssues = core.PanelIssues
-	PanelPRs    = core.PanelPRs
-	PanelDetail = core.PanelDetail
-)
-
 type Gui struct {
 	config *config.Config
 	state  *core.State
@@ -50,16 +41,10 @@ func (gui *Gui) Run() error {
 	return err
 }
 
-type reposLoadedMsg struct {
-	repos []string
-	err   error
-}
-
-type itemsLoadedMsg struct {
-	repo   string
-	issues []core.Item
-	prs    []core.Item
-	err    error
+type prsLoadedMsg struct {
+	repo string
+	prs  []core.Item
+	err  error
 }
 
 type detailLoadedMsg struct {
@@ -75,8 +60,8 @@ func (m *model) Init() tea.Cmd {
 	if m.gui.client == nil {
 		return nil
 	}
-	m.gui.state.BeginLoadRepos()
-	return m.loadReposCmd()
+	m.gui.state.BeginLoadPRs()
+	return m.loadPRsCmd()
 }
 
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -84,11 +69,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.gui.state.SetWindowSize(msg.Width, msg.Height)
 		return m, nil
-	case reposLoadedMsg:
-		m.gui.applyReposResult(msg.repos, msg.err)
-		return m, nil
-	case itemsLoadedMsg:
-		m.gui.applyItemsResult(msg)
+	case prsLoadedMsg:
+		m.gui.applyPRsResult(msg)
 		return m, nil
 	case detailLoadedMsg:
 		m.gui.applyDetailResult(msg)
@@ -97,12 +79,6 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
-		case "tab":
-			m.gui.nextPanel()
-			return m, nil
-		case "shift+tab":
-			m.gui.prevPanel()
-			return m, nil
 		case "j", "down":
 			m.gui.navigateDown()
 			return m, nil
@@ -120,21 +96,6 @@ func (m *model) View() string {
 	return m.gui.render()
 }
 
-func (m *model) loadReposCmd() tea.Cmd {
-	return func() tea.Msg {
-		repos, err := m.gui.client.ListRepos()
-		return reposLoadedMsg{repos: repos, err: err}
-	}
-}
-
-func toCoreIssues(issues []gh.IssueItem) []core.Item {
-	items := make([]core.Item, 0, len(issues))
-	for _, issue := range issues {
-		items = append(items, core.Item{Number: issue.Number, Title: issue.Title})
-	}
-	return items
-}
-
 func toCorePRs(prs []gh.PRItem) []core.Item {
 	items := make([]core.Item, 0, len(prs))
 	for _, pr := range prs {
@@ -143,25 +104,23 @@ func toCorePRs(prs []gh.PRItem) []core.Item {
 	return items
 }
 
-func (m *model) loadItemsCmd(repo string) tea.Cmd {
+func (m *model) loadPRsCmd() tea.Cmd {
 	return func() tea.Msg {
-		issues, err := m.gui.client.ListIssues(repo)
+		repo, err := m.gui.client.ResolveCurrentRepo()
 		if err != nil {
-			return itemsLoadedMsg{repo: repo, err: err}
+			return prsLoadedMsg{err: err}
 		}
 		prs, err := m.gui.client.ListPRs(repo)
 		if err != nil {
-			return itemsLoadedMsg{repo: repo, err: err}
+			return prsLoadedMsg{repo: repo, err: err}
 		}
-		return itemsLoadedMsg{repo: repo, issues: toCoreIssues(issues), prs: toCorePRs(prs)}
+		return prsLoadedMsg{repo: repo, prs: toCorePRs(prs)}
 	}
 }
 
-type detailLoader func(repo string, number int) (string, error)
-
-func (m *model) loadDetailCmd(repo string, number int, loader detailLoader) tea.Cmd {
+func (m *model) loadDetailCmd(repo string, number int) tea.Cmd {
 	return func() tea.Msg {
-		content, err := loader(repo, number)
+		content, err := m.gui.client.ViewPR(repo, number)
 		return detailLoadedMsg{content: content, err: err}
 	}
 }
@@ -169,50 +128,26 @@ func (m *model) loadDetailCmd(repo string, number int, loader detailLoader) tea.
 func (m *model) handleEnter() tea.Cmd {
 	action := m.gui.state.PlanEnter(m.gui.client != nil, os.Getenv("LAZYGH_DEBUG_DETAIL_TEXT"))
 	switch action.Kind {
-	case core.EnterLoadItems:
-		return m.loadItemsCmd(action.Repo)
-	case core.EnterLoadIssueDetail:
-		return m.loadDetailCmd(action.Repo, action.Number, m.gui.client.ViewIssue)
 	case core.EnterLoadPRDetail:
-		return m.loadDetailCmd(action.Repo, action.Number, m.gui.client.ViewPR)
+		return m.loadDetailCmd(action.Repo, action.Number)
 	default:
 		return nil
 	}
 }
 
-func (gui *Gui) applyReposResult(repos []string, err error) {
-	gui.state.ApplyReposResult(repos, err)
-}
-
-func (gui *Gui) applyItemsResult(msg itemsLoadedMsg) {
-	gui.state.ApplyItemsResult(msg.repo, msg.issues, msg.prs, msg.err)
+func (gui *Gui) applyPRsResult(msg prsLoadedMsg) {
+	gui.state.ApplyPRsResult(msg.repo, msg.prs, msg.err)
 }
 
 func (gui *Gui) applyDetailResult(msg detailLoadedMsg) {
 	gui.state.ApplyDetailResult(msg.content, msg.err)
 }
 
-func (gui *Gui) nextPanel() {
-	gui.state.NextPanel()
-}
-
-func (gui *Gui) prevPanel() {
-	gui.state.PrevPanel()
-}
-
 func (gui *Gui) navigateDown() {
-	if gui.state.ActivePanel == PanelDetail {
-		gui.detailViewport.LineDown(1)
-		return
-	}
 	gui.state.NavigateDown()
 }
 
 func (gui *Gui) navigateUp() {
-	if gui.state.ActivePanel == PanelDetail {
-		gui.detailViewport.LineUp(1)
-		return
-	}
 	gui.state.NavigateUp()
 }
 
@@ -226,7 +161,7 @@ func (gui *Gui) render() string {
 		h = 40
 	}
 
-	leftWidth := w * 30 / 100
+	leftWidth := w * 35 / 100
 	if leftWidth < 1 {
 		leftWidth = 1
 	}
@@ -243,16 +178,8 @@ func (gui *Gui) render() string {
 		contentHeight = 1
 	}
 
-	reposH := contentHeight / 3
-	issuesH := contentHeight / 3
-	prsH := contentHeight - reposH - issuesH
-
-	leftLines := make([]string, 0, contentHeight)
-	leftLines = append(leftLines, gui.renderItemsPanel("Repositories", gui.state.Repos, gui.state.ReposSelected, gui.state.ReposLoading, core.FormatRepoItem, gui.state.ActivePanel == PanelRepos, reposH, "")...)
-	leftLines = append(leftLines, gui.renderItemsPanel("Issues", gui.state.Issues, gui.state.IssuesSelected, gui.state.IssuesLoading, core.FormatIssueItem, gui.state.ActivePanel == PanelIssues, issuesH, "No issues")...)
-	leftLines = append(leftLines, gui.renderItemsPanel("PRs", gui.state.PRs, gui.state.PRsSelected, gui.state.PRsLoading, core.FormatPRItem, gui.state.ActivePanel == PanelPRs, prsH, "")...)
-
-	rightLines := gui.renderDetailPanel("Detail", gui.state.ActivePanel == PanelDetail, rightWidth, contentHeight)
+	leftLines := gui.renderPRPanel("PRs (Open/Draft)", contentHeight)
+	rightLines := gui.renderDetailPanel("Detail", rightWidth, contentHeight)
 
 	var b strings.Builder
 	for i := 0; i < contentHeight; i++ {
@@ -269,17 +196,18 @@ func (gui *Gui) render() string {
 		b.WriteString(padOrTrim(right, rightWidth))
 		b.WriteByte('\n')
 	}
-	b.WriteString(padOrTrim(formatStatusLine(gui.state.ActivePanel), w))
+	b.WriteString(padOrTrim(formatStatusLine(gui.state.Repo), w))
 	return b.String()
 }
 
-func (gui *Gui) renderItemsPanel(title string, items []core.Item, selected int, loading bool, formatter func(core.Item) string, active bool, height int, emptyPlaceholder string) []string {
+func (gui *Gui) renderPRPanel(title string, height int) []string {
 	if height <= 0 {
 		return nil
 	}
 	lines := make([]string, 0, height)
-	lines = append(lines, formatPanelTitle(title, active))
-	if loading {
+	lines = append(lines, formatPanelTitle(title, true))
+
+	if gui.state.PRsLoading {
 		for len(lines) < height {
 			if len(lines) == 1 {
 				lines = append(lines, "Loading...")
@@ -289,10 +217,11 @@ func (gui *Gui) renderItemsPanel(title string, items []core.Item, selected int, 
 		}
 		return lines
 	}
-	if len(items) == 0 {
+
+	if len(gui.state.PRs) == 0 {
 		for len(lines) < height {
 			if len(lines) == 1 {
-				lines = append(lines, emptyPlaceholder)
+				lines = append(lines, "No pull requests")
 			} else {
 				lines = append(lines, "")
 			}
@@ -301,20 +230,20 @@ func (gui *Gui) renderItemsPanel(title string, items []core.Item, selected int, 
 	}
 
 	for i := 0; len(lines) < height; i++ {
-		if i >= len(items) {
+		if i >= len(gui.state.PRs) {
 			lines = append(lines, "")
 			continue
 		}
 		prefix := "  "
-		if i == selected {
+		if i == gui.state.PRsSelected {
 			prefix = "> "
 		}
-		lines = append(lines, prefix+formatter(items[i]))
+		lines = append(lines, prefix+core.FormatPRItem(gui.state.PRs[i]))
 	}
 	return lines
 }
 
-func (gui *Gui) renderDetailPanel(title string, active bool, width int, height int) []string {
+func (gui *Gui) renderDetailPanel(title string, width int, height int) []string {
 	if height <= 0 {
 		return nil
 	}
@@ -325,7 +254,7 @@ func (gui *Gui) renderDetailPanel(title string, active bool, width int, height i
 	gui.syncDetailViewport(width, bodyHeight, gui.state.DetailContent)
 
 	lines := make([]string, 0, height)
-	lines = append(lines, formatPanelTitle(title, active))
+	lines = append(lines, formatPanelTitle(title, false))
 	for _, line := range strings.Split(gui.detailViewport.View(), "\n") {
 		if len(lines) >= height {
 			break
@@ -355,6 +284,7 @@ func (gui *Gui) syncDetailViewport(width int, height int, content string) {
 	if gui.detailViewportBody != wrapped {
 		gui.detailViewport.SetContent(wrapped)
 		gui.detailViewportBody = wrapped
+		gui.detailViewport.GotoTop()
 	}
 }
 

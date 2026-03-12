@@ -6,22 +6,16 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 )
 
 type ClientInterface interface {
-	ListRepos() ([]string, error)
+	ResolveCurrentRepo() (string, error)
 	ListPRs(repo string) ([]PRItem, error)
-	ListIssues(repo string) ([]IssueItem, error)
 	ViewPR(repo string, number int) (string, error)
-	ViewIssue(repo string, number int) (string, error)
 }
 
 type PRItem struct {
-	Number int    `json:"number"`
-	Title  string `json:"title"`
-}
-
-type IssueItem struct {
 	Number int    `json:"number"`
 	Title  string `json:"title"`
 }
@@ -67,36 +61,24 @@ func (c *Client) runJSON(dst any, args ...string) error {
 	return json.Unmarshal(out, dst)
 }
 
-func (c *Client) ListRepos() ([]string, error) {
+func (c *Client) ResolveCurrentRepo() (string, error) {
 	type entry struct {
 		NameWithOwner string `json:"nameWithOwner"`
 	}
-	out, err := c.runCommand("repo", "list", "--json", "nameWithOwner", "--limit", "100")
-	if err != nil {
-		return nil, err
+	var e entry
+	if err := c.runJSON(&e, "repo", "view", "--json", "nameWithOwner"); err != nil {
+		return "", err
 	}
-	var entries []entry
-	if err := json.Unmarshal(out, &entries); err != nil {
-		return nil, err
+	repo := strings.TrimSpace(e.NameWithOwner)
+	if repo == "" {
+		return "", fmt.Errorf("current repository is empty")
 	}
-	repos := make([]string, len(entries))
-	for i, e := range entries {
-		repos[i] = e.NameWithOwner
-	}
-	return repos, nil
+	return repo, nil
 }
 
 func (c *Client) ListPRs(repo string) ([]PRItem, error) {
 	var items []PRItem
-	if err := c.runJSON(&items, "pr", "list", "--repo", repo, "--json", "number,title", "--limit", "100"); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-func (c *Client) ListIssues(repo string) ([]IssueItem, error) {
-	var items []IssueItem
-	if err := c.runJSON(&items, "issue", "list", "--repo", repo, "--json", "number,title", "--limit", "100"); err != nil {
+	if err := c.runJSON(&items, "pr", "list", "--repo", repo, "--state", "open", "--json", "number,title", "--limit", "100"); err != nil {
 		return nil, err
 	}
 	return items, nil
@@ -105,19 +87,6 @@ func (c *Client) ListIssues(repo string) ([]IssueItem, error) {
 func (c *Client) ViewPR(repo string, number int) (string, error) {
 	out, err := c.runCommand(
 		"pr", "view", strconv.Itoa(number),
-		"--repo", repo,
-		"--json", "title,body",
-		"--template", "{{.title}}\n\n{{.body}}",
-	)
-	if err != nil {
-		return "", err
-	}
-	return string(out), nil
-}
-
-func (c *Client) ViewIssue(repo string, number int) (string, error) {
-	out, err := c.runCommand(
-		"issue", "view", strconv.Itoa(number),
 		"--repo", repo,
 		"--json", "title,body",
 		"--template", "{{.title}}\n\n{{.body}}",

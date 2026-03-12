@@ -14,15 +14,15 @@ func TestFormatPanelTitle(t *testing.T) {
 	}{
 		{
 			name:   "Active",
-			base:   "Repositories",
+			base:   "PRs",
 			active: true,
-			want:   "> Repositories <",
+			want:   "> PRs <",
 		},
 		{
 			name:   "Inactive",
-			base:   "Repositories",
+			base:   "Detail",
 			active: false,
-			want:   " Repositories ",
+			want:   " Detail ",
 		},
 	}
 
@@ -34,82 +34,20 @@ func TestFormatPanelTitle(t *testing.T) {
 	}
 }
 
-func TestPanelDisplayName(t *testing.T) {
-	tests := []struct {
-		name  string
-		panel PanelType
-		want  string
-	}{
-		{name: "Repos", panel: PanelRepos, want: "Repositories"},
-		{name: "Issues", panel: PanelIssues, want: "Issues"},
-		{name: "PRs", panel: PanelPRs, want: "PRs"},
-		{name: "Detail", panel: PanelDetail, want: "Detail"},
-		{name: "Unknown", panel: PanelType(99), want: "Unknown"},
-	}
-
-	for _, tt := range tests {
-		got := panelDisplayName(tt.panel)
-		if got != tt.want {
-			t.Errorf("%s: got %q, want %q", tt.name, got, tt.want)
-		}
-	}
-}
-
 func TestFormatStatusLine(t *testing.T) {
-	got := formatStatusLine(PanelIssues)
+	got := formatStatusLine("owner/repo")
 
-	if !strings.Contains(got, "Panel: Issues") {
-		t.Errorf("status %q should contain %q", got, "Panel: Issues")
+	if !strings.Contains(got, "Repo: owner/repo") {
+		t.Errorf("status %q should contain repo", got)
 	}
-	if !strings.Contains(got, "[q]Quit  [tab]Panel  [j/k]Navigate  [enter]Select") {
+	if !strings.Contains(got, "[q]Quit  [j/k]Move  [enter]Reload detail") {
 		t.Errorf("status %q should contain key guide", got)
 	}
 }
 
-func TestFormatStatusLine_AllPanels(t *testing.T) {
-	tests := []struct {
-		name  string
-		panel PanelType
-		want  string
-	}{
-		{name: "Repos", panel: PanelRepos, want: "Panel: Repositories"},
-		{name: "Issues", panel: PanelIssues, want: "Panel: Issues"},
-		{name: "PRs", panel: PanelPRs, want: "Panel: PRs"},
-		{name: "Detail", panel: PanelDetail, want: "Panel: Detail"},
-	}
-
-	for _, tt := range tests {
-		got := formatStatusLine(tt.panel)
-		if !strings.Contains(got, tt.want) {
-			t.Errorf("%s: status %q should contain %q", tt.name, got, tt.want)
-		}
-	}
-}
-
-func TestStatusViewBounds_HasOneVisibleRow(t *testing.T) {
-	_, y0, _, y1 := statusViewBounds(120, 40)
-	visibleRows := y1 - y0 - 1
-	if visibleRows != 1 {
-		t.Errorf("visibleRows = %d, want %d", visibleRows, 1)
-	}
-}
-
-func TestShouldHighlightListPanel(t *testing.T) {
-	tests := []struct {
-		name                string
-		active              bool
-		keepSelectionOnBlur bool
-		want                bool
-	}{
-		{name: "Active", active: true, keepSelectionOnBlur: false, want: true},
-		{name: "InactiveAndKeep", active: false, keepSelectionOnBlur: true, want: true},
-		{name: "InactiveAndNoKeep", active: false, keepSelectionOnBlur: false, want: false},
-	}
-
-	for _, tt := range tests {
-		got := shouldHighlightListPanel(tt.active, tt.keepSelectionOnBlur)
-		if got != tt.want {
-			t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
-		}
+func TestFormatStatusLine_Resolving(t *testing.T) {
+	got := formatStatusLine("")
+	if !strings.Contains(got, "Repo: (resolving...)") {
+		t.Errorf("status %q should contain fallback repo", got)
 	}
 }

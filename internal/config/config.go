@@ -7,8 +7,6 @@ type Theme struct {
 
 type KeyBindings struct {
 	Quit         string
-	NextPanel    string
-	PrevPanel    string
 	NavigateDown string
 	NavigateUp   string
 	Select       string
@@ -27,8 +25,6 @@ func Default() *Config {
 		},
 		KeyBindings: KeyBindings{
 			Quit:         "q",
-			NextPanel:    "Tab",
-			PrevPanel:    "ShiftTab",
 			NavigateDown: "j",
 			NavigateUp:   "k",
 			Select:       "Enter",

@@ -3,6 +3,7 @@
 *.test
 /dist/
 /bin/
+lazygh
 
 # OS
 .DS_Store
