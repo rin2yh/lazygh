@@ -178,7 +178,7 @@ func (gui *Gui) render() string {
 		contentHeight = 1
 	}
 
-	leftLines := gui.renderPRPanel("PRs (Open/Draft)", contentHeight)
+	leftLines := gui.renderLeftPanels(contentHeight)
 	rightLines := gui.renderDetailPanel("Detail", rightWidth, contentHeight)
 
 	var b strings.Builder
@@ -239,6 +239,44 @@ func (gui *Gui) renderPRPanel(title string, height int) []string {
 			prefix = "> "
 		}
 		lines = append(lines, prefix+core.FormatPRItem(gui.state.PRs[i]))
+	}
+	return lines
+}
+
+func (gui *Gui) renderRepoPanel(title string, height int) []string {
+	if height <= 0 {
+		return nil
+	}
+	lines := make([]string, 0, height)
+	lines = append(lines, formatPanelTitle(title, false))
+	for len(lines) < height {
+		if len(lines) == 1 {
+			lines = append(lines, formatRepoLine(gui.state.Repo))
+		} else {
+			lines = append(lines, "")
+		}
+	}
+	return lines
+}
+
+func (gui *Gui) renderLeftPanels(height int) []string {
+	if height <= 0 {
+		return nil
+	}
+	repoHeight := 2
+	if height == 1 {
+		repoHeight = 1
+	}
+	prHeight := height - repoHeight
+
+	repoLines := gui.renderRepoPanel("Repository", repoHeight)
+	prLines := gui.renderPRPanel("PRs (Open/Draft)", prHeight)
+
+	lines := make([]string, 0, height)
+	lines = append(lines, repoLines...)
+	lines = append(lines, prLines...)
+	for len(lines) < height {
+		lines = append(lines, "")
 	}
 	return lines
 }

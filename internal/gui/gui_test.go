@@ -161,3 +161,19 @@ func TestRenderPRPanel_EmptyPlaceholder(t *testing.T) {
 		t.Fatalf("got %q, want %q", lines[1], "No pull requests")
 	}
 }
+
+func TestRenderRepoPanel_ShowsRepoName(t *testing.T) {
+	g := newTestGuiWithClient(&mockClient{})
+	g.state.Repo = "owner/repo"
+	lines := g.renderRepoPanel("Repository", 2)
+
+	if len(lines) != 2 {
+		t.Fatalf("got %d lines, want 2", len(lines))
+	}
+	if lines[0] != " Repository " {
+		t.Fatalf("got %q, want %q", lines[0], " Repository ")
+	}
+	if lines[1] != "owner/repo" {
+		t.Fatalf("got %q, want %q", lines[1], "owner/repo")
+	}
+}

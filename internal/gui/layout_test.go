@@ -1,9 +1,6 @@
 package gui
 
-import (
-	"strings"
-	"testing"
-)
+import "testing"
 
 func TestFormatPanelTitle(t *testing.T) {
 	tests := []struct {
@@ -37,17 +34,21 @@ func TestFormatPanelTitle(t *testing.T) {
 func TestFormatStatusLine(t *testing.T) {
 	got := formatStatusLine("owner/repo")
 
-	if !strings.Contains(got, "Repo: owner/repo") {
-		t.Errorf("status %q should contain repo", got)
-	}
-	if !strings.Contains(got, "[q]Quit  [j/k]Move  [enter]Reload detail") {
-		t.Errorf("status %q should contain key guide", got)
+	if got != "[q]Quit  [j/k]Move  [enter]Reload detail" {
+		t.Errorf("got %q, want %q", got, "[q]Quit  [j/k]Move  [enter]Reload detail")
 	}
 }
 
-func TestFormatStatusLine_Resolving(t *testing.T) {
-	got := formatStatusLine("")
-	if !strings.Contains(got, "Repo: (resolving...)") {
-		t.Errorf("status %q should contain fallback repo", got)
+func TestFormatRepoLine(t *testing.T) {
+	got := formatRepoLine("owner/repo")
+	if got != "owner/repo" {
+		t.Fatalf("got %q, want %q", got, "owner/repo")
+	}
+}
+
+func TestFormatRepoLine_Resolving(t *testing.T) {
+	got := formatRepoLine("")
+	if got != "(resolving...)" {
+		t.Fatalf("got %q, want %q", got, "(resolving...)")
 	}
 }
