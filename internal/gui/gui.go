@@ -178,7 +178,7 @@ func (gui *Gui) render() string {
 		contentHeight = 1
 	}
 
-	leftLines := gui.renderLeftPanels(contentHeight)
+	leftLines := gui.renderLeftPanels(leftWidth, contentHeight)
 	rightLines := gui.renderDetailPanel("Detail", rightWidth, contentHeight)
 
 	var b strings.Builder
@@ -192,7 +192,7 @@ func (gui *Gui) render() string {
 			right = rightLines[i]
 		}
 		b.WriteString(padOrTrim(left, leftWidth))
-		b.WriteRune('│')
+		b.WriteRune(' ')
 		b.WriteString(padOrTrim(right, rightWidth))
 		b.WriteByte('\n')
 	}
@@ -200,12 +200,11 @@ func (gui *Gui) render() string {
 	return b.String()
 }
 
-func (gui *Gui) renderPRPanel(title string, height int) []string {
+func (gui *Gui) renderPRPanel(height int) []string {
 	if height <= 0 {
 		return nil
 	}
 	lines := make([]string, 0, height)
-	lines = append(lines, formatPanelTitle(title, true))
 
 	if gui.state.PRsLoading {
 		for len(lines) < height {
@@ -216,7 +215,7 @@ func (gui *Gui) renderPRPanel(title string, height int) []string {
 
 	if len(gui.state.PRs) == 0 {
 		for len(lines) < height {
-			if len(lines) == 1 {
+			if len(lines) == 0 {
 				lines = append(lines, "No pull requests")
 			} else {
 				lines = append(lines, "")
@@ -239,14 +238,13 @@ func (gui *Gui) renderPRPanel(title string, height int) []string {
 	return lines
 }
 
-func (gui *Gui) renderRepoPanel(title string, height int) []string {
+func (gui *Gui) renderRepoPanel(height int) []string {
 	if height <= 0 {
 		return nil
 	}
 	lines := make([]string, 0, height)
-	lines = append(lines, formatPanelTitle(title, false))
 	for len(lines) < height {
-		if len(lines) == 1 {
+		if len(lines) == 0 {
 			lines = append(lines, formatRepoLine(gui.state.Repo))
 		} else {
 			lines = append(lines, "")
@@ -255,22 +253,42 @@ func (gui *Gui) renderRepoPanel(title string, height int) []string {
 	return lines
 }
 
-func (gui *Gui) renderLeftPanels(height int) []string {
+func (gui *Gui) renderLeftPanels(width int, height int) []string {
 	if height <= 0 {
 		return nil
 	}
-	repoHeight := 2
-	if height == 1 {
-		repoHeight = 1
-	}
-	prHeight := height - repoHeight
 
-	repoLines := gui.renderRepoPanel("Repository", repoHeight)
-	prLines := gui.renderPRPanel("PRs (Open/Draft)", prHeight)
+	repoPanelHeight := 4
+	if height < repoPanelHeight+1 {
+		repoPanelHeight = height / 2
+	}
+	if repoPanelHeight < 1 {
+		repoPanelHeight = 1
+	}
+	prPanelHeight := height - repoPanelHeight
+	if prPanelHeight < 1 {
+		prPanelHeight = 1
+		repoPanelHeight = height - prPanelHeight
+	}
+
+	repoInnerHeight := repoPanelHeight
+	if repoPanelHeight > 2 {
+		repoInnerHeight = repoPanelHeight - 2
+	}
+	prInnerHeight := prPanelHeight
+	if prPanelHeight > 2 {
+		prInnerHeight = prPanelHeight - 2
+	}
+
+	repoLines := framePanel("Repository", false, gui.renderRepoPanel(repoInnerHeight), width, repoPanelHeight)
+	prLines := framePanel("PRs (Open/Draft)", true, gui.renderPRPanel(prInnerHeight), width, prPanelHeight)
 
 	lines := make([]string, 0, height)
 	lines = append(lines, repoLines...)
 	lines = append(lines, prLines...)
+	if len(lines) > height {
+		lines = lines[:height]
+	}
 	for len(lines) < height {
 		lines = append(lines, "")
 	}
@@ -281,24 +299,32 @@ func (gui *Gui) renderDetailPanel(title string, width int, height int) []string 
 	if height <= 0 {
 		return nil
 	}
-	bodyHeight := height - 1
+
+	innerWidth := width
+	if width > 2 {
+		innerWidth = width - 2
+	}
+	innerHeight := height
+	if height > 2 {
+		innerHeight = height - 2
+	}
+	bodyHeight := innerHeight
 	if bodyHeight < 1 {
 		bodyHeight = 1
 	}
-	gui.syncDetailViewport(width, bodyHeight, gui.state.DetailContent)
+	gui.syncDetailViewport(innerWidth, bodyHeight, gui.state.DetailContent)
 
-	lines := make([]string, 0, height)
-	lines = append(lines, formatPanelTitle(title, false))
+	lines := make([]string, 0, innerHeight)
 	for _, line := range strings.Split(gui.detailViewport.View(), "\n") {
-		if len(lines) >= height {
+		if len(lines) >= innerHeight {
 			break
 		}
 		lines = append(lines, line)
 	}
-	for len(lines) < height {
+	for len(lines) < innerHeight {
 		lines = append(lines, "")
 	}
-	return lines
+	return framePanel(title, false, lines, width, height)
 }
 
 func (gui *Gui) syncDetailViewport(width int, height int, content string) {
@@ -371,4 +397,45 @@ func padOrTrim(s string, width int) string {
 		b.WriteString(strings.Repeat(" ", width-col))
 	}
 	return b.String()
+}
+
+func framePanel(title string, active bool, content []string, width int, height int) []string {
+	if height <= 0 {
+		return nil
+	}
+	if width < 2 || height < 3 {
+		lines := make([]string, 0, height)
+		for i := 0; i < height; i++ {
+			if i < len(content) {
+				lines = append(lines, content[i])
+			} else {
+				lines = append(lines, "")
+			}
+		}
+		return lines
+	}
+
+	innerWidth := width - 2
+	innerHeight := height - 2
+	lines := make([]string, 0, height)
+	topLabel := formatPanelTitle(title, active)
+	top := strings.Repeat("─", innerWidth)
+	labelWidth := runewidth.StringWidth(topLabel)
+	if labelWidth > 0 {
+		if labelWidth >= innerWidth {
+			top = padOrTrim(topLabel, innerWidth)
+		} else {
+			top = topLabel + strings.Repeat("─", innerWidth-labelWidth)
+		}
+	}
+	lines = append(lines, "┌"+top+"┐")
+	for i := 0; i < innerHeight; i++ {
+		row := ""
+		if i < len(content) {
+			row = content[i]
+		}
+		lines = append(lines, "│"+padOrTrim(row, innerWidth)+"│")
+	}
+	lines = append(lines, "└"+strings.Repeat("─", innerWidth)+"┘")
+	return lines
 }

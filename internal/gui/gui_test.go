@@ -2,6 +2,7 @@ package gui
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/rin2yh/lazygh/internal/config"
@@ -223,6 +224,58 @@ func TestWrapText(t *testing.T) {
 	}
 }
 
+func TestFramePanel(t *testing.T) {
+	got := framePanel("Repo", false, []string{"body"}, 10, 3)
+	want := []string{
+		"┌ Repo ──┐",
+		"│body    │",
+		"└────────┘",
+	}
+
+	if len(got) != len(want) {
+		t.Fatalf("got %d lines, want %d", len(got), len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("line %d: got %q, want %q", i, got[i], want[i])
+		}
+	}
+}
+
+func TestFramePanelFallsBackWhenTooSmall(t *testing.T) {
+	got := framePanel("Repo", false, []string{"x"}, 1, 2)
+	want := []string{"x", ""}
+
+	if len(got) != len(want) {
+		t.Fatalf("got %d lines, want %d", len(got), len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("line %d: got %q, want %q", i, got[i], want[i])
+		}
+	}
+}
+
+func TestRenderLeftPanelsSeparated(t *testing.T) {
+	g := newTestGuiWithClient(&testmock.GHClient{})
+	g.state.Repo = "owner/repo"
+	g.state.PRs = []core.Item{{Number: 1, Title: "Fix bug"}}
+
+	lines := g.renderLeftPanels(20, 10)
+	if len(lines) != 10 {
+		t.Fatalf("got %d lines, want 10", len(lines))
+	}
+	if lines[0] != "┌ Repository ──────┐" {
+		t.Fatalf("unexpected repository frame top: %q", lines[0])
+	}
+	if lines[3] != "└──────────────────┘" {
+		t.Fatalf("unexpected repository frame bottom: %q", lines[3])
+	}
+	if !strings.HasPrefix(lines[4], "┌> PRs") || !strings.HasSuffix(lines[4], "┐") {
+		t.Fatalf("unexpected pr frame top: %q", lines[4])
+	}
+}
+
 func TestRenderPRPanel(t *testing.T) {
 	type fixture struct {
 		prsLoading bool
@@ -273,13 +326,13 @@ func TestRenderPRPanel(t *testing.T) {
 			g.state.PRsLoading = tt.fixture.prsLoading
 			g.state.PRs = tt.fixture.prs
 			g.state.PRsSelected = tt.fixture.selected
-			lines := g.renderPRPanel("PRs", 3)
+			lines := g.renderPRPanel(3)
 
 			if len(lines) != 3 {
 				t.Fatalf("got %d lines, want 3", len(lines))
 			}
-			if lines[1] != tt.want.line1 {
-				t.Fatalf("got %q, want %q", lines[1], tt.want.line1)
+			if lines[0] != tt.want.line1 {
+				t.Fatalf("got %q, want %q", lines[0], tt.want.line1)
 			}
 		})
 	}
@@ -315,16 +368,13 @@ func TestRenderRepoPanel(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := newTestGuiWithClient(&testmock.GHClient{})
 			g.state.Repo = tt.repo
-			lines := g.renderRepoPanel("Repository", 2)
+			lines := g.renderRepoPanel(2)
 
 			if len(lines) != 2 {
 				t.Fatalf("got %d lines, want 2", len(lines))
 			}
-			if lines[0] != " Repository " {
-				t.Fatalf("got %q, want %q", lines[0], " Repository ")
-			}
-			if lines[1] != tt.want.line1 {
-				t.Fatalf("got %q, want %q", lines[1], tt.want.line1)
+			if lines[0] != tt.want.line1 {
+				t.Fatalf("got %q, want %q", lines[0], tt.want.line1)
 			}
 		})
 	}
