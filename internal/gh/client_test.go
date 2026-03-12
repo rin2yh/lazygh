@@ -24,11 +24,15 @@ func TestFakeProcess(t *testing.T) {
 			ExitCode: 0,
 		},
 		"pr list": {
-			Stdout:   `[{"number":1,"title":"Fix bug"},{"number":2,"title":"Add feature"}]`,
+			Stdout:   `[{"number":1,"title":"Fix bug","state":"OPEN","isDraft":false,"assignees":[{"login":"alice"}]},{"number":2,"title":"Add feature","state":"OPEN","isDraft":true,"assignees":[]}]`,
 			ExitCode: 0,
 		},
 		"pr view": {
 			Stdout:   "PR view content",
+			ExitCode: 0,
+		},
+		"pr diff": {
+			Stdout:   "PR diff content",
 			ExitCode: 0,
 		},
 	}
@@ -85,8 +89,19 @@ func TestListPRs(t *testing.T) {
 		t.Fatalf("got %d PRs, want %d", len(prs), len(fx.PRs))
 	}
 	for i := range prs {
-		if prs[i].Number != fx.PRs[i].Number || prs[i].Title != fx.PRs[i].Title {
+		if prs[i].Number != fx.PRs[i].Number ||
+			prs[i].Title != fx.PRs[i].Title ||
+			prs[i].State != fx.PRs[i].State ||
+			prs[i].IsDraft != fx.PRs[i].IsDraft {
 			t.Fatalf("unexpected PR[%d]: %+v", i, prs[i])
+		}
+		if len(prs[i].Assignees) != len(fx.PRs[i].Assignees) {
+			t.Fatalf("unexpected assignee length at PR[%d]: %+v", i, prs[i])
+		}
+		for j := range prs[i].Assignees {
+			if prs[i].Assignees[j].Login != fx.PRs[i].Assignees[j] {
+				t.Fatalf("unexpected assignee at PR[%d][%d]: %+v", i, j, prs[i].Assignees[j])
+			}
 		}
 	}
 }
@@ -101,6 +116,19 @@ func TestViewPR(t *testing.T) {
 	}
 	if content != fx.Content {
 		t.Fatalf("got %q, want %q", content, fx.Content)
+	}
+}
+
+func TestDiffPR(t *testing.T) {
+	c := newTestClient(t)
+	fx := fixture.NewGHSuccess()
+
+	content, err := c.DiffPR(fx.Repo, 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if content != fx.Diff {
+		t.Fatalf("got %q, want %q", content, fx.Diff)
 	}
 }
 

@@ -13,11 +13,19 @@ type ClientInterface interface {
 	ResolveCurrentRepo() (string, error)
 	ListPRs(repo string) ([]PRItem, error)
 	ViewPR(repo string, number int) (string, error)
+	DiffPR(repo string, number int) (string, error)
 }
 
 type PRItem struct {
-	Number int    `json:"number"`
-	Title  string `json:"title"`
+	Number    int      `json:"number"`
+	Title     string   `json:"title"`
+	State     string   `json:"state"`
+	IsDraft   bool     `json:"isDraft"`
+	Assignees []GHUser `json:"assignees"`
+}
+
+type GHUser struct {
+	Login string `json:"login"`
 }
 
 type Client struct {
@@ -78,7 +86,7 @@ func (c *Client) ResolveCurrentRepo() (string, error) {
 
 func (c *Client) ListPRs(repo string) ([]PRItem, error) {
 	var items []PRItem
-	if err := c.runJSON(&items, "pr", "list", "--repo", repo, "--state", "open", "--json", "number,title", "--limit", "100"); err != nil {
+	if err := c.runJSON(&items, "pr", "list", "--repo", repo, "--state", "open", "--json", "number,title,state,isDraft,assignees", "--limit", "100"); err != nil {
 		return nil, err
 	}
 	return items, nil
@@ -88,8 +96,19 @@ func (c *Client) ViewPR(repo string, number int) (string, error) {
 	out, err := c.runCommand(
 		"pr", "view", strconv.Itoa(number),
 		"--repo", repo,
-		"--json", "title,body",
-		"--template", "{{.title}}\n\n{{.body}}",
+		"--json", "title,body,state,isDraft,assignees",
+		"--template", "{{.title}}\nStatus: {{if .isDraft}}DRAFT{{else}}{{.state}}{{end}}\nAssignee: {{if .assignees}}{{range $i, $a := .assignees}}{{if $i}}, {{end}}{{$a.login}}{{end}}{{else}}unassigned{{end}}\n\n{{.body}}",
+	)
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}
+
+func (c *Client) DiffPR(repo string, number int) (string, error) {
+	out, err := c.runCommand(
+		"pr", "diff", strconv.Itoa(number),
+		"--repo", repo,
 	)
 	if err != nil {
 		return "", err

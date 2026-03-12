@@ -2,20 +2,65 @@ package gui
 
 import (
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/mattn/go-runewidth"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
 )
 
+type panelFocus int
+
+const (
+	panelPRs panelFocus = iota
+	panelDiffFiles
+	panelDiffContent
+)
+
+type diffFile struct {
+	path      string
+	content   string
+	status    diffFileStatus
+	additions int
+	deletions int
+}
+
+type diffFileStatus string
+
+const (
+	diffFileStatusModified diffFileStatus = "M"
+	diffFileStatusAdded    diffFileStatus = "A"
+	diffFileStatusDeleted  diffFileStatus = "D"
+	diffFileStatusRenamed  diffFileStatus = "R"
+	diffFileStatusCopied   diffFileStatus = "C"
+	diffFileStatusType     diffFileStatus = "T"
+)
+
+const (
+	ansiReset  = "\x1b[0m"
+	ansiGreen  = "\x1b[32m"
+	ansiRed    = "\x1b[31m"
+	ansiYellow = "\x1b[33m"
+	ansiBlue   = "\x1b[34m"
+	ansiCyan   = "\x1b[36m"
+	ansiPurple = "\x1b[35m"
+	ansiGray   = "\x1b[90m"
+)
+
 type Gui struct {
 	config *config.Config
 	state  *core.State
 	client gh.ClientInterface
+
+	focus panelFocus
+
+	diffFiles        []diffFile
+	diffFileSelected int
 
 	detailViewport       viewport.Model
 	detailViewportWidth  int
@@ -29,6 +74,7 @@ func NewGui(cfg *config.Config, client gh.ClientInterface) (*Gui, error) {
 		config:               cfg,
 		state:                core.NewState(),
 		client:               client,
+		focus:                panelPRs,
 		detailViewport:       vp,
 		detailViewportWidth:  1,
 		detailViewportHeight: 1,
@@ -48,6 +94,8 @@ type prsLoadedMsg struct {
 }
 
 type detailLoadedMsg struct {
+	mode    core.DetailMode
+	number  int
 	content string
 	err     error
 }
@@ -79,17 +127,110 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
+		case "esc":
+			m.gui.focusPRs()
+			return m, nil
+		case "tab":
+			m.gui.cycleFocus()
+			return m, nil
 		case "j", "down":
-			m.gui.navigateDown()
-			return m, nil
+			return m, m.handleDownKey()
 		case "k", "up":
-			m.gui.navigateUp()
+			return m, m.handleUpKey()
+		case "pgdown", "f", " ", "pgup", "b", "home", "g", "end", "G":
+			if m.gui.scrollDetailByKey(msg) {
+				return m, nil
+			}
 			return m, nil
+		case "h":
+			return m, m.handleHKey()
+		case "l":
+			return m, m.handleLKey()
+		case "o":
+			m.gui.switchToOverview()
+			return m, nil
+		case "d":
+			return m, m.handleDKey()
 		case "enter":
-			return m, m.handleEnter()
+			return m, m.handleDetailLoad()
 		}
 	}
 	return m, nil
+}
+
+func (m *model) handleHKey() tea.Cmd {
+	if !m.gui.state.IsDiffMode() {
+		return nil
+	}
+	if len(m.gui.diffFiles) > 0 {
+		m.gui.focus = panelDiffFiles
+	}
+	return nil
+}
+
+func (m *model) handleLKey() tea.Cmd {
+	if m.gui.focus == panelPRs {
+		if m.gui.state.IsDiffMode() {
+			m.gui.switchToOverview()
+		}
+		return m.handleDetailLoad()
+	}
+	if m.gui.state.IsDiffMode() {
+		m.gui.focus = panelDiffContent
+		return nil
+	}
+	return nil
+}
+
+func (m *model) handleDKey() tea.Cmd {
+	if m.gui.switchToDiff() {
+		return m.handleDetailLoad()
+	}
+	return nil
+}
+
+func (m *model) handleDownKey() tea.Cmd {
+	if m.gui.state.IsDiffMode() {
+		switch m.gui.focus {
+		case panelDiffFiles:
+			m.gui.selectNextDiffFile()
+			return nil
+		case panelDiffContent:
+			m.gui.scrollDetailDown()
+			return nil
+		default:
+			changed := m.gui.navigateDown()
+			if changed {
+				return m.handleDetailLoad()
+			}
+			return nil
+		}
+	}
+
+	m.gui.navigateDown()
+	return nil
+}
+
+func (m *model) handleUpKey() tea.Cmd {
+	if m.gui.state.IsDiffMode() {
+		switch m.gui.focus {
+		case panelDiffFiles:
+			m.gui.selectPrevDiffFile()
+			return nil
+		case panelDiffContent:
+			m.gui.scrollDetailUp()
+			return nil
+		default:
+			changed := m.gui.navigateUp()
+			if changed {
+				return m.handleDetailLoad()
+			}
+			return nil
+		}
+	}
+
+	m.gui.navigateUp()
+	return nil
 }
 
 func (m *model) View() string {
@@ -99,7 +240,23 @@ func (m *model) View() string {
 func toCorePRs(prs []gh.PRItem) []core.Item {
 	items := make([]core.Item, 0, len(prs))
 	for _, pr := range prs {
-		items = append(items, core.Item{Number: pr.Number, Title: pr.Title})
+		status := pr.State
+		if pr.IsDraft {
+			status = "DRAFT"
+		}
+		assignees := make([]string, 0, len(pr.Assignees))
+		for _, user := range pr.Assignees {
+			name := strings.TrimSpace(user.Login)
+			if name != "" {
+				assignees = append(assignees, name)
+			}
+		}
+		items = append(items, core.Item{
+			Number:    pr.Number,
+			Title:     pr.Title,
+			Status:    status,
+			Assignees: assignees,
+		})
 	}
 	return items
 }
@@ -118,18 +275,29 @@ func (m *model) loadPRsCmd() tea.Cmd {
 	}
 }
 
-func (m *model) loadDetailCmd(repo string, number int) tea.Cmd {
+func (m *model) loadDetailCmd(repo string, number int, mode core.DetailMode) tea.Cmd {
 	return func() tea.Msg {
-		content, err := m.gui.client.ViewPR(repo, number)
-		return detailLoadedMsg{content: content, err: err}
+		var (
+			content string
+			err     error
+		)
+		switch mode {
+		case core.DetailModeDiff:
+			content, err = m.gui.client.DiffPR(repo, number)
+		default:
+			content, err = m.gui.client.ViewPR(repo, number)
+		}
+		return detailLoadedMsg{mode: mode, number: number, content: content, err: err}
 	}
 }
 
-func (m *model) handleEnter() tea.Cmd {
+func (m *model) handleDetailLoad() tea.Cmd {
 	action := m.gui.state.PlanEnter(m.gui.client != nil, os.Getenv("LAZYGH_DEBUG_DETAIL_TEXT"))
 	switch action.Kind {
+	case core.EnterLoadPRDiff:
+		return m.loadDetailCmd(action.Repo, action.Number, core.DetailModeDiff)
 	case core.EnterLoadPRDetail:
-		return m.loadDetailCmd(action.Repo, action.Number)
+		return m.loadDetailCmd(action.Repo, action.Number, core.DetailModeOverview)
 	default:
 		return nil
 	}
@@ -137,18 +305,131 @@ func (m *model) handleEnter() tea.Cmd {
 
 func (gui *Gui) applyPRsResult(msg prsLoadedMsg) {
 	gui.state.ApplyPRsResult(msg.repo, msg.prs, msg.err)
+	gui.focus = panelPRs
 }
 
 func (gui *Gui) applyDetailResult(msg detailLoadedMsg) {
+	if !gui.state.ShouldApplyDetailResult(msg.mode, msg.number) {
+		return
+	}
+	if msg.mode == core.DetailModeDiff {
+		gui.state.ApplyDiffResult(msg.content, msg.err)
+		if msg.err != nil {
+			gui.diffFiles = nil
+			gui.diffFileSelected = 0
+			if gui.focus == panelDiffFiles {
+				gui.focus = panelDiffContent
+			}
+			return
+		}
+		gui.updateDiffFiles(msg.content)
+		return
+	}
 	gui.state.ApplyDetailResult(msg.content, msg.err)
 }
 
-func (gui *Gui) navigateDown() {
-	gui.state.NavigateDown()
+func (gui *Gui) navigateDown() bool {
+	return gui.state.NavigateDown()
 }
 
-func (gui *Gui) navigateUp() {
-	gui.state.NavigateUp()
+func (gui *Gui) navigateUp() bool {
+	return gui.state.NavigateUp()
+}
+
+func (gui *Gui) switchToOverview() bool {
+	changed := gui.state.SwitchToOverview()
+	if changed {
+		gui.focus = panelPRs
+	}
+	return changed
+}
+
+func (gui *Gui) focusPRs() {
+	gui.focus = panelPRs
+}
+
+func (gui *Gui) switchToDiff() bool {
+	changed := gui.state.SwitchToDiff()
+	if changed {
+		gui.focus = panelDiffFiles
+		gui.diffFiles = nil
+		gui.diffFileSelected = 0
+	}
+	return changed
+}
+
+func (gui *Gui) scrollDetailByKey(msg tea.KeyMsg) bool {
+	if !gui.state.IsDiffMode() || gui.focus != panelDiffContent {
+		return false
+	}
+
+	switch msg.String() {
+	case "pgdown", "f", " ", "pgup", "b":
+		updated, _ := gui.detailViewport.Update(msg)
+		gui.detailViewport = updated
+		return true
+	case "home", "g":
+		gui.detailViewport.GotoTop()
+		return true
+	case "end", "G":
+		gui.detailViewport.GotoBottom()
+		return true
+	default:
+		return false
+	}
+}
+
+func (gui *Gui) cycleFocus() {
+	if !gui.state.IsDiffMode() {
+		gui.focus = panelPRs
+		return
+	}
+
+	order := gui.focusOrder()
+	if len(order) == 0 {
+		gui.focus = panelPRs
+		return
+	}
+	for i, focus := range order {
+		if focus == gui.focus {
+			gui.focus = order[(i+1)%len(order)]
+			return
+		}
+	}
+	gui.focus = order[0]
+}
+
+func (gui *Gui) focusOrder() []panelFocus {
+	order := []panelFocus{panelPRs}
+	if len(gui.diffFiles) > 0 {
+		order = append(order, panelDiffFiles)
+	}
+	order = append(order, panelDiffContent)
+	return order
+}
+
+func (gui *Gui) selectNextDiffFile() bool {
+	if len(gui.diffFiles) == 0 || gui.diffFileSelected >= len(gui.diffFiles)-1 {
+		return false
+	}
+	gui.diffFileSelected++
+	return true
+}
+
+func (gui *Gui) selectPrevDiffFile() bool {
+	if len(gui.diffFiles) == 0 || gui.diffFileSelected <= 0 {
+		return false
+	}
+	gui.diffFileSelected--
+	return true
+}
+
+func (gui *Gui) scrollDetailDown() {
+	gui.detailViewport.ScrollDown(1)
+}
+
+func (gui *Gui) scrollDetailUp() {
+	gui.detailViewport.ScrollUp(1)
 }
 
 func (gui *Gui) render() string {
@@ -161,7 +442,11 @@ func (gui *Gui) render() string {
 		h = 40
 	}
 
-	leftWidth := w * 35 / 100
+	leftRatio := 26
+	if gui.state.IsDiffMode() {
+		leftRatio = 22
+	}
+	leftWidth := w * leftRatio / 100
 	if leftWidth < 1 {
 		leftWidth = 1
 	}
@@ -179,7 +464,7 @@ func (gui *Gui) render() string {
 	}
 
 	leftLines := gui.renderLeftPanels(leftWidth, contentHeight)
-	rightLines := gui.renderDetailPanel("Detail", rightWidth, contentHeight)
+	rightLines := gui.renderRightPanels(rightWidth, contentHeight)
 
 	var b strings.Builder
 	for i := 0; i < contentHeight; i++ {
@@ -196,8 +481,57 @@ func (gui *Gui) render() string {
 		b.WriteString(padOrTrim(right, rightWidth))
 		b.WriteByte('\n')
 	}
-	b.WriteString(padOrTrim(formatStatusLine(gui.state.Loading != core.LoadingNone), w))
+	b.WriteString(padOrTrim(
+		formatStatusLine(
+			gui.state.Loading != core.LoadingNone,
+			gui.state.IsDiffMode(),
+			len(gui.state.PRs) > 0,
+			gui.focus,
+			len(gui.diffFiles) > 0,
+		),
+		w,
+	))
 	return b.String()
+}
+
+func (gui *Gui) renderRightPanels(width int, height int) []string {
+	if !gui.state.IsDiffMode() {
+		return gui.renderDetailPanel("", false, width, height, gui.state.DetailContent)
+	}
+	coloredDiff := colorizeDiffContent(gui.currentDiffContent())
+
+	if width < 20 {
+		return gui.renderDetailPanel("Diff", gui.focus == panelDiffContent, width, height, coloredDiff)
+	}
+
+	filesWidth := width * 30 / 100
+	if filesWidth < 16 {
+		filesWidth = 16
+	}
+	if filesWidth > width-10 {
+		filesWidth = width - 10
+	}
+	diffWidth := width - filesWidth - 1
+	if diffWidth < 1 {
+		diffWidth = 1
+	}
+
+	filesLines := gui.renderDiffFilesPanel(filesWidth, height)
+	diffLines := gui.renderDetailPanel("Diff", gui.focus == panelDiffContent, diffWidth, height, coloredDiff)
+
+	lines := make([]string, 0, height)
+	for i := 0; i < height; i++ {
+		left := ""
+		if i < len(filesLines) {
+			left = filesLines[i]
+		}
+		right := ""
+		if i < len(diffLines) {
+			right = diffLines[i]
+		}
+		lines = append(lines, padOrTrim(left, filesWidth)+" "+padOrTrim(right, diffWidth))
+	}
+	return lines
 }
 
 func (gui *Gui) renderPRPanel(height int) []string {
@@ -281,7 +615,7 @@ func (gui *Gui) renderLeftPanels(width int, height int) []string {
 	}
 
 	repoLines := framePanel("Repository", false, gui.renderRepoPanel(repoInnerHeight), width, repoPanelHeight)
-	prLines := framePanel("PRs (Open/Draft)", true, gui.renderPRPanel(prInnerHeight), width, prPanelHeight)
+	prLines := framePanel("PRs (Open/Draft)", gui.focus == panelPRs, gui.renderPRPanel(prInnerHeight), width, prPanelHeight)
 
 	lines := make([]string, 0, height)
 	lines = append(lines, repoLines...)
@@ -295,7 +629,48 @@ func (gui *Gui) renderLeftPanels(width int, height int) []string {
 	return lines
 }
 
-func (gui *Gui) renderDetailPanel(title string, width int, height int) []string {
+func (gui *Gui) renderDiffFilesPanel(width int, height int) []string {
+	if height <= 0 {
+		return nil
+	}
+
+	innerHeight := height
+	if height > 2 {
+		innerHeight = height - 2
+	}
+	lines := make([]string, 0, innerHeight)
+
+	if len(gui.diffFiles) == 0 {
+		for len(lines) < innerHeight {
+			if len(lines) == 0 {
+				lines = append(lines, "No changed files")
+			} else {
+				lines = append(lines, "")
+			}
+		}
+		return framePanel("Files", gui.focus == panelDiffFiles, lines, width, height)
+	}
+
+	start := 0
+	if gui.diffFileSelected >= innerHeight {
+		start = gui.diffFileSelected - innerHeight + 1
+	}
+	for i := 0; len(lines) < innerHeight; i++ {
+		idx := start + i
+		if idx >= len(gui.diffFiles) {
+			lines = append(lines, "")
+			continue
+		}
+		prefix := "  "
+		if idx == gui.diffFileSelected {
+			prefix = "> "
+		}
+		lines = append(lines, prefix+renderDiffFileListLine(gui.diffFiles[idx]))
+	}
+	return framePanel("Files", gui.focus == panelDiffFiles, lines, width, height)
+}
+
+func (gui *Gui) renderDetailPanel(title string, active bool, width int, height int, content string) []string {
 	if height <= 0 {
 		return nil
 	}
@@ -312,7 +687,7 @@ func (gui *Gui) renderDetailPanel(title string, width int, height int) []string 
 	if bodyHeight < 1 {
 		bodyHeight = 1
 	}
-	gui.syncDetailViewport(innerWidth, bodyHeight, gui.state.DetailContent)
+	gui.syncDetailViewport(innerWidth, bodyHeight, content)
 
 	lines := make([]string, 0, innerHeight)
 	for _, line := range strings.Split(gui.detailViewport.View(), "\n") {
@@ -324,7 +699,7 @@ func (gui *Gui) renderDetailPanel(title string, width int, height int) []string 
 	for len(lines) < innerHeight {
 		lines = append(lines, "")
 	}
-	return framePanel(title, false, lines, width, height)
+	return framePanel(title, active, lines, width, height)
 }
 
 func (gui *Gui) syncDetailViewport(width int, height int, content string) {
@@ -348,6 +723,213 @@ func (gui *Gui) syncDetailViewport(width int, height int, content string) {
 	}
 }
 
+func (gui *Gui) currentDiffContent() string {
+	if len(gui.diffFiles) == 0 {
+		return gui.state.DetailContent
+	}
+	if gui.diffFileSelected < 0 || gui.diffFileSelected >= len(gui.diffFiles) {
+		return gui.state.DetailContent
+	}
+	return gui.diffFiles[gui.diffFileSelected].content
+}
+
+func (gui *Gui) updateDiffFiles(content string) {
+	files := parseUnifiedDiffFiles(content)
+	if len(files) == 0 {
+		gui.diffFiles = nil
+		gui.diffFileSelected = 0
+		if gui.focus == panelDiffFiles {
+			gui.focus = panelDiffContent
+		}
+		return
+	}
+
+	prevPath := ""
+	if gui.diffFileSelected >= 0 && gui.diffFileSelected < len(gui.diffFiles) {
+		prevPath = gui.diffFiles[gui.diffFileSelected].path
+	}
+
+	gui.diffFiles = files
+	gui.diffFileSelected = 0
+	if prevPath != "" {
+		for i, file := range files {
+			if file.path == prevPath {
+				gui.diffFileSelected = i
+				break
+			}
+		}
+	}
+}
+
+func parseUnifiedDiffFiles(content string) []diffFile {
+	if content == "" {
+		return nil
+	}
+
+	lines := strings.Split(content, "\n")
+	files := make([]diffFile, 0)
+	start := -1
+	currentPath := ""
+
+	appendFile := func(end int) {
+		if start < 0 || start >= end {
+			return
+		}
+		segment := strings.Join(lines[start:end], "\n")
+		if strings.TrimSpace(segment) == "" {
+			return
+		}
+		path := currentPath
+		if path == "" {
+			path = "(unknown)"
+		}
+		status, additions, deletions, refinedPath := parseDiffFileMetadata(lines[start:end])
+		if refinedPath != "" {
+			path = refinedPath
+		}
+		if status == "" {
+			status = diffFileStatusModified
+		}
+		files = append(files, diffFile{
+			path:      path,
+			content:   segment,
+			status:    status,
+			additions: additions,
+			deletions: deletions,
+		})
+	}
+
+	for i, line := range lines {
+		if !strings.HasPrefix(line, "diff --git ") {
+			continue
+		}
+		appendFile(i)
+		start = i
+		currentPath = parseDiffPath(line)
+	}
+	appendFile(len(lines))
+	return files
+}
+
+func parseDiffPath(line string) string {
+	fields := strings.Fields(line)
+	if len(fields) < 4 {
+		return ""
+	}
+	path := fields[3]
+	if strings.HasPrefix(path, "b/") {
+		return path[2:]
+	}
+	return path
+}
+
+func parseDiffFileMetadata(lines []string) (diffFileStatus, int, int, string) {
+	status := diffFileStatusModified
+	additions := 0
+	deletions := 0
+	path := ""
+
+	for _, line := range lines {
+		switch {
+		case strings.HasPrefix(line, "new file mode "):
+			status = diffFileStatusAdded
+		case strings.HasPrefix(line, "deleted file mode "):
+			status = diffFileStatusDeleted
+		case strings.HasPrefix(line, "rename from "), strings.HasPrefix(line, "rename to "):
+			status = diffFileStatusRenamed
+			if strings.HasPrefix(line, "rename to ") {
+				path = strings.TrimSpace(strings.TrimPrefix(line, "rename to "))
+			}
+		case strings.HasPrefix(line, "copy from "), strings.HasPrefix(line, "copy to "):
+			status = diffFileStatusCopied
+			if strings.HasPrefix(line, "copy to ") {
+				path = strings.TrimSpace(strings.TrimPrefix(line, "copy to "))
+			}
+		case strings.HasPrefix(line, "old mode "), strings.HasPrefix(line, "new mode "):
+			if status == diffFileStatusModified {
+				status = diffFileStatusType
+			}
+		case strings.HasPrefix(line, "+++ "):
+			if strings.HasPrefix(line, "+++ b/") {
+				path = strings.TrimPrefix(line, "+++ b/")
+			}
+		case strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++"):
+			additions++
+		case strings.HasPrefix(line, "-") && !strings.HasPrefix(line, "---"):
+			deletions++
+		}
+	}
+
+	return status, additions, deletions, path
+}
+
+func renderDiffFileListLine(file diffFile) string {
+	label := string(file.status)
+	if label == "" {
+		label = string(diffFileStatusModified)
+	}
+	status := colorizeDiffStatus(label, file.status)
+	additions := colorize(ansiGreen, "+"+strconv.Itoa(file.additions))
+	deletions := colorize(ansiRed, "-"+strconv.Itoa(file.deletions))
+	return status + " " + file.path + " " + additions + " " + deletions
+}
+
+func colorizeDiffStatus(label string, status diffFileStatus) string {
+	switch status {
+	case diffFileStatusAdded:
+		return colorize(ansiGreen, label)
+	case diffFileStatusDeleted:
+		return colorize(ansiRed, label)
+	case diffFileStatusRenamed:
+		return colorize(ansiCyan, label)
+	case diffFileStatusCopied:
+		return colorize(ansiBlue, label)
+	case diffFileStatusType:
+		return colorize(ansiPurple, label)
+	default:
+		return colorize(ansiYellow, label)
+	}
+}
+
+func colorize(color string, text string) string {
+	if text == "" {
+		return ""
+	}
+	return color + text + ansiReset
+}
+
+func colorizeDiffContent(content string) string {
+	if content == "" {
+		return ""
+	}
+
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		switch {
+		case strings.HasPrefix(line, "diff --git "):
+			lines[i] = colorize(ansiBlue, line)
+		case strings.HasPrefix(line, "@@"):
+			lines[i] = colorize(ansiCyan, line)
+		case strings.HasPrefix(line, "+++ "):
+			lines[i] = colorize(ansiGreen, line)
+		case strings.HasPrefix(line, "--- "):
+			lines[i] = colorize(ansiRed, line)
+		case strings.HasPrefix(line, "+"):
+			lines[i] = colorize(ansiGreen, line)
+		case strings.HasPrefix(line, "-"):
+			lines[i] = colorize(ansiRed, line)
+		case strings.HasPrefix(line, "new file mode "), strings.HasPrefix(line, "deleted file mode "):
+			lines[i] = colorize(ansiYellow, line)
+		case strings.HasPrefix(line, "rename from "), strings.HasPrefix(line, "rename to "):
+			lines[i] = colorize(ansiPurple, line)
+		case strings.HasPrefix(line, "index "), strings.HasPrefix(line, "similarity index "):
+			lines[i] = colorize(ansiGray, line)
+		}
+	}
+
+	return strings.Join(lines, "\n")
+}
+
 func wrapText(content string, width int) string {
 	if width <= 0 || content == "" {
 		return content
@@ -356,22 +938,15 @@ func wrapText(content string, width int) string {
 	srcLines := strings.Split(content, "\n")
 	dstLines := make([]string, 0, len(srcLines))
 	for _, line := range srcLines {
-		var b strings.Builder
-		col := 0
-		for _, r := range line {
-			rw := runewidth.RuneWidth(r)
-			if rw <= 0 {
-				rw = 1
-			}
-			if col > 0 && col+rw > width {
-				dstLines = append(dstLines, b.String())
-				b.Reset()
-				col = 0
-			}
-			b.WriteRune(r)
-			col += rw
+		lineWidth := xansi.StringWidth(line)
+		if lineWidth <= width {
+			dstLines = append(dstLines, line)
+			continue
 		}
-		dstLines = append(dstLines, b.String())
+		for left := 0; left < lineWidth; left += width {
+			right := left + width
+			dstLines = append(dstLines, xansi.Cut(line, left, right))
+		}
 	}
 	return strings.Join(dstLines, "\n")
 }
@@ -380,23 +955,12 @@ func padOrTrim(s string, width int) string {
 	if width <= 0 {
 		return ""
 	}
-	var b strings.Builder
-	col := 0
-	for _, r := range s {
-		rw := runewidth.RuneWidth(r)
-		if rw <= 0 {
-			rw = 1
-		}
-		if col+rw > width {
-			break
-		}
-		b.WriteRune(r)
-		col += rw
-	}
+	out := xansi.Truncate(s, width, "")
+	col := xansi.StringWidth(out)
 	if col < width {
-		b.WriteString(strings.Repeat(" ", width-col))
+		out += strings.Repeat(" ", width-col)
 	}
-	return b.String()
+	return out
 }
 
 func framePanel(title string, active bool, content []string, width int, height int) []string {
@@ -418,14 +982,16 @@ func framePanel(title string, active bool, content []string, width int, height i
 	innerWidth := width - 2
 	innerHeight := height - 2
 	lines := make([]string, 0, height)
-	topLabel := formatPanelTitle(title, active)
 	top := strings.Repeat("─", innerWidth)
-	labelWidth := runewidth.StringWidth(topLabel)
-	if labelWidth > 0 {
-		if labelWidth >= innerWidth {
-			top = padOrTrim(topLabel, innerWidth)
-		} else {
-			top = topLabel + strings.Repeat("─", innerWidth-labelWidth)
+	if strings.TrimSpace(title) != "" {
+		topLabel := formatPanelTitle(title, active)
+		labelWidth := runewidth.StringWidth(topLabel)
+		if labelWidth > 0 {
+			if labelWidth >= innerWidth {
+				top = padOrTrim(topLabel, innerWidth)
+			} else {
+				top = topLabel + strings.Repeat("─", innerWidth-labelWidth)
+			}
 		}
 	}
 	lines = append(lines, "┌"+top+"┐")

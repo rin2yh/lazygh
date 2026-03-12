@@ -10,6 +10,7 @@ type GHClient struct {
 	Repo   string
 	PRs    []gh.PRItem
 	PRView string
+	PRDiff string
 	Err    error
 }
 
@@ -25,23 +26,31 @@ func (m *GHClient) ViewPR(_ string, _ int) (string, error) {
 	return m.PRView, m.Err
 }
 
+func (m *GHClient) DiffPR(_ string, _ int) (string, error) {
+	return m.PRDiff, m.Err
+}
+
 type ControlledGHClient struct {
 	Repo   string
 	PRs    []gh.PRItem
 	PRView string
+	PRDiff string
 	Err    error
 
 	ResolveCalled chan struct{}
 	PRsCalled     chan struct{}
 	DetailCalled  chan struct{}
+	DiffCalled    chan struct{}
 
 	ReleaseResolve <-chan struct{}
 	ReleasePRs     <-chan struct{}
 	ReleaseDetail  <-chan struct{}
+	ReleaseDiff    <-chan struct{}
 
 	resolveOnce sync.Once
 	prsOnce     sync.Once
 	detailOnce  sync.Once
+	diffOnce    sync.Once
 }
 
 func (c *ControlledGHClient) ResolveCurrentRepo() (string, error) {
@@ -81,4 +90,17 @@ func (c *ControlledGHClient) ViewPR(_ string, _ int) (string, error) {
 		return "", c.Err
 	}
 	return c.PRView, nil
+}
+
+func (c *ControlledGHClient) DiffPR(_ string, _ int) (string, error) {
+	if c.DiffCalled != nil {
+		c.diffOnce.Do(func() { close(c.DiffCalled) })
+	}
+	if c.ReleaseDiff != nil {
+		<-c.ReleaseDiff
+	}
+	if c.Err != nil {
+		return "", c.Err
+	}
+	return c.PRDiff, nil
 }

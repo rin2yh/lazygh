@@ -7,24 +7,29 @@ import (
 )
 
 type PR struct {
-	Number int
-	Title  string
+	Number    int
+	Title     string
+	State     string
+	IsDraft   bool
+	Assignees []string
 }
 
 type GHSuccess struct {
 	Repo    string
 	PRs     []PR
 	Content string
+	Diff    string
 }
 
 func NewGHSuccess() GHSuccess {
 	return GHSuccess{
 		Repo: "owner/repo1",
 		PRs: []PR{
-			{Number: 1, Title: "Fix bug"},
-			{Number: 2, Title: "Add feature"},
+			{Number: 1, Title: "Fix bug", State: "OPEN", IsDraft: false, Assignees: []string{"alice"}},
+			{Number: 2, Title: "Add feature", State: "OPEN", IsDraft: true, Assignees: nil},
 		},
 		Content: "PR view content",
+		Diff:    "PR diff content",
 	}
 }
 

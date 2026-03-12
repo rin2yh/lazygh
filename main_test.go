@@ -30,6 +30,10 @@ func TestFakeGHProcess(t *testing.T) {
 			Stdout:   "PR detail",
 			ExitCode: 0,
 		},
+		"pr diff": {
+			Stdout:   "PR diff",
+			ExitCode: 0,
+		},
 	}
 
 	gh := fake.Gh{
@@ -78,6 +82,9 @@ func TestLazyghE2E_FakeGHViaPTY(t *testing.T) {
 
 	openPRDetailAndWait(t, s, 4*time.Second)
 	s.AssertLogContainsAll("pr view")
+
+	openPRDiffAndWait(t, s, 4*time.Second)
+	s.AssertLogContainsAll("pr diff")
 }
 
 func openPRDetailAndWait(t *testing.T, s *e2e.Session, timeout time.Duration) {
@@ -92,4 +99,18 @@ func openPRDetailAndWait(t *testing.T, s *e2e.Session, timeout time.Duration) {
 		}
 	}
 	t.Fatal("opening pr detail did not trigger pr view in time")
+}
+
+func openPRDiffAndWait(t *testing.T, s *e2e.Session, timeout time.Duration) {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		s.WriteInput([]byte("d"))
+		time.Sleep(80 * time.Millisecond)
+
+		if s.HasLogEntry("pr diff") {
+			return
+		}
+	}
+	t.Fatal("switching to diff did not trigger pr diff in time")
 }

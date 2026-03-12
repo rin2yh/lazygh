@@ -3,15 +3,25 @@ package core
 import "fmt"
 
 type Item struct {
-	Number int
-	Title  string
+	Number    int
+	Title     string
+	Status    string
+	Assignees []string
 }
+
+type DetailMode int
+
+const (
+	DetailModeOverview DetailMode = iota
+	DetailModeDiff
+)
 
 type EnterActionKind int
 
 const (
 	EnterNone EnterActionKind = iota
 	EnterLoadPRDetail
+	EnterLoadPRDiff
 )
 
 type LoadingKind int
@@ -35,6 +45,7 @@ type State struct {
 	PRsLoading  bool
 	PRsSelected int
 
+	DetailMode    DetailMode
 	DetailContent string
 	Loading       LoadingKind
 
@@ -44,7 +55,8 @@ type State struct {
 
 func NewState() *State {
 	return &State{
-		PRs: []Item{},
+		PRs:        []Item{},
+		DetailMode: DetailModeOverview,
 	}
 }
 
@@ -69,11 +81,12 @@ func (s *State) ApplyPRsResult(repo string, prs []Item, err error) {
 	s.Repo = repo
 	s.PRs = prs
 	s.PRsSelected = 0
+	s.DetailMode = DetailModeOverview
 	if len(prs) == 0 {
 		s.DetailContent = "No pull requests"
 		return
 	}
-	s.DetailContent = FormatPRItem(prs[s.PRsSelected])
+	s.DetailContent = FormatPROverview(prs[s.PRsSelected])
 }
 
 func (s *State) ApplyDetailResult(content string, err error) {
@@ -85,18 +98,71 @@ func (s *State) ApplyDetailResult(content string, err error) {
 	s.DetailContent = sanitizeMultiline(content)
 }
 
-func (s *State) NavigateDown() {
-	if s.PRsSelected < len(s.PRs)-1 {
-		s.PRsSelected++
+func (s *State) ApplyDiffResult(content string, err error) {
+	if err != nil {
+		s.showError("Error loading diff", err)
+		return
 	}
-	s.refreshDetailPreview()
+	s.Loading = LoadingNone
+	s.DetailContent = sanitizeMultiline(content)
 }
 
-func (s *State) NavigateUp() {
+func (s *State) NavigateDown() bool {
+	changed := false
+	if s.PRsSelected < len(s.PRs)-1 {
+		s.PRsSelected++
+		changed = true
+	}
+	if changed && s.DetailMode == DetailModeOverview {
+		s.refreshDetailPreview()
+	}
+	return changed
+}
+
+func (s *State) NavigateUp() bool {
+	changed := false
 	if s.PRsSelected > 0 {
 		s.PRsSelected--
+		changed = true
 	}
+	if changed && s.DetailMode == DetailModeOverview {
+		s.refreshDetailPreview()
+	}
+	return changed
+}
+
+func (s *State) SwitchToOverview() bool {
+	if s.DetailMode == DetailModeOverview {
+		return false
+	}
+	s.DetailMode = DetailModeOverview
+	s.Loading = LoadingNone
 	s.refreshDetailPreview()
+	return true
+}
+
+func (s *State) SwitchToDiff() bool {
+	if s.DetailMode == DetailModeDiff {
+		return false
+	}
+	s.DetailMode = DetailModeDiff
+	s.Loading = LoadingNone
+	return true
+}
+
+func (s *State) IsDiffMode() bool {
+	return s.DetailMode == DetailModeDiff
+}
+
+func (s *State) ShouldApplyDetailResult(mode DetailMode, number int) bool {
+	if s.DetailMode != mode {
+		return false
+	}
+	item, ok := s.selectedPR()
+	if !ok {
+		return false
+	}
+	return item.Number == number
 }
 
 func (s *State) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
@@ -113,6 +179,9 @@ func (s *State) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
 		return EnterAction{}
 	}
 	s.Loading = LoadingDetail
+	if s.DetailMode == DetailModeDiff {
+		return EnterAction{Kind: EnterLoadPRDiff, Repo: s.Repo, Number: item.Number}
+	}
 	return EnterAction{Kind: EnterLoadPRDetail, Repo: s.Repo, Number: item.Number}
 }
 
@@ -121,7 +190,7 @@ func (s *State) refreshDetailPreview() {
 	if !ok {
 		return
 	}
-	s.DetailContent = FormatPRItem(item)
+	s.DetailContent = FormatPROverview(item)
 }
 
 func (s *State) selectedPR() (Item, bool) {
@@ -141,4 +210,36 @@ func (s *State) showError(msg string, err error) {
 
 func FormatPRItem(item Item) string {
 	return fmt.Sprintf("PR #%d %s", item.Number, sanitizeSingleLine(item.Title))
+}
+
+func FormatPROverview(item Item) string {
+	status := sanitizeSingleLine(item.Status)
+	if status == "" {
+		status = "OPEN"
+	}
+
+	assignee := "unassigned"
+	if len(item.Assignees) > 0 {
+		list := make([]string, 0, len(item.Assignees))
+		for _, name := range item.Assignees {
+			n := sanitizeSingleLine(name)
+			if n != "" {
+				list = append(list, n)
+			}
+		}
+		if len(list) > 0 {
+			assignee = list[0]
+			if len(list) > 1 {
+				assignee = fmt.Sprintf("%s (+%d)", list[0], len(list)-1)
+			}
+		}
+	}
+
+	return fmt.Sprintf(
+		"PR #%d %s\nStatus: %s\nAssignee: %s",
+		item.Number,
+		sanitizeSingleLine(item.Title),
+		status,
+		assignee,
+	)
 }
