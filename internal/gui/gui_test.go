@@ -7,18 +7,8 @@ import (
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 )
-
-type mockClient struct {
-	repo   string
-	prs    []gh.PRItem
-	prView string
-	err    error
-}
-
-func (m *mockClient) ResolveCurrentRepo() (string, error)    { return m.repo, m.err }
-func (m *mockClient) ListPRs(_ string) ([]gh.PRItem, error)  { return m.prs, m.err }
-func (m *mockClient) ViewPR(_ string, _ int) (string, error) { return m.prView, m.err }
 
 func newTestGuiWithClient(client gh.ClientInterface) *Gui {
 	g, _ := NewGui(config.Default(), client)
@@ -26,7 +16,7 @@ func newTestGuiWithClient(client gh.ClientInterface) *Gui {
 }
 
 func TestNavigatePRList(t *testing.T) {
-	g := newTestGuiWithClient(&mockClient{})
+	g := newTestGuiWithClient(&testmock.GHClient{})
 	g.state.ApplyPRsResult("owner/repo", []core.Item{{Number: 1, Title: "a"}, {Number: 2, Title: "b"}}, nil)
 
 	g.navigateDown()
@@ -41,53 +31,133 @@ func TestNavigatePRList(t *testing.T) {
 }
 
 func TestApplyPRsResult(t *testing.T) {
-	g := newTestGuiWithClient(&mockClient{})
-	g.state.BeginLoadPRs()
-	g.applyPRsResult(prsLoadedMsg{
-		repo: "owner/repo",
-		prs:  []core.Item{{Number: 1, Title: "Fix bug"}},
-	})
-	if g.state.PRsLoading {
-		t.Fatal("loading should be false")
+	type want struct {
+		repo   string
+		prs    []core.Item
+		detail string
 	}
-	if g.state.Repo != "owner/repo" {
-		t.Fatalf("got %q, want owner/repo", g.state.Repo)
-	}
-	if got := core.FormatPRItem(g.state.PRs[0]); got != "PR #1 Fix bug" {
-		t.Fatalf("unexpected pr row: %q", got)
-	}
-	if g.state.Loading != core.LoadingNone {
-		t.Fatalf("got %v, want %v", g.state.Loading, core.LoadingNone)
-	}
-}
 
-func TestApplyPRsResult_Error(t *testing.T) {
-	g := newTestGuiWithClient(&mockClient{})
-	g.state.BeginLoadPRs()
-	g.applyPRsResult(prsLoadedMsg{err: errors.New("boom")})
-	if g.state.DetailContent == "" {
-		t.Fatal("error message should be shown")
+	tests := []struct {
+		name string
+		msg  prsLoadedMsg
+		want want
+	}{
+		{
+			name: "success",
+			msg: prsLoadedMsg{
+				repo: "owner/repo",
+				prs:  []core.Item{{Number: 1, Title: "Fix bug"}},
+			},
+			want: want{
+				repo:   "owner/repo",
+				prs:    []core.Item{{Number: 1, Title: "Fix bug"}},
+				detail: "PR #1 Fix bug",
+			},
+		},
+		{
+			name: "empty",
+			msg: prsLoadedMsg{
+				repo: "owner/repo",
+			},
+			want: want{
+				repo:   "owner/repo",
+				prs:    nil,
+				detail: "No pull requests",
+			},
+		},
+		{
+			name: "error",
+			msg: prsLoadedMsg{
+				err: errors.New("boom"),
+			},
+			want: want{
+				repo:   "",
+				prs:    nil,
+				detail: "Error loading PRs: boom",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := newTestGuiWithClient(&testmock.GHClient{})
+			g.state.BeginLoadPRs()
+
+			g.applyPRsResult(tt.msg)
+
+			if g.state.PRsLoading {
+				t.Fatal("loading should be false")
+			}
+			if g.state.Loading != core.LoadingNone {
+				t.Fatalf("got %v, want %v", g.state.Loading, core.LoadingNone)
+			}
+			if g.state.Repo != tt.want.repo {
+				t.Fatalf("got %q, want %q", g.state.Repo, tt.want.repo)
+			}
+			if len(g.state.PRs) != len(tt.want.prs) {
+				t.Fatalf("got %d, want %d", len(g.state.PRs), len(tt.want.prs))
+			}
+			for i := range g.state.PRs {
+				if g.state.PRs[i].Number != tt.want.prs[i].Number || g.state.PRs[i].Title != tt.want.prs[i].Title {
+					t.Fatalf("unexpected PR[%d]: %+v", i, g.state.PRs[i])
+				}
+			}
+			if g.state.DetailContent != tt.want.detail {
+				t.Fatalf("got %q, want %q", g.state.DetailContent, tt.want.detail)
+			}
+		})
 	}
 }
 
 func TestApplyDetailResult(t *testing.T) {
-	g := newTestGuiWithClient(&mockClient{})
-	g.applyDetailResult(detailLoadedMsg{content: "hello"})
-	if g.state.DetailContent != "hello" {
-		t.Fatalf("got %q, want hello", g.state.DetailContent)
+	type want struct {
+		detail string
 	}
-}
 
-func TestApplyDetailResult_Error(t *testing.T) {
-	g := newTestGuiWithClient(&mockClient{})
-	g.applyDetailResult(detailLoadedMsg{err: errors.New("boom")})
-	if g.state.DetailContent == "" {
-		t.Fatal("error message should be shown")
+	tests := []struct {
+		name string
+		msg  detailLoadedMsg
+		want want
+	}{
+		{
+			name: "success",
+			msg: detailLoadedMsg{
+				content: "hello",
+			},
+			want: want{
+				detail: "hello",
+			},
+		},
+		{
+			name: "error",
+			msg: detailLoadedMsg{
+				err: errors.New("boom"),
+			},
+			want: want{
+				detail: "Error loading detail: boom",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := newTestGuiWithClient(&testmock.GHClient{})
+			g.state.Loading = core.LoadingDetail
+
+			g.applyDetailResult(tt.msg)
+
+			if g.state.Loading != core.LoadingNone {
+				t.Fatalf("got %v, want %v", g.state.Loading, core.LoadingNone)
+			}
+			if g.state.DetailContent != tt.want.detail {
+				t.Fatalf("got %q, want %q", g.state.DetailContent, tt.want.detail)
+			}
+		})
 	}
 }
 
 func TestModelInitLoadsPRs(t *testing.T) {
-	mc := &mockClient{repo: "owner/repo", prs: []gh.PRItem{{Number: 2, Title: "p"}}}
+	mc := &testmock.GHClient{Repo: "owner/repo", PRs: []gh.PRItem{{Number: 2, Title: "p"}}}
 	g := newTestGuiWithClient(mc)
 	m := &model{gui: g}
 
@@ -102,7 +172,7 @@ func TestModelInitLoadsPRs(t *testing.T) {
 }
 
 func TestModelHandleEnterDetail(t *testing.T) {
-	mc := &mockClient{prView: "detail"}
+	mc := &testmock.GHClient{PRView: "detail"}
 	g := newTestGuiWithClient(mc)
 	g.state.ApplyPRsResult("owner/repo", []core.Item{{Number: 1, Title: "x"}}, nil)
 	m := &model{gui: g}
@@ -153,43 +223,109 @@ func TestWrapText(t *testing.T) {
 	}
 }
 
-func TestRenderPRPanel_EmptyPlaceholder(t *testing.T) {
-	g := newTestGuiWithClient(&mockClient{})
-	lines := g.renderPRPanel("PRs", 3)
-
-	if len(lines) != 3 {
-		t.Fatalf("got %d lines, want 3", len(lines))
+func TestRenderPRPanel(t *testing.T) {
+	type fixture struct {
+		prsLoading bool
+		prs        []core.Item
+		selected   int
 	}
-	if lines[1] != "No pull requests" {
-		t.Fatalf("got %q, want %q", lines[1], "No pull requests")
+
+	type want struct {
+		line1 string
+	}
+
+	tests := []struct {
+		name    string
+		fixture fixture
+		want    want
+	}{
+		{
+			name:    "empty placeholder",
+			fixture: fixture{},
+			want: want{
+				line1: "No pull requests",
+			},
+		},
+		{
+			name: "loading",
+			fixture: fixture{
+				prsLoading: true,
+			},
+			want: want{
+				line1: "",
+			},
+		},
+		{
+			name: "with prs",
+			fixture: fixture{
+				prs:      []core.Item{{Number: 1, Title: "Fix bug"}},
+				selected: 0,
+			},
+			want: want{
+				line1: "> PR #1 Fix bug",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := newTestGuiWithClient(&testmock.GHClient{})
+			g.state.PRsLoading = tt.fixture.prsLoading
+			g.state.PRs = tt.fixture.prs
+			g.state.PRsSelected = tt.fixture.selected
+			lines := g.renderPRPanel("PRs", 3)
+
+			if len(lines) != 3 {
+				t.Fatalf("got %d lines, want 3", len(lines))
+			}
+			if lines[1] != tt.want.line1 {
+				t.Fatalf("got %q, want %q", lines[1], tt.want.line1)
+			}
+		})
 	}
 }
 
-func TestRenderPRPanel_LoadingHidesLoadingText(t *testing.T) {
-	g := newTestGuiWithClient(&mockClient{})
-	g.state.BeginLoadPRs()
-	lines := g.renderPRPanel("PRs", 3)
+func TestRenderRepoPanel(t *testing.T) {
+	type want struct {
+		line1 string
+	}
 
-	if len(lines) != 3 {
-		t.Fatalf("got %d lines, want 3", len(lines))
+	tests := []struct {
+		name string
+		repo string
+		want want
+	}{
+		{
+			name: "show repo",
+			repo: "owner/repo",
+			want: want{
+				line1: "owner/repo",
+			},
+		},
+		{
+			name: "empty repo",
+			repo: "",
+			want: want{
+				line1: "",
+			},
+		},
 	}
-	if lines[1] != "" {
-		t.Fatalf("got %q, want empty line", lines[1])
-	}
-}
 
-func TestRenderRepoPanel_ShowsRepoName(t *testing.T) {
-	g := newTestGuiWithClient(&mockClient{})
-	g.state.Repo = "owner/repo"
-	lines := g.renderRepoPanel("Repository", 2)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := newTestGuiWithClient(&testmock.GHClient{})
+			g.state.Repo = tt.repo
+			lines := g.renderRepoPanel("Repository", 2)
 
-	if len(lines) != 2 {
-		t.Fatalf("got %d lines, want 2", len(lines))
-	}
-	if lines[0] != " Repository " {
-		t.Fatalf("got %q, want %q", lines[0], " Repository ")
-	}
-	if lines[1] != "owner/repo" {
-		t.Fatalf("got %q, want %q", lines[1], "owner/repo")
+			if len(lines) != 2 {
+				t.Fatalf("got %d lines, want 2", len(lines))
+			}
+			if lines[0] != " Repository " {
+				t.Fatalf("got %q, want %q", lines[0], " Repository ")
+			}
+			if lines[1] != tt.want.line1 {
+				t.Fatalf("got %q, want %q", lines[1], tt.want.line1)
+			}
+		})
 	}
 }

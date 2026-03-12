@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/rin2yh/lazygh/pkg/test/fixture"
 )
 
 // TestHelperProcess は実際のテストではなく、fake gh コマンドとして動作する。
@@ -64,40 +65,45 @@ func newTestClient(t *testing.T) *Client {
 
 func TestResolveCurrentRepo(t *testing.T) {
 	c := newTestClient(t)
+	fx := fixture.NewGHSuccess()
+
 	repo, err := c.ResolveCurrentRepo()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if repo != "owner/repo1" {
-		t.Fatalf("got %q, want %q", repo, "owner/repo1")
+	if repo != fx.Repo {
+		t.Fatalf("got %q, want %q", repo, fx.Repo)
 	}
 }
 
 func TestListPRs(t *testing.T) {
 	c := newTestClient(t)
-	prs, err := c.ListPRs("owner/repo1")
+	fx := fixture.NewGHSuccess()
+
+	prs, err := c.ListPRs(fx.Repo)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(prs) != 2 {
-		t.Fatalf("got %d PRs, want 2", len(prs))
+	if len(prs) != len(fx.PRs) {
+		t.Fatalf("got %d PRs, want %d", len(prs), len(fx.PRs))
 	}
-	if prs[0].Number != 1 || prs[0].Title != "Fix bug" {
-		t.Errorf("unexpected PR[0]: %+v", prs[0])
-	}
-	if prs[1].Number != 2 || prs[1].Title != "Add feature" {
-		t.Errorf("unexpected PR[1]: %+v", prs[1])
+	for i := range prs {
+		if prs[i].Number != fx.PRs[i].Number || prs[i].Title != fx.PRs[i].Title {
+			t.Fatalf("unexpected PR[%d]: %+v", i, prs[i])
+		}
 	}
 }
 
 func TestViewPR(t *testing.T) {
 	c := newTestClient(t)
-	content, err := c.ViewPR("owner/repo1", 1)
+	fx := fixture.NewGHSuccess()
+
+	content, err := c.ViewPR(fx.Repo, 1)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if content != "PR view content" {
-		t.Errorf("got %q, want %q", content, "PR view content")
+	if content != fx.Content {
+		t.Fatalf("got %q, want %q", content, fx.Content)
 	}
 }
 
@@ -112,48 +118,24 @@ func TestResolveCurrentRepo_Error(t *testing.T) {
 }
 
 func TestValidateCLI(t *testing.T) {
-	tests := []struct {
-		name      string
-		setupPath func(t *testing.T) string
-		wantErr   bool
-	}{
-		{
-			name: "ok",
-			setupPath: func(t *testing.T) string {
-				dir := t.TempDir()
-				ghPath := filepath.Join(dir, "gh")
-				if err := os.WriteFile(ghPath, []byte("#!/bin/sh\n"), 0o755); err != nil {
-					t.Fatalf("write fake gh failed: %v", err)
-				}
-				return dir
-			},
-		},
-		{
-			name: "error",
-			setupPath: func(t *testing.T) string {
-				return t.TempDir()
-			},
-			wantErr: true,
-		},
-	}
+	t.Run("ok", func(t *testing.T) {
+		t.Setenv("PATH", fixture.NewPathWithGH(t))
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("PATH", tt.setupPath(t))
+		err := ValidateCLI()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
 
-			err := ValidateCLI()
-			if tt.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-				if !strings.Contains(err.Error(), "gh CLI is required") {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				return
-			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-		})
-	}
+	t.Run("error", func(t *testing.T) {
+		t.Setenv("PATH", fixture.NewEmptyPath(t))
+
+		err := ValidateCLI()
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "gh CLI is required") {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
 }

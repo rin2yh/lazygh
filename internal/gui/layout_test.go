@@ -32,31 +32,57 @@ func TestFormatPanelTitle(t *testing.T) {
 }
 
 func TestFormatStatusLine(t *testing.T) {
-	got := formatStatusLine(false)
-
-	if got != "[q]Quit  [j/k]Move  [enter]Reload detail" {
-		t.Errorf("got %q, want %q", got, "[q]Quit  [j/k]Move  [enter]Reload detail")
+	tests := []struct {
+		name    string
+		loading bool
+		want    string
+	}{
+		{
+			name:    "idle",
+			loading: false,
+			want:    "[q]Quit  [j/k]Move  [enter]Reload detail",
+		},
+		{
+			name:    "loading",
+			loading: true,
+			want:    "Loading...  | [q]Quit  [j/k]Move  [enter]Reload detail",
+		},
 	}
-}
 
-func TestFormatStatusLine_Loading(t *testing.T) {
-	got := formatStatusLine(true)
-
-	if got != "Loading...  | [q]Quit  [j/k]Move  [enter]Reload detail" {
-		t.Errorf("got %q, want %q", got, "Loading...  | [q]Quit  [j/k]Move  [enter]Reload detail")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := formatStatusLine(tt.loading)
+			if got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 
 func TestFormatRepoLine(t *testing.T) {
-	got := formatRepoLine("owner/repo")
-	if got != "owner/repo" {
-		t.Fatalf("got %q, want %q", got, "owner/repo")
+	tests := []struct {
+		name string
+		repo string
+		want string
+	}{
+		{
+			name: "with repo",
+			repo: "owner/repo",
+			want: "owner/repo",
+		},
+		{
+			name: "empty",
+			repo: "",
+			want: "",
+		},
 	}
-}
 
-func TestFormatRepoLine_Resolving(t *testing.T) {
-	got := formatRepoLine("")
-	if got != "" {
-		t.Fatalf("got %q, want empty string", got)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := formatRepoLine(tt.repo)
+			if got != tt.want {
+				t.Fatalf("got %q, want %q", got, tt.want)
+			}
+		})
 	}
 }

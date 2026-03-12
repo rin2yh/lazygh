@@ -6,24 +6,71 @@ import (
 )
 
 func TestApplyPRsResult(t *testing.T) {
-	s := NewState()
-	s.BeginLoadPRs()
-	s.ApplyPRsResult("owner/repo", []Item{{Number: 1, Title: "Fix bug"}}, nil)
+	type want struct {
+		repo    string
+		prCount int
+		detail  string
+	}
 
-	if s.PRsLoading {
-		t.Fatal("prs loading should be false")
+	tests := []struct {
+		name string
+		repo string
+		prs  []Item
+		err  error
+		want want
+	}{
+		{
+			name: "success",
+			repo: "owner/repo",
+			prs:  []Item{{Number: 1, Title: "Fix bug"}},
+			want: want{
+				repo:    "owner/repo",
+				prCount: 1,
+				detail:  "PR #1 Fix bug",
+			},
+		},
+		{
+			name: "empty",
+			repo: "owner/repo",
+			want: want{
+				repo:    "owner/repo",
+				prCount: 0,
+				detail:  "No pull requests",
+			},
+		},
+		{
+			name: "error",
+			err:  errors.New("boom"),
+			want: want{
+				repo:    "",
+				prCount: 0,
+				detail:  "Error loading PRs: boom",
+			},
+		},
 	}
-	if s.Repo != "owner/repo" {
-		t.Fatalf("got %q, want owner/repo", s.Repo)
-	}
-	if len(s.PRs) != 1 {
-		t.Fatalf("got %d, want 1", len(s.PRs))
-	}
-	if s.DetailContent != "PR #1 Fix bug" {
-		t.Fatalf("got %q, want %q", s.DetailContent, "PR #1 Fix bug")
-	}
-	if s.Loading != LoadingNone {
-		t.Fatalf("got %v, want %v", s.Loading, LoadingNone)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewState()
+			s.BeginLoadPRs()
+			s.ApplyPRsResult(tt.repo, tt.prs, tt.err)
+
+			if s.PRsLoading {
+				t.Fatal("prs loading should be false")
+			}
+			if s.Loading != LoadingNone {
+				t.Fatalf("got %v, want %v", s.Loading, LoadingNone)
+			}
+			if s.Repo != tt.want.repo {
+				t.Fatalf("got %q, want %q", s.Repo, tt.want.repo)
+			}
+			if len(s.PRs) != tt.want.prCount {
+				t.Fatalf("got %d, want %d", len(s.PRs), tt.want.prCount)
+			}
+			if s.DetailContent != tt.want.detail {
+				t.Fatalf("got %q, want %q", s.DetailContent, tt.want.detail)
+			}
+		})
 	}
 }
 
@@ -41,25 +88,6 @@ func TestBeginLoadPRs_OnlySetsLoadingState(t *testing.T) {
 	}
 	if s.DetailContent != "keep" {
 		t.Fatalf("got %q, want %q", s.DetailContent, "keep")
-	}
-}
-
-func TestApplyPRsResult_Empty(t *testing.T) {
-	s := NewState()
-	s.BeginLoadPRs()
-	s.ApplyPRsResult("owner/repo", nil, nil)
-
-	if s.DetailContent != "No pull requests" {
-		t.Fatalf("got %q, want %q", s.DetailContent, "No pull requests")
-	}
-}
-
-func TestApplyPRsResult_Error(t *testing.T) {
-	s := NewState()
-	s.BeginLoadPRs()
-	s.ApplyPRsResult("", nil, errors.New("boom"))
-	if s.DetailContent == "" {
-		t.Fatal("error message should be set")
 	}
 }
 
@@ -103,14 +131,46 @@ func TestPlanEnter_LoadPRDetail(t *testing.T) {
 	}
 }
 
-func TestApplyDetailResult_Error(t *testing.T) {
-	s := NewState()
-	s.Loading = LoadingDetail
-	s.ApplyDetailResult("", errors.New("boom"))
-	if s.DetailContent == "" {
-		t.Fatal("error message should be set")
+func TestApplyDetailResult(t *testing.T) {
+	type want struct {
+		detail string
 	}
-	if s.Loading != LoadingNone {
-		t.Fatalf("got %v, want %v", s.Loading, LoadingNone)
+
+	tests := []struct {
+		name    string
+		content string
+		err     error
+		want    want
+	}{
+		{
+			name:    "success",
+			content: "hello",
+			want: want{
+				detail: "hello",
+			},
+		},
+		{
+			name: "error",
+			err:  errors.New("boom"),
+			want: want{
+				detail: "Error loading detail: boom",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewState()
+			s.Loading = LoadingDetail
+
+			s.ApplyDetailResult(tt.content, tt.err)
+
+			if s.Loading != LoadingNone {
+				t.Fatalf("got %v, want %v", s.Loading, LoadingNone)
+			}
+			if s.DetailContent != tt.want.detail {
+				t.Fatalf("got %q, want %q", s.DetailContent, tt.want.detail)
+			}
+		})
 	}
 }
