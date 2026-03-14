@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
+	testfactory "github.com/rin2yh/lazygh/pkg/test/factory"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 )
 
@@ -61,7 +63,11 @@ func TestScrollDetailByKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := newTestGuiWithPRs(&testmock.GHClient{}, core.Item{Number: 1, Title: "x"})
+			g, err := NewGui(config.Default(), &testmock.GHClient{})
+			if err != nil {
+				t.Fatalf("NewGui failed: %v", err)
+			}
+			g.state.ApplyPRsResult("owner/repo", []core.Item{testfactory.CoreItem(1, "x")}, nil)
 			tt.setup(g)
 
 			g.syncDetailViewport(20, 4, strings.Repeat("line\n", 30))

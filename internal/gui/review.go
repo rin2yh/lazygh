@@ -4,10 +4,28 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
 )
+
+type reviewCommentSavedMsg struct {
+	prNumber int
+	ctx      gh.ReviewContext
+	reviewID string
+	comment  gh.ReviewComment
+	err      error
+}
+
+type reviewSubmittedMsg struct {
+	reviewID string
+	err      error
+}
+
+type reviewDiscardedMsg struct {
+	err error
+}
 
 func (gui *Gui) shouldShowReviewDrawer() bool {
 	if !gui.state.IsDiffMode() {
@@ -242,6 +260,140 @@ func (gui *Gui) buildReviewCommentDraft(body string) (gh.ReviewComment, error) {
 		}
 	}
 	return comment, nil
+}
+
+func newReviewEditor(placeholder string) textarea.Model {
+	editor := textarea.New()
+	editor.Placeholder = placeholder
+	editor.ShowLineNumbers = false
+	editor.SetHeight(4)
+	editor.Prompt = ""
+	editor.CharLimit = 0
+	return editor
+}
+
+func (s *screen) handleReviewCommentSave() tea.Cmd {
+	item, ok := s.gui.state.SelectedPR()
+	if !ok {
+		s.gui.state.SetReviewNotice("No pull request selected.")
+		return nil
+	}
+	comment, err := s.gui.buildReviewCommentDraft(s.gui.commentEditor.Value())
+	if err != nil {
+		s.gui.state.SetReviewNotice(err.Error())
+		return nil
+	}
+	repo := s.gui.state.Repo
+	reviewID := s.gui.state.Review.ReviewID
+	ctx := gh.ReviewContext{
+		PullRequestID: s.gui.state.Review.PullRequestID,
+		CommitOID:     s.gui.state.Review.CommitOID,
+	}
+
+	s.gui.state.Loading = core.LoadingReview
+	return func() tea.Msg {
+		var runErr error
+		if reviewID == "" {
+			ctx, runErr = s.gui.client.GetReviewContext(repo, item.Number)
+			if runErr != nil {
+				return reviewCommentSavedMsg{err: runErr}
+			}
+			reviewID, runErr = s.gui.client.StartPendingReview(repo, item.Number, ctx)
+			if runErr != nil {
+				return reviewCommentSavedMsg{err: runErr}
+			}
+		}
+		runErr = s.gui.client.AddReviewComment(repo, reviewID, comment)
+		return reviewCommentSavedMsg{
+			prNumber: item.Number,
+			ctx:      ctx,
+			reviewID: reviewID,
+			comment:  comment,
+			err:      runErr,
+		}
+	}
+}
+
+func (s *screen) handleReviewSubmit() tea.Cmd {
+	if s.gui.state.Review.InputMode == core.ReviewInputSummary {
+		s.gui.state.SetReviewSummary(s.gui.summaryEditor.Value())
+		s.gui.stopReviewInput()
+	}
+	if !s.gui.state.HasPendingReview() {
+		s.gui.state.SetReviewNotice("No pending review to submit.")
+		return nil
+	}
+	s.gui.state.Loading = core.LoadingReview
+	reviewID := s.gui.state.Review.ReviewID
+	body := s.gui.state.Review.Summary
+	repo := s.gui.state.Repo
+	return func() tea.Msg {
+		err := s.gui.client.SubmitReview(repo, reviewID, body)
+		return reviewSubmittedMsg{reviewID: reviewID, err: err}
+	}
+}
+
+func (s *screen) handleReviewDiscard() tea.Cmd {
+	if s.gui.state.Review.InputMode == core.ReviewInputSummary {
+		s.gui.stopReviewInput()
+	}
+	reviewID := s.gui.state.Review.ReviewID
+	if reviewID == "" {
+		s.gui.state.ResetReviewAfterDiscard("Review draft discarded.")
+		return nil
+	}
+	s.gui.state.Loading = core.LoadingReview
+	repo := s.gui.state.Repo
+	return func() tea.Msg {
+		err := s.gui.client.DeletePendingReview(repo, reviewID)
+		return reviewDiscardedMsg{err: err}
+	}
+}
+
+func (gui *Gui) applyReviewCommentResult(msg reviewCommentSavedMsg) {
+	gui.state.Loading = core.LoadingNone
+	if msg.reviewID != "" || msg.ctx.PullRequestID != "" || msg.ctx.CommitOID != "" {
+		gui.state.SetReviewContext(msg.prNumber, msg.ctx.PullRequestID, msg.ctx.CommitOID, msg.reviewID)
+	}
+	if msg.err != nil {
+		gui.state.SetReviewNotice(msg.err.Error())
+		return
+	}
+	gui.state.AddReviewComment(core.ReviewComment{
+		Path:      msg.comment.Path,
+		Body:      msg.comment.Body,
+		Side:      string(msg.comment.Side),
+		Line:      msg.comment.Line,
+		StartSide: string(msg.comment.StartSide),
+		StartLine: msg.comment.StartLine,
+	})
+	gui.commentEditor.SetValue("")
+	gui.commentEditor.Blur()
+	gui.focus = panelReviewDrawer
+}
+
+func (gui *Gui) applyReviewSubmitResult(msg reviewSubmittedMsg) {
+	gui.state.Loading = core.LoadingNone
+	if msg.err != nil {
+		gui.state.SetReviewNotice(msg.err.Error())
+		return
+	}
+	gui.stopReviewInput()
+	gui.state.ResetReviewAfterSubmit("Review submitted.")
+	gui.focus = panelDiffContent
+}
+
+func (gui *Gui) applyReviewDiscardResult(msg reviewDiscardedMsg) {
+	gui.state.Loading = core.LoadingNone
+	if msg.err != nil {
+		gui.state.SetReviewNotice(msg.err.Error())
+		return
+	}
+	gui.stopReviewInput()
+	gui.commentEditor.SetValue("")
+	gui.summaryEditor.SetValue("")
+	gui.state.ResetReviewAfterDiscard("Review draft discarded.")
+	gui.focus = panelDiffContent
 }
 
 func (gui *Gui) isDiffLineWithinPendingRange(line gh.DiffLine) bool {
