@@ -133,26 +133,12 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *model) handleHKey() tea.Cmd {
-	if !m.gui.state.IsDiffMode() {
-		return nil
-	}
-	if len(m.gui.diffFiles) > 0 {
-		m.gui.focus = panelDiffFiles
-	}
+	m.gui.moveFocus(-1)
 	return nil
 }
 
 func (m *model) handleLKey() tea.Cmd {
-	if m.gui.focus == panelPRs {
-		if m.gui.state.IsDiffMode() {
-			m.gui.switchToOverview()
-		}
-		return m.handleDetailLoad()
-	}
-	if m.gui.state.IsDiffMode() {
-		m.gui.focus = panelDiffContent
-		return nil
-	}
+	m.gui.moveFocus(1)
 	return nil
 }
 
@@ -166,6 +152,12 @@ func (m *model) handleDKey() tea.Cmd {
 func (m *model) handleDownKey() tea.Cmd {
 	if m.gui.state.IsDiffMode() {
 		switch m.gui.focus {
+		case panelPRs:
+			changed := m.gui.navigateDown()
+			if changed {
+				return m.handleDetailLoad()
+			}
+			return nil
 		case panelDiffFiles:
 			m.gui.selectNextDiffFile()
 			return nil
@@ -174,22 +166,25 @@ func (m *model) handleDownKey() tea.Cmd {
 			return nil
 		case panelReviewDrawer:
 			return nil
-		default:
-			changed := m.gui.navigateDown()
-			if changed {
-				return m.handleDetailLoad()
-			}
-			return nil
 		}
+		return nil
 	}
 
-	m.gui.navigateDown()
+	if m.gui.focus == panelPRs {
+		m.gui.navigateDown()
+	}
 	return nil
 }
 
 func (m *model) handleUpKey() tea.Cmd {
 	if m.gui.state.IsDiffMode() {
 		switch m.gui.focus {
+		case panelPRs:
+			changed := m.gui.navigateUp()
+			if changed {
+				return m.handleDetailLoad()
+			}
+			return nil
 		case panelDiffFiles:
 			m.gui.selectPrevDiffFile()
 			return nil
@@ -198,16 +193,13 @@ func (m *model) handleUpKey() tea.Cmd {
 			return nil
 		case panelReviewDrawer:
 			return nil
-		default:
-			changed := m.gui.navigateUp()
-			if changed {
-				return m.handleDetailLoad()
-			}
-			return nil
 		}
+		return nil
 	}
 
-	m.gui.navigateUp()
+	if m.gui.focus == panelPRs {
+		m.gui.navigateUp()
+	}
 	return nil
 }
 

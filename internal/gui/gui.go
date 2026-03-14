@@ -12,7 +12,8 @@ import (
 type panelFocus int
 
 const (
-	panelPRs panelFocus = iota
+	panelRepo panelFocus = iota
+	panelPRs
 	panelDiffFiles
 	panelDiffContent
 	panelReviewDrawer
@@ -217,8 +218,31 @@ func (gui *Gui) cycleFocus() {
 	gui.focus = order[0]
 }
 
+func (gui *Gui) moveFocus(delta int) bool {
+	if delta == 0 {
+		return false
+	}
+
+	order := gui.focusOrder()
+	if len(order) == 0 {
+		return false
+	}
+	for i, focus := range order {
+		if focus != gui.focus {
+			continue
+		}
+		next := i + delta
+		if next < 0 || next >= len(order) {
+			return false
+		}
+		gui.focus = order[next]
+		return true
+	}
+	return false
+}
+
 func (gui *Gui) focusOrder() []panelFocus {
-	order := []panelFocus{panelPRs}
+	order := []panelFocus{panelRepo, panelPRs}
 	if len(gui.diffFiles) > 0 {
 		order = append(order, panelDiffFiles)
 	}

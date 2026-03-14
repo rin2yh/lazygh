@@ -18,22 +18,34 @@ func formatStatusLine(loading bool, diffMode bool, hasPR bool, focus panelFocus,
 
 	var modeSpecific string
 	switch {
-	case !diffMode && hasPR:
-		modeSpecific = "[PRs] [j/k/↑/↓]Move [d]Diff"
+	case !diffMode && focus == panelRepo && hasPR:
+		modeSpecific = "[Repo] [l]Next Panel [d]Diff"
+	case !diffMode && focus == panelRepo:
+		modeSpecific = "[Repo] [l]Next Panel [d]Diff"
+	case !diffMode && focus == panelPRs && hasPR:
+		modeSpecific = "[PRs] [h/l]Prev/Next Panel [j/k/↑/↓]Move [d]Diff"
+	case !diffMode && focus == panelDiffContent && hasPR:
+		modeSpecific = "[Overview] [h]Prev Panel [space/b]Page [enter]Reload [d]Diff"
+	case !diffMode && focus == panelDiffContent:
+		modeSpecific = "[Overview] [h]Prev Panel [d]Diff"
 	case !diffMode:
-		modeSpecific = "[d]Diff"
+		modeSpecific = "[l]Next Panel [d]Diff"
+	case focus == panelRepo && hasPR:
+		modeSpecific = "[tab]Focus [Repo] [l]Next Panel [d]Diff"
+	case focus == panelRepo:
+		modeSpecific = "[tab]Focus [Repo] [l]Next Panel [d]Diff"
 	case focus == panelPRs && hasPR:
-		modeSpecific = "[tab]Focus [PRs] [j/k/↑/↓]Move [l]Overview [c/R]Review"
+		modeSpecific = "[tab]Focus [PRs] [h/l]Prev/Next Panel [j/k/↑/↓]Move [c/R]Review"
 	case focus == panelDiffFiles && hasFiles:
-		modeSpecific = "[tab]Focus [Files] [j/k/↑/↓]Move [l]Diff [o]Overview [v]Range [c]Comment"
+		modeSpecific = "[tab]Focus [Files] [j/k/↑/↓]Move [h/l]Prev/Next Panel [o]Overview [v]Range [c]Comment"
 	case focus == panelReviewDrawer && inputMode == core.ReviewInputComment:
 		modeSpecific = "[Ctrl+S]Save Comment [Esc]Cancel [S]Submit [X]Discard"
 	case focus == panelReviewDrawer && inputMode == core.ReviewInputSummary:
 		modeSpecific = "[Ctrl+S]Save Summary [Esc]Cancel [S]Submit [X]Discard"
 	case focus == panelReviewDrawer:
-		modeSpecific = "[c]Comment [R]Summary [S]Submit [X]Discard [Esc]Diff"
+		modeSpecific = "[h]Prev Panel [c]Comment [R]Summary [S]Submit [X]Discard [Esc]Diff"
 	case hasPR || hasFiles || hasReviewDrawer:
-		modeSpecific = "[tab]Focus [Diff] [j/k/↑/↓]Line [space/b]Page [g/G]Top/Bottom [h]Files [v]Range [c]Comment [R]Summary [S]Submit [X]Discard [o]Overview"
+		modeSpecific = "[tab]Focus [Diff] [j/k/↑/↓]Line [space/b]Page [g/G]Top/Bottom [h/l]Prev/Next Panel [v]Range [c]Comment [R]Summary [S]Submit [X]Discard [o]Overview"
 	default:
 		modeSpecific = "[o]Overview"
 	}

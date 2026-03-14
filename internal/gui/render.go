@@ -99,7 +99,7 @@ func (gui *Gui) render() string {
 
 func (gui *Gui) renderRightPanels(width int, height int) []string {
 	if !gui.state.IsDiffMode() {
-		return gui.renderDetailPanel("Overview", false, width, height, gui.state.DetailContent)
+		return gui.renderDetailPanel("Overview", gui.focus == panelDiffContent, width, height, gui.state.DetailContent)
 	}
 	coloredDiff := colorizeDiffContent(gui.currentDiffContent())
 
@@ -266,7 +266,7 @@ func (gui *Gui) renderLeftPanels(width int, height int) []string {
 		prInnerHeight = prPanelHeight - 2
 	}
 
-	repoLines := gui.framePanel("Repository", false, gui.renderRepoPanel(repoInnerHeight), width, repoPanelHeight)
+	repoLines := gui.framePanel("Repository", gui.focus == panelRepo, gui.renderRepoPanel(repoInnerHeight), width, repoPanelHeight)
 	prLines := gui.framePanel("PRs (Open/Draft)", gui.focus == panelPRs, gui.renderPRPanel(prInnerHeight), width, prPanelHeight)
 
 	lines := make([]string, 0, height)

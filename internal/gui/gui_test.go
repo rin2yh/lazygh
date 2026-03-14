@@ -299,6 +299,10 @@ func TestCycleFocus_DiffMode(t *testing.T) {
 		t.Fatalf("got %v, want %v", g.focus, panelDiffContent)
 	}
 	g.cycleFocus()
+	if g.focus != panelRepo {
+		t.Fatalf("got %v, want %v", g.focus, panelRepo)
+	}
+	g.cycleFocus()
 	if g.focus != panelPRs {
 		t.Fatalf("got %v, want %v", g.focus, panelPRs)
 	}

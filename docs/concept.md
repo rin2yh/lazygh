@@ -53,7 +53,7 @@ Issue導線はv1では提供しない。
 │  #118 Improve CI cache       │  PR本文 or Unified diff  │
 │  #116 Add auth retry         │                          │
 ├──────────────────────────────┴──────────────────────────┤
-│ [q]Quit [j/k]Move [h/l]Mode [enter]Reload [c]Comment   │
+│ [q]Quit [j/k]Move [h/l]Panel [enter]Reload [c]Comment  │
 └─────────────────────────────────────────────────────────┘
 ```
 
