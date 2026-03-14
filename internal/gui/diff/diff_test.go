@@ -1,4 +1,4 @@
-package gui
+package diff
 
 import (
 	"strings"
@@ -8,7 +8,7 @@ import (
 )
 
 func TestRenderDiffFileListLineShowsColoredStatusAndCounts(t *testing.T) {
-	line := renderDiffFileListLine(gh.DiffFile{
+	line := RenderFileListLine(gh.DiffFile{
 		Path:      "a.txt",
 		Status:    gh.DiffFileStatusAdded,
 		Additions: 3,
@@ -41,7 +41,7 @@ func TestColorizeDiffContent(t *testing.T) {
 		" context",
 	}, "\n")
 
-	got := colorizeDiffContent(diff)
+	got := ColorizeContent(diff)
 	if !strings.Contains(got, ansiBlue+"diff --git a/a.txt b/a.txt"+ansiReset) {
 		t.Fatalf("diff content does not contain expected header")
 	}

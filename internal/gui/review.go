@@ -273,22 +273,3 @@ func (gui *Gui) isDiffLineWithinPendingRange(line gh.DiffLine) bool {
 	}
 	return lineIndex >= minIndex && lineIndex <= maxIndex
 }
-
-func renderReviewCommentSummary(comment core.ReviewComment) string {
-	location := fmt.Sprintf("%s:%d", comment.Path, comment.Line)
-	if comment.StartLine > 0 {
-		location = fmt.Sprintf("%s:%d-%d", comment.Path, comment.StartLine, comment.Line)
-	}
-	body := sanitizeReviewLine(comment.Body)
-	if len(body) > 48 {
-		body = body[:48] + "..."
-	}
-	return location + " " + body
-}
-
-func sanitizeReviewLine(s string) string {
-	s = strings.ReplaceAll(s, "\n", " ")
-	s = strings.ReplaceAll(s, "\r", " ")
-	s = strings.TrimSpace(s)
-	return s
-}

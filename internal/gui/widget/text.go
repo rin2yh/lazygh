@@ -1,4 +1,4 @@
-package gui
+package widget
 
 import (
 	"strings"
@@ -6,7 +6,7 @@ import (
 	xansi "github.com/charmbracelet/x/ansi"
 )
 
-func wrapText(content string, width int) string {
+func WrapText(content string, width int) string {
 	if width <= 0 || content == "" {
 		return content
 	}

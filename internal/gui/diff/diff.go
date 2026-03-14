@@ -1,4 +1,4 @@
-package gui
+package diff
 
 import (
 	"strconv"
@@ -7,7 +7,18 @@ import (
 	"github.com/rin2yh/lazygh/internal/gh"
 )
 
-func renderDiffFileListLine(file gh.DiffFile) string {
+const (
+	ansiReset  = "\x1b[0m"
+	ansiGreen  = "\x1b[32m"
+	ansiRed    = "\x1b[31m"
+	ansiYellow = "\x1b[33m"
+	ansiBlue   = "\x1b[34m"
+	ansiCyan   = "\x1b[36m"
+	ansiPurple = "\x1b[35m"
+	ansiGray   = "\x1b[90m"
+)
+
+func RenderFileListLine(file gh.DiffFile) string {
 	label := string(file.Status)
 	if label == "" {
 		label = string(gh.DiffFileStatusModified)
@@ -18,31 +29,7 @@ func renderDiffFileListLine(file gh.DiffFile) string {
 	return status + " " + file.Path + " " + additions + " " + deletions
 }
 
-func colorizeDiffStatus(label string, status gh.DiffFileStatus) string {
-	switch status {
-	case gh.DiffFileStatusAdded:
-		return colorize(ansiGreen, label)
-	case gh.DiffFileStatusDeleted:
-		return colorize(ansiRed, label)
-	case gh.DiffFileStatusRenamed:
-		return colorize(ansiCyan, label)
-	case gh.DiffFileStatusCopied:
-		return colorize(ansiBlue, label)
-	case gh.DiffFileStatusType:
-		return colorize(ansiPurple, label)
-	default:
-		return colorize(ansiYellow, label)
-	}
-}
-
-func colorize(color string, text string) string {
-	if text == "" {
-		return ""
-	}
-	return color + text + ansiReset
-}
-
-func colorizeDiffContent(content string) string {
+func ColorizeContent(content string) string {
 	if content == "" {
 		return ""
 	}
@@ -72,4 +59,28 @@ func colorizeDiffContent(content string) string {
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+func colorizeDiffStatus(label string, status gh.DiffFileStatus) string {
+	switch status {
+	case gh.DiffFileStatusAdded:
+		return colorize(ansiGreen, label)
+	case gh.DiffFileStatusDeleted:
+		return colorize(ansiRed, label)
+	case gh.DiffFileStatusRenamed:
+		return colorize(ansiCyan, label)
+	case gh.DiffFileStatusCopied:
+		return colorize(ansiBlue, label)
+	case gh.DiffFileStatusType:
+		return colorize(ansiPurple, label)
+	default:
+		return colorize(ansiYellow, label)
+	}
+}
+
+func colorize(color string, text string) string {
+	if text == "" {
+		return ""
+	}
+	return color + text + ansiReset
 }

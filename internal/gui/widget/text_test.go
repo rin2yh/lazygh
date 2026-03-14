@@ -1,4 +1,4 @@
-package gui
+package widget
 
 import (
 	"strings"
@@ -36,7 +36,7 @@ func TestWrapText(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := wrapText(tt.content, tt.width); got != tt.want {
+			if got := WrapText(tt.content, tt.width); got != tt.want {
 				t.Fatalf("got %q, want %q", got, tt.want)
 			}
 		})
@@ -44,7 +44,7 @@ func TestWrapText(t *testing.T) {
 }
 
 func TestWrapTextWithANSI(t *testing.T) {
-	got := wrapText(ansiGreen+"abcdef"+ansiReset, 3)
+	got := WrapText("\x1b[32mabcdef\x1b[0m", 3)
 	lines := strings.Split(got, "\n")
 	if len(lines) != 2 {
 		t.Fatalf("got %d, want %d", len(lines), 2)

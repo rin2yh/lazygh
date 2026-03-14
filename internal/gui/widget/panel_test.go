@@ -1,4 +1,4 @@
-package gui
+package widget
 
 import (
 	"strings"
@@ -6,11 +6,12 @@ import (
 
 	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/google/go-cmp/cmp"
-	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 )
 
+const ansiGreen = "\x1b[32m"
+
 func TestFramePanel(t *testing.T) {
-	got := framePanel("Repo", false, []string{"body"}, 10, 3)
+	got := FramePanel("Repo", []string{"body"}, 10, 3, PanelStyle{})
 	want := []string{
 		"┌ Repo ──┐",
 		"│body    │",
@@ -23,7 +24,7 @@ func TestFramePanel(t *testing.T) {
 }
 
 func TestFramePanelFallsBackWhenTooSmall(t *testing.T) {
-	got := framePanel("Repo", false, []string{"x"}, 1, 2)
+	got := FramePanel("Repo", []string{"x"}, 1, 2, PanelStyle{})
 	want := []string{"x", ""}
 
 	if diff := cmp.Diff(want, got); diff != "" {
@@ -33,15 +34,17 @@ func TestFramePanelFallsBackWhenTooSmall(t *testing.T) {
 
 func TestPadOrTrimHandlesANSI(t *testing.T) {
 	colored := ansiGreen + "+10" + ansiReset
-	got := padOrTrim(colored, 4)
+	got := PadOrTrim(colored, 4)
 	if !strings.Contains(got, colored) {
 		t.Fatalf("result does not contain colored text: %q", got)
 	}
 }
 
-func TestGuiFramePanel_ActiveUsesConfiguredColors(t *testing.T) {
-	g := newTestGuiWithClient(&testmock.GHClient{})
-	lines := g.framePanel("Repo", true, []string{"body"}, 10, 3)
+func TestFramePanel_ActiveUsesConfiguredColors(t *testing.T) {
+	lines := FramePanel("Repo", []string{"body"}, 10, 3, PanelStyle{
+		BorderColor: "green",
+		TitleColor:  "green",
+	})
 
 	if !strings.Contains(lines[0], ansiGreen+"┌") {
 		t.Fatalf("top border is not active color: %q", lines[0])
@@ -54,18 +57,11 @@ func TestGuiFramePanel_ActiveUsesConfiguredColors(t *testing.T) {
 	}
 }
 
-func TestGuiFramePanel_InvalidThemeColorFallsBack(t *testing.T) {
-	g := newTestGuiWithClient(&testmock.GHClient{})
-	g.config.Theme.ActiveBorderColor = "unknown-color"
-	g.config.Theme.InactiveBorderColor = "invalid"
-
-	active := g.framePanel("Repo", true, []string{"body"}, 10, 3)
-	inactive := g.framePanel("Repo", false, []string{"body"}, 10, 3)
-
-	if !strings.Contains(active[0], ansiGreen+"┌") {
-		t.Fatalf("active border should fallback to green: %q", active[0])
+func TestResolveColorName_InvalidFallsBack(t *testing.T) {
+	if got := ResolveColorName("unknown-color", "green"); got != "green" {
+		t.Fatalf("got %q, want %q", got, "green")
 	}
-	if !strings.Contains(inactive[0], "\x1b[37m┌") {
-		t.Fatalf("inactive border should fallback to white: %q", inactive[0])
+	if got := ResolveColorName("invalid", "white"); got != "white" {
+		t.Fatalf("got %q, want %q", got, "white")
 	}
 }
