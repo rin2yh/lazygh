@@ -4,27 +4,19 @@ import "testing"
 
 func TestFormatPanelTitle(t *testing.T) {
 	tests := []struct {
-		name   string
-		base   string
-		active bool
-		want   string
+		name string
+		base string
+		want string
 	}{
 		{
-			name:   "Active",
-			base:   "PRs",
-			active: true,
-			want:   "> PRs <",
-		},
-		{
-			name:   "Inactive",
-			base:   "Detail",
-			active: false,
-			want:   " Detail ",
+			name: "plain title",
+			base: "Detail",
+			want: " Detail ",
 		},
 	}
 
 	for _, tt := range tests {
-		got := formatPanelTitle(tt.base, tt.active)
+		got := formatPanelTitle(tt.base)
 		if got != tt.want {
 			t.Errorf("%s: got %q, want %q", tt.name, got, tt.want)
 		}

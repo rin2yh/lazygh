@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/rin2yh/lazygh/internal/core"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 )
@@ -51,17 +52,17 @@ func TestRenderLeftPanelsSeparated(t *testing.T) {
 	if len(lines) != 10 {
 		t.Fatalf("got %d, want %d", len(lines), 10)
 	}
-	if lines[0] != "┌ Repository ──────┐" {
-		t.Fatalf("got %q, want %q", lines[0], "┌ Repository ──────┐")
+	if xansi.Strip(lines[0]) != "┌ Repository ──────┐" {
+		t.Fatalf("got %q, want %q", xansi.Strip(lines[0]), "┌ Repository ──────┐")
 	}
-	if lines[3] != "└──────────────────┘" {
-		t.Fatalf("got %q, want %q", lines[3], "└──────────────────┘")
+	if xansi.Strip(lines[3]) != "└──────────────────┘" {
+		t.Fatalf("got %q, want %q", xansi.Strip(lines[3]), "└──────────────────┘")
 	}
-	if !strings.HasPrefix(lines[4], "┌> PRs") {
-		t.Fatalf("line does not have expected prefix: %q", lines[4])
+	if !strings.Contains(xansi.Strip(lines[4]), "PRs (Open/Draft)") {
+		t.Fatalf("line does not contain expected title: %q", xansi.Strip(lines[4]))
 	}
-	if !strings.HasSuffix(lines[4], "┐") {
-		t.Fatalf("line does not have expected suffix: %q", lines[4])
+	if !strings.HasSuffix(xansi.Strip(lines[4]), "┐") {
+		t.Fatalf("line does not have expected suffix: %q", xansi.Strip(lines[4]))
 	}
 }
 

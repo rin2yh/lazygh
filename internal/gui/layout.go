@@ -2,10 +2,7 @@ package gui
 
 import "fmt"
 
-func formatPanelTitle(base string, active bool) string {
-	if active {
-		return fmt.Sprintf("> %s <", base)
-	}
+func formatPanelTitle(base string) string {
 	return fmt.Sprintf(" %s ", base)
 }
 

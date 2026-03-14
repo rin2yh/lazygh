@@ -188,8 +188,8 @@ func (gui *Gui) renderLeftPanels(width int, height int) []string {
 		prInnerHeight = prPanelHeight - 2
 	}
 
-	repoLines := framePanel("Repository", false, gui.renderRepoPanel(repoInnerHeight), width, repoPanelHeight)
-	prLines := framePanel("PRs (Open/Draft)", gui.focus == panelPRs, gui.renderPRPanel(prInnerHeight), width, prPanelHeight)
+	repoLines := gui.framePanel("Repository", false, gui.renderRepoPanel(repoInnerHeight), width, repoPanelHeight)
+	prLines := gui.framePanel("PRs (Open/Draft)", gui.focus == panelPRs, gui.renderPRPanel(prInnerHeight), width, prPanelHeight)
 
 	lines := make([]string, 0, height)
 	lines = append(lines, repoLines...)
@@ -222,7 +222,7 @@ func (gui *Gui) renderDiffFilesPanel(width int, height int) []string {
 				lines = append(lines, "")
 			}
 		}
-		return framePanel("Files", gui.focus == panelDiffFiles, lines, width, height)
+		return gui.framePanel("Files", gui.focus == panelDiffFiles, lines, width, height)
 	}
 
 	start := 0
@@ -241,7 +241,7 @@ func (gui *Gui) renderDiffFilesPanel(width int, height int) []string {
 		}
 		lines = append(lines, prefix+renderDiffFileListLine(gui.diffFiles[idx]))
 	}
-	return framePanel("Files", gui.focus == panelDiffFiles, lines, width, height)
+	return gui.framePanel("Files", gui.focus == panelDiffFiles, lines, width, height)
 }
 
 func (gui *Gui) renderDetailPanel(title string, active bool, width int, height int, content string) []string {
@@ -273,7 +273,7 @@ func (gui *Gui) renderDetailPanel(title string, active bool, width int, height i
 	for len(lines) < innerHeight {
 		lines = append(lines, "")
 	}
-	return framePanel(title, active, lines, width, height)
+	return gui.framePanel(title, active, lines, width, height)
 }
 
 func (gui *Gui) syncDetailViewport(width int, height int, content string) {
