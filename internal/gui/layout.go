@@ -7,20 +7,30 @@ func formatPanelTitle(base string) string {
 }
 
 func formatStatusLine(loading bool, diffMode bool, hasPR bool, focus panelFocus, hasFiles bool) string {
-	var line string
+	base := "[q]Quit"
+	if hasPR {
+		base = fmt.Sprintf("%s [enter]Reload", base)
+	}
+
+	var modeSpecific string
 	switch {
 	case !diffMode && hasPR:
-		line = "[PRs] [j/k/↑/↓]Move [enter]Reload [d]Diff [q]Quit"
+		modeSpecific = "[PRs] [j/k/↑/↓]Move [d]Diff"
 	case !diffMode:
-		line = "[d]Diff [q]Quit"
+		modeSpecific = "[d]Diff"
 	case focus == panelPRs && hasPR:
-		line = "[tab]Focus [PRs] [j/k/↑/↓]Move [l]Overview [enter]Reload [q]Quit"
+		modeSpecific = "[tab]Focus [PRs] [j/k/↑/↓]Move [l]Overview"
 	case focus == panelDiffFiles && hasFiles:
-		line = "[tab]Focus [Files] [j/k/↑/↓]Move [l]Diff [o]Overview [q]Quit"
+		modeSpecific = "[tab]Focus [Files] [j/k/↑/↓]Move [l]Diff [o]Overview"
 	case hasPR || hasFiles:
-		line = "[tab]Focus [Diff] [j/k/↑/↓]Line [space/b]Page [g/G]Top/Bottom [h]Files [enter]Reload [o]Overview [q]Quit"
+		modeSpecific = "[tab]Focus [Diff] [j/k/↑/↓]Line [space/b]Page [g/G]Top/Bottom [h]Files [o]Overview"
 	default:
-		line = "[o]Overview [q]Quit"
+		modeSpecific = "[o]Overview"
+	}
+
+	line := base
+	if modeSpecific != "" {
+		line = fmt.Sprintf("%s | %s", base, modeSpecific)
 	}
 	if loading {
 		return fmt.Sprintf("Loading...  | %s", line)

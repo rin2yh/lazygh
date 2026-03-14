@@ -40,7 +40,7 @@ func TestFormatStatusLine(t *testing.T) {
 			hasPR:    true,
 			focus:    panelPRs,
 			hasFiles: false,
-			want:     "[PRs] [j/k/↑/↓]Move [enter]Reload [d]Diff [q]Quit",
+			want:     "[q]Quit [enter]Reload | [PRs] [j/k/↑/↓]Move [d]Diff",
 		},
 		{
 			name:     "diff focus prs",
@@ -49,7 +49,7 @@ func TestFormatStatusLine(t *testing.T) {
 			hasPR:    true,
 			focus:    panelPRs,
 			hasFiles: true,
-			want:     "[tab]Focus [PRs] [j/k/↑/↓]Move [l]Overview [enter]Reload [q]Quit",
+			want:     "[q]Quit [enter]Reload | [tab]Focus [PRs] [j/k/↑/↓]Move [l]Overview",
 		},
 		{
 			name:     "diff focus files",
@@ -58,7 +58,7 @@ func TestFormatStatusLine(t *testing.T) {
 			hasPR:    true,
 			focus:    panelDiffFiles,
 			hasFiles: true,
-			want:     "[tab]Focus [Files] [j/k/↑/↓]Move [l]Diff [o]Overview [q]Quit",
+			want:     "[q]Quit [enter]Reload | [tab]Focus [Files] [j/k/↑/↓]Move [l]Diff [o]Overview",
 		},
 		{
 			name:     "diff focus detail",
@@ -67,7 +67,7 @@ func TestFormatStatusLine(t *testing.T) {
 			hasPR:    true,
 			focus:    panelDiffContent,
 			hasFiles: true,
-			want:     "[tab]Focus [Diff] [j/k/↑/↓]Line [space/b]Page [g/G]Top/Bottom [h]Files [enter]Reload [o]Overview [q]Quit",
+			want:     "[q]Quit [enter]Reload | [tab]Focus [Diff] [j/k/↑/↓]Line [space/b]Page [g/G]Top/Bottom [h]Files [o]Overview",
 		},
 		{
 			name:     "overview without pr",
@@ -76,7 +76,7 @@ func TestFormatStatusLine(t *testing.T) {
 			hasPR:    false,
 			focus:    panelPRs,
 			hasFiles: false,
-			want:     "[d]Diff [q]Quit",
+			want:     "[q]Quit | [d]Diff",
 		},
 		{
 			name:     "diff without pr",
@@ -85,7 +85,7 @@ func TestFormatStatusLine(t *testing.T) {
 			hasPR:    false,
 			focus:    panelDiffContent,
 			hasFiles: false,
-			want:     "[o]Overview [q]Quit",
+			want:     "[q]Quit | [o]Overview",
 		},
 		{
 			name:     "loading",
@@ -94,7 +94,7 @@ func TestFormatStatusLine(t *testing.T) {
 			hasPR:    false,
 			focus:    panelDiffContent,
 			hasFiles: false,
-			want:     "Loading...  | [o]Overview [q]Quit",
+			want:     "Loading...  | [q]Quit | [o]Overview",
 		},
 	}
 
