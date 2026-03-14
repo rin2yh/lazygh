@@ -14,3 +14,7 @@ lazygh
 
 # Claude
 .claude/settings.local.json
+
+# Local Go cache
+.gocache/
+.gomodcache/
