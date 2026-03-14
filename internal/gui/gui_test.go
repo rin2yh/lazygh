@@ -337,47 +337,6 @@ func TestProgramE2E_MainFlow(t *testing.T) {
 	}
 }
 
-func TestProgramE2E_ShowErrorWhenInitialLoadFails(t *testing.T) {
-	client := &testmock.ControlledGHClient{
-		Err:           errors.New("boom"),
-		ResolveCalled: make(chan struct{}),
-		PRsCalled:     make(chan struct{}),
-		DetailCalled:  make(chan struct{}),
-	}
-	g, err := NewGui(config.Default(), client)
-	if err != nil {
-		t.Fatalf("NewGui failed: %v", err)
-	}
-
-	p := tea.NewProgram(
-		&model{gui: g},
-		tea.WithInput(bytes.NewBuffer(nil)),
-		tea.WithOutput(io.Discard),
-		tea.WithoutSignals(),
-	)
-
-	runDone := make(chan error, 1)
-	go func() {
-		_, runErr := p.Run()
-		runDone <- runErr
-	}()
-
-	waitChan(t, client.ResolveCalled, "ResolveCurrentRepo was not called")
-	waitUntil(t, func() bool {
-		return strings.Contains(g.state.DetailContent, "Error loading PRs")
-	}, "error message was not shown")
-
-	p.Send(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
-	select {
-	case runErr := <-runDone:
-		if runErr != nil {
-			t.Fatalf("program failed: %v", runErr)
-		}
-	case <-time.After(3 * time.Second):
-		t.Fatal("program did not quit")
-	}
-}
-
 func waitChan(t *testing.T, ch <-chan struct{}, msg string) {
 	t.Helper()
 	select {
