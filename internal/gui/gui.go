@@ -477,7 +477,7 @@ func (gui *Gui) render() string {
 
 func (gui *Gui) renderRightPanels(width int, height int) []string {
 	if !gui.state.IsDiffMode() {
-		return gui.renderDetailPanel("", false, width, height, gui.state.DetailContent)
+		return gui.renderDetailPanel("Overview", false, width, height, gui.state.DetailContent)
 	}
 	coloredDiff := colorizeDiffContent(gui.currentDiffContent())
 

@@ -590,6 +590,19 @@ func TestRenderRightPanels_DiffModeHasFilesPanel(t *testing.T) {
 	}
 }
 
+func TestRenderRightPanels_OverviewShowsPanelTitle(t *testing.T) {
+	g := newTestGuiWithPRs(&testmock.GHClient{}, core.Item{Number: 1, Title: "x"})
+	g.state.DetailContent = "detail"
+
+	lines := g.renderRightPanels(40, 6)
+	if len(lines) != 6 {
+		t.Fatalf("got %d, want %d", len(lines), 6)
+	}
+	if !strings.Contains(lines[0], "Overview") {
+		t.Fatalf("line does not contain %q: %q", "Overview", lines[0])
+	}
+}
+
 func TestWrapText(t *testing.T) {
 	tests := []struct {
 		name    string
