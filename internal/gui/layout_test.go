@@ -1,6 +1,10 @@
 package gui
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/rin2yh/lazygh/internal/core"
+)
 
 func TestFormatPanelTitle(t *testing.T) {
 	tests := []struct {
@@ -49,7 +53,7 @@ func TestFormatStatusLine(t *testing.T) {
 			hasPR:    true,
 			focus:    panelPRs,
 			hasFiles: true,
-			want:     "[q]Quit [enter]Reload | [tab]Focus [PRs] [j/k/↑/↓]Move [l]Overview",
+			want:     "[q]Quit [enter]Reload | [tab]Focus [PRs] [j/k/↑/↓]Move [l]Overview [c/R]Review",
 		},
 		{
 			name:     "diff focus files",
@@ -58,7 +62,7 @@ func TestFormatStatusLine(t *testing.T) {
 			hasPR:    true,
 			focus:    panelDiffFiles,
 			hasFiles: true,
-			want:     "[q]Quit [enter]Reload | [tab]Focus [Files] [j/k/↑/↓]Move [l]Diff [o]Overview",
+			want:     "[q]Quit [enter]Reload | [tab]Focus [Files] [j/k/↑/↓]Move [l]Diff [o]Overview [v]Range [c]Comment",
 		},
 		{
 			name:     "diff focus detail",
@@ -67,7 +71,7 @@ func TestFormatStatusLine(t *testing.T) {
 			hasPR:    true,
 			focus:    panelDiffContent,
 			hasFiles: true,
-			want:     "[q]Quit [enter]Reload | [tab]Focus [Diff] [j/k/↑/↓]Line [space/b]Page [g/G]Top/Bottom [h]Files [o]Overview",
+			want:     "[q]Quit [enter]Reload | [tab]Focus [Diff] [j/k/↑/↓]Line [space/b]Page [g/G]Top/Bottom [h]Files [v]Range [c]Comment [R]Summary [S]Submit [X]Discard [o]Overview",
 		},
 		{
 			name:     "overview without pr",
@@ -100,7 +104,7 @@ func TestFormatStatusLine(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := formatStatusLine(tt.loading, tt.diffMode, tt.hasPR, tt.focus, tt.hasFiles)
+			got := formatStatusLine(tt.loading, tt.diffMode, tt.hasPR, tt.focus, tt.hasFiles, false, core.ReviewInputNone)
 			if got != tt.want {
 				t.Errorf("got %q, want %q", got, tt.want)
 			}

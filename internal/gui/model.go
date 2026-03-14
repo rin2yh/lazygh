@@ -32,11 +32,45 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case detailLoadedMsg:
 		m.gui.applyDetailResult(msg)
 		return m, nil
+	case reviewCommentSavedMsg:
+		m.gui.applyReviewCommentResult(msg)
+		return m, nil
+	case reviewSubmittedMsg:
+		m.gui.applyReviewSubmitResult(msg)
+		return m, nil
+	case reviewDiscardedMsg:
+		m.gui.applyReviewDiscardResult(msg)
+		return m, nil
 	case tea.KeyMsg:
+		if m.gui.state.Review.InputMode != core.ReviewInputNone {
+			switch msg.String() {
+			case "S":
+				return m, m.handleReviewSubmit()
+			case "X":
+				return m, m.handleReviewDiscard()
+			}
+			if msg.String() == "ctrl+s" && m.gui.state.Review.InputMode == core.ReviewInputComment {
+				return m, m.handleReviewCommentSave()
+			}
+			if m.gui.handleReviewEditorKey(msg) {
+				return m, nil
+			}
+		}
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		case "esc":
+			if m.gui.state.Review.InputMode == core.ReviewInputNone && m.gui.state.Review.RangeStart != nil {
+				m.gui.state.ClearReviewRangeStart()
+				m.gui.state.SetReviewNotice("Range selection cleared.")
+				m.gui.focus = panelDiffContent
+				return m, nil
+			}
+			if m.gui.focus == panelReviewDrawer {
+				m.gui.stopReviewInput()
+				m.gui.focus = panelDiffContent
+				return m, nil
+			}
 			m.gui.focusPRs()
 			return m, nil
 		case "tab":
@@ -47,7 +81,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "k", "up":
 			return m, m.handleUpKey()
 		case "pgdown", "f", " ", "pgup", "b", "home", "g", "end", "G":
-			if m.gui.scrollDetailByKey(msg) {
+			if m.gui.scrollDetailByKey(msg) || m.gui.scrollOverviewByKey(msg) {
 				return m, nil
 			}
 			return m, nil
@@ -62,6 +96,37 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.handleDKey()
 		case "enter":
 			return m, m.handleDetailLoad()
+		case "v":
+			if !m.gui.state.IsDiffMode() {
+				m.gui.state.SetReviewNotice("Review range selection is only available in diff view.")
+				return m, nil
+			}
+			m.gui.toggleReviewRangeSelection()
+			return m, nil
+		case "c":
+			if !m.gui.state.IsDiffMode() {
+				m.gui.state.SetReviewNotice("Review comments are only available in diff view.")
+				return m, nil
+			}
+			m.gui.beginReviewCommentFlow()
+			return m, nil
+		case "R":
+			if !m.gui.state.IsDiffMode() {
+				m.gui.state.SetReviewNotice("Review summary is only available in diff view.")
+				return m, nil
+			}
+			m.gui.beginReviewSummaryInput()
+			return m, nil
+		case "S":
+			return m, m.handleReviewSubmit()
+		case "X":
+			return m, m.handleReviewDiscard()
+		case "x":
+			if m.gui.state.Review.InputMode == core.ReviewInputComment {
+				m.gui.commentEditor.SetValue("")
+				m.gui.state.SetReviewNotice("Comment input cleared.")
+			}
+			return m, nil
 		}
 	}
 	return m, nil
@@ -107,6 +172,8 @@ func (m *model) handleDownKey() tea.Cmd {
 		case panelDiffContent:
 			m.gui.scrollDetailDown()
 			return nil
+		case panelReviewDrawer:
+			return nil
 		default:
 			changed := m.gui.navigateDown()
 			if changed {
@@ -128,6 +195,8 @@ func (m *model) handleUpKey() tea.Cmd {
 			return nil
 		case panelDiffContent:
 			m.gui.scrollDetailUp()
+			return nil
+		case panelReviewDrawer:
 			return nil
 		default:
 			changed := m.gui.navigateUp()
@@ -209,5 +278,83 @@ func (m *model) handleDetailLoad() tea.Cmd {
 		return m.loadDetailCmd(action.Repo, action.Number, core.DetailModeOverview)
 	default:
 		return nil
+	}
+}
+
+func (m *model) handleReviewCommentSave() tea.Cmd {
+	item, ok := m.gui.state.SelectedPR()
+	if !ok {
+		m.gui.state.SetReviewNotice("No pull request selected.")
+		return nil
+	}
+	comment, err := m.gui.buildReviewCommentDraft(m.gui.commentEditor.Value())
+	if err != nil {
+		m.gui.state.SetReviewNotice(err.Error())
+		return nil
+	}
+	repo := m.gui.state.Repo
+	reviewID := m.gui.state.Review.ReviewID
+	ctx := gh.ReviewContext{
+		PullRequestID: m.gui.state.Review.PullRequestID,
+		CommitOID:     m.gui.state.Review.CommitOID,
+	}
+
+	m.gui.state.Loading = core.LoadingReview
+	return func() tea.Msg {
+		var runErr error
+		if reviewID == "" {
+			ctx, runErr = m.gui.client.GetReviewContext(repo, item.Number)
+			if runErr != nil {
+				return reviewCommentSavedMsg{err: runErr}
+			}
+			reviewID, runErr = m.gui.client.StartPendingReview(repo, item.Number, ctx)
+			if runErr != nil {
+				return reviewCommentSavedMsg{err: runErr}
+			}
+		}
+		runErr = m.gui.client.AddReviewComment(repo, reviewID, comment)
+		return reviewCommentSavedMsg{
+			prNumber: item.Number,
+			ctx:      ctx,
+			reviewID: reviewID,
+			comment:  comment,
+			err:      runErr,
+		}
+	}
+}
+
+func (m *model) handleReviewSubmit() tea.Cmd {
+	if m.gui.state.Review.InputMode == core.ReviewInputSummary {
+		m.gui.state.SetReviewSummary(m.gui.summaryEditor.Value())
+		m.gui.stopReviewInput()
+	}
+	if !m.gui.state.HasPendingReview() {
+		m.gui.state.SetReviewNotice("No pending review to submit.")
+		return nil
+	}
+	m.gui.state.Loading = core.LoadingReview
+	reviewID := m.gui.state.Review.ReviewID
+	body := m.gui.state.Review.Summary
+	repo := m.gui.state.Repo
+	return func() tea.Msg {
+		err := m.gui.client.SubmitReview(repo, reviewID, body)
+		return reviewSubmittedMsg{reviewID: reviewID, err: err}
+	}
+}
+
+func (m *model) handleReviewDiscard() tea.Cmd {
+	if m.gui.state.Review.InputMode == core.ReviewInputSummary {
+		m.gui.stopReviewInput()
+	}
+	reviewID := m.gui.state.Review.ReviewID
+	if reviewID == "" {
+		m.gui.state.ResetReviewAfterDiscard("Review draft discarded.")
+		return nil
+	}
+	m.gui.state.Loading = core.LoadingReview
+	repo := m.gui.state.Repo
+	return func() tea.Msg {
+		err := m.gui.client.DeletePendingReview(repo, reviewID)
+		return reviewDiscardedMsg{err: err}
 	}
 }

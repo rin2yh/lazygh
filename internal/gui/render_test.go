@@ -212,3 +212,139 @@ func TestRenderRepoPanel(t *testing.T) {
 		})
 	}
 }
+
+func TestRenderDiffContentPanel_HighlightsPendingRange(t *testing.T) {
+	g := newTestGuiWithPRs(&testmock.GHClient{}, core.Item{Number: 1, Title: "x"})
+	g.switchToDiff()
+	g.updateDiffFiles(strings.Join([]string{
+		"diff --git a/a.txt b/a.txt",
+		"--- a/a.txt",
+		"+++ b/a.txt",
+		"@@ -1,3 +1,3 @@",
+		" line1",
+		"-line2",
+		"+line2x",
+		" line3",
+	}, "\n"))
+	g.state.MarkReviewRangeStart(core.ReviewRange{Path: "a.txt", Side: "RIGHT", Line: 2})
+	g.diffLineSelected = 7
+
+	lines := g.renderDiffContentPanel(60, 8, g.currentDiffContent())
+	found := false
+	for _, line := range lines {
+		if strings.Contains(line, ansiCyan) && strings.Contains(xansi.Strip(line), "line2x") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("expected pending range highlight")
+	}
+}
+
+func TestRenderDiffContentPanel_KeepsLineNumberGutterPlain(t *testing.T) {
+	g := newTestGuiWithPRs(&testmock.GHClient{}, core.Item{Number: 1, Title: "x"})
+	g.switchToDiff()
+	g.updateDiffFiles(strings.Join([]string{
+		"diff --git a/a.txt b/a.txt",
+		"--- a/a.txt",
+		"+++ b/a.txt",
+		"@@ -1,2 +1,2 @@",
+		" line1",
+		"+line2",
+	}, "\n"))
+	g.state.MarkReviewRangeStart(core.ReviewRange{Path: "a.txt", Side: "RIGHT", Line: 1})
+	g.diffLineSelected = 5
+
+	lines := g.renderDiffContentPanel(60, 8, g.currentDiffContent())
+	for _, line := range lines {
+		stripped := xansi.Strip(line)
+		if !strings.Contains(stripped, "line2") {
+			continue
+		}
+		if !strings.Contains(line, ansiReverse) || !strings.Contains(line, ansiCyan) {
+			t.Fatalf("expected selected gutter to be highlighted: %q", line)
+		}
+		return
+	}
+	t.Fatal("target line not found")
+}
+
+func TestRenderDiffContentPanel_SelectedRangeLineUsesRangeHighlight(t *testing.T) {
+	g := newTestGuiWithPRs(&testmock.GHClient{}, core.Item{Number: 1, Title: "x"})
+	g.switchToDiff()
+	g.updateDiffFiles(strings.Join([]string{
+		"diff --git a/a.txt b/a.txt",
+		"--- a/a.txt",
+		"+++ b/a.txt",
+		"@@ -1,2 +1,2 @@",
+		" line1",
+		"+line2",
+	}, "\n"))
+	g.state.MarkReviewRangeStart(core.ReviewRange{Path: "a.txt", Side: "RIGHT", Line: 2})
+	g.diffLineSelected = 5
+
+	lines := g.renderDiffContentPanel(60, 8, g.currentDiffContent())
+	for _, line := range lines {
+		if !strings.Contains(xansi.Strip(line), "line2") {
+			continue
+		}
+		if !strings.Contains(line, ansiReverse) || !strings.Contains(line, ansiCyan+"+2") {
+			t.Fatalf("expected selected range gutter to include reverse and cyan: %q", line)
+		}
+		return
+	}
+	t.Fatal("target line not found")
+}
+
+func TestRenderReviewDrawer_RendersMultilineSummaryWithoutBreakingLayout(t *testing.T) {
+	g := newTestGuiWithPRs(&testmock.GHClient{}, core.Item{Number: 1, Title: "x"})
+	g.switchToDiff()
+	g.state.SetReviewSummary("first line\nsecond line")
+
+	lines := g.renderReviewDrawer(40, 8)
+	var foundHeader bool
+	var foundFirst bool
+	var foundSecond bool
+	for _, line := range lines {
+		stripped := xansi.Strip(line)
+		if strings.Contains(stripped, "Summary:") {
+			foundHeader = true
+		}
+		if strings.Contains(stripped, "  first line") {
+			foundFirst = true
+		}
+		if strings.Contains(stripped, "  second line") {
+			foundSecond = true
+		}
+		if strings.Contains(stripped, "\n") {
+			t.Fatalf("drawer line should not contain embedded newline: %q", stripped)
+		}
+	}
+	if !foundHeader || !foundFirst || !foundSecond {
+		t.Fatalf("missing multiline summary rendering: %#v", lines)
+	}
+}
+
+func TestRenderReviewDrawer_UsesMultilineSummaryEditorValue(t *testing.T) {
+	g := newTestGuiWithPRs(&testmock.GHClient{}, core.Item{Number: 1, Title: "x"})
+	g.switchToDiff()
+	g.state.BeginReviewSummaryInput()
+	g.summaryEditor.SetValue("draft one\ndraft two")
+
+	lines := g.renderReviewDrawer(40, 10)
+	var foundDraftOne bool
+	var foundDraftTwo bool
+	for _, line := range lines {
+		stripped := xansi.Strip(line)
+		if strings.Contains(stripped, "  draft one") {
+			foundDraftOne = true
+		}
+		if strings.Contains(stripped, "  draft two") {
+			foundDraftTwo = true
+		}
+	}
+	if !foundDraftOne || !foundDraftTwo {
+		t.Fatalf("missing multiline summary editor rendering: %#v", lines)
+	}
+}

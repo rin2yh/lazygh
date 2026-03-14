@@ -40,8 +40,8 @@ lazygh
 | `d` | Diff表示へ切替（選択PRのdiffを取得） |
 | `o` | Overview表示へ切替 |
 | `Enter` | 現在フォーカス中PRの内容を再取得 |
-| `Esc` | フォーカスをPR一覧へ戻す |
-| `Tab` | Diff時にフォーカスを `PRs → Files → Diff` で循環 |
+| `Esc` | 入力中なら入力を抜ける。そうでなければPR一覧へ戻す |
+| `Tab` | Diff時にフォーカスを `PRs → Files → Diff → Review` で循環 |
 
 ### パネル別（Diff時）
 
@@ -55,6 +55,12 @@ lazygh
 | `Diff` | `Space` / `b` | 1ページ下/上へスクロール |
 | `Diff` | `g` / `G` | 先頭/末尾へ移動 |
 | `Diff` | `h` | Filesパネルへフォーカス |
+| `Diff` | `v` | 範囲コメントの開始位置を記録 / 解除 |
+| `Diff` | `c` | 範囲選択中ならその範囲、未選択なら現在行のコメント入力を開始 |
+| `Diff` | `R` | レビュー概要入力を開始 |
+| `Review` | `Ctrl+S` | コメント / 概要入力を保存 |
+| `Review` | `S` | pending review を `Comment` として送信 |
+| `Review` | `X` | pending review を破棄 |
 
 ## 現在の実装範囲
 
@@ -63,8 +69,8 @@ lazygh
 - PR概要（タイトル・ステータス・アサイン）を表示
 - PR差分（Unified diff）を表示
 - Diffの変更ファイルツリー（変更種別・`+/-` 行数）を表示
-
-ロードマップ上のPhase1未達項目（コメント投稿 / `c` 操作）は `docs/roadmap.md` の「Phase1 未達項目（別タスク管理）」に記載。
+- Diff行ごとのコメントと複数行範囲コメントを pending review に追加
+- レビュー送信前の概要入力と下部レビュー下書きドロワー
 
 ## ローカル実ghスモーク
 

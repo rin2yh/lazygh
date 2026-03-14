@@ -7,11 +7,16 @@ import (
 )
 
 type GHClient struct {
-	Repo   string
-	PRs    []gh.PRItem
-	PRView string
-	PRDiff string
-	Err    error
+	Repo             string
+	PRs              []gh.PRItem
+	PRView           string
+	PRDiff           string
+	ReviewContext    gh.ReviewContext
+	PendingReviewID  string
+	ReviewComments   []gh.ReviewComment
+	SubmittedReviews []string
+	DeletedReviews   []string
+	Err              error
 }
 
 func (m *GHClient) ResolveCurrentRepo() (string, error) {
@@ -30,17 +35,52 @@ func (m *GHClient) DiffPR(_ string, _ int) (string, error) {
 	return m.PRDiff, m.Err
 }
 
+func (m *GHClient) GetReviewContext(_ string, _ int) (gh.ReviewContext, error) {
+	return m.ReviewContext, m.Err
+}
+
+func (m *GHClient) StartPendingReview(_ string, _ int, _ gh.ReviewContext) (string, error) {
+	return m.PendingReviewID, m.Err
+}
+
+func (m *GHClient) AddReviewComment(_ string, _ string, comment gh.ReviewComment) error {
+	if m.Err != nil {
+		return m.Err
+	}
+	m.ReviewComments = append(m.ReviewComments, comment)
+	return nil
+}
+
+func (m *GHClient) SubmitReview(_ string, reviewID string, body string) error {
+	if m.Err != nil {
+		return m.Err
+	}
+	m.SubmittedReviews = append(m.SubmittedReviews, reviewID+":"+body)
+	return nil
+}
+
+func (m *GHClient) DeletePendingReview(_ string, reviewID string) error {
+	if m.Err != nil {
+		return m.Err
+	}
+	m.DeletedReviews = append(m.DeletedReviews, reviewID)
+	return nil
+}
+
 type ControlledGHClient struct {
-	Repo   string
-	PRs    []gh.PRItem
-	PRView string
-	PRDiff string
-	Err    error
+	Repo            string
+	PRs             []gh.PRItem
+	PRView          string
+	PRDiff          string
+	ReviewContext   gh.ReviewContext
+	PendingReviewID string
+	Err             error
 
 	ResolveCalled chan struct{}
 	PRsCalled     chan struct{}
 	DetailCalled  chan struct{}
 	DiffCalled    chan struct{}
+	ReviewCalled  chan struct{}
 
 	ReleaseResolve <-chan struct{}
 	ReleasePRs     <-chan struct{}
@@ -51,6 +91,7 @@ type ControlledGHClient struct {
 	prsOnce     sync.Once
 	detailOnce  sync.Once
 	diffOnce    sync.Once
+	reviewOnce  sync.Once
 }
 
 func (c *ControlledGHClient) ResolveCurrentRepo() (string, error) {
@@ -103,4 +144,33 @@ func (c *ControlledGHClient) DiffPR(_ string, _ int) (string, error) {
 		return "", c.Err
 	}
 	return c.PRDiff, nil
+}
+
+func (c *ControlledGHClient) GetReviewContext(_ string, _ int) (gh.ReviewContext, error) {
+	if c.ReviewCalled != nil {
+		c.reviewOnce.Do(func() { close(c.ReviewCalled) })
+	}
+	if c.Err != nil {
+		return gh.ReviewContext{}, c.Err
+	}
+	return c.ReviewContext, nil
+}
+
+func (c *ControlledGHClient) StartPendingReview(_ string, _ int, _ gh.ReviewContext) (string, error) {
+	if c.Err != nil {
+		return "", c.Err
+	}
+	return c.PendingReviewID, nil
+}
+
+func (c *ControlledGHClient) AddReviewComment(_ string, _ string, _ gh.ReviewComment) error {
+	return c.Err
+}
+
+func (c *ControlledGHClient) SubmitReview(_ string, _ string, _ string) error {
+	return c.Err
+}
+
+func (c *ControlledGHClient) DeletePendingReview(_ string, _ string) error {
+	return c.Err
 }

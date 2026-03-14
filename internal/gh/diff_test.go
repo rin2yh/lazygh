@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 func TestParseUnifiedDiff(t *testing.T) {
@@ -258,7 +259,7 @@ new mode 100755`,
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := ParseUnifiedDiff(tt.diff)
-			if diff := cmp.Diff(tt.want, got); diff != "" {
+			if diff := cmp.Diff(tt.want, got, cmpopts.IgnoreFields(DiffFile{}, "Lines")); diff != "" {
 				t.Fatalf("parse result mismatch (-want +got)\n%s", diff)
 			}
 		})
@@ -282,5 +283,38 @@ diff --git a/a.txt b/a.txt
 
 	if d := cmp.Diff(want, got); d != "" {
 		t.Fatalf("parse result mismatch (-want +got)\n%s", d)
+	}
+}
+
+func TestParseUnifiedDiff_IncludesReviewableLines(t *testing.T) {
+	diff := `diff --git a/a.txt b/a.txt
+--- a/a.txt
++++ b/a.txt
+@@ -2,3 +2,4 @@
+ line1
+-line2
++line3
++line4
+\ No newline at end of file`
+
+	got := ParseUnifiedDiff(diff)
+	if len(got) != 1 {
+		t.Fatalf("got %d files, want %d", len(got), 1)
+	}
+	lines := got[0].Lines
+	if len(lines) != 9 {
+		t.Fatalf("got %d lines, want %d", len(lines), 9)
+	}
+	if lines[4].Kind != DiffLineKindContext || lines[4].OldLine != 2 || lines[4].NewLine != 2 || !lines[4].Commentable {
+		t.Fatalf("unexpected context line: %+v", lines[4])
+	}
+	if lines[5].Kind != DiffLineKindDelete || lines[5].OldLine != 3 || lines[5].Side != DiffSideLeft {
+		t.Fatalf("unexpected delete line: %+v", lines[5])
+	}
+	if lines[6].Kind != DiffLineKindAdd || lines[6].NewLine != 3 || lines[6].Side != DiffSideRight {
+		t.Fatalf("unexpected add line: %+v", lines[6])
+	}
+	if lines[8].Commentable {
+		t.Fatalf("expected trailing marker to be non-commentable: %+v", lines[8])
 	}
 }

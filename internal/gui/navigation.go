@@ -15,6 +15,8 @@ func (gui *Gui) selectNextDiffFile() bool {
 		return false
 	}
 	gui.diffFileSelected++
+	gui.diffLineSelected = 0
+	gui.ensureDiffLineSelection()
 	return true
 }
 
@@ -23,6 +25,8 @@ func (gui *Gui) selectPrevDiffFile() bool {
 		return false
 	}
 	gui.diffFileSelected--
+	gui.diffLineSelected = 0
+	gui.ensureDiffLineSelection()
 	return true
 }
 
@@ -33,14 +37,27 @@ func (gui *Gui) scrollDetailByKey(msg tea.KeyMsg) bool {
 
 	switch msg.String() {
 	case "pgdown", "f", " ", "pgup", "b":
+		if msg.String() == "pgup" || msg.String() == "b" {
+			return gui.selectPrevDiffLine(gui.detailViewportHeight)
+		}
+		return gui.selectNextDiffLine(gui.detailViewportHeight)
+	case "home", "g":
+		return gui.gotoFirstDiffLine()
+	case "end", "G":
+		return gui.gotoLastDiffLine()
+	default:
+		return false
+	}
+}
+
+func (gui *Gui) scrollOverviewByKey(msg tea.KeyMsg) bool {
+	if gui.state.IsDiffMode() || gui.focus != panelDiffContent {
+		return false
+	}
+	switch msg.String() {
+	case "pgdown", "f", " ", "pgup", "b":
 		updated, _ := gui.detailViewport.Update(msg)
 		gui.detailViewport = updated
-		return true
-	case "home", "g":
-		gui.detailViewport.GotoTop()
-		return true
-	case "end", "G":
-		gui.detailViewport.GotoBottom()
 		return true
 	default:
 		return false
@@ -48,9 +65,17 @@ func (gui *Gui) scrollDetailByKey(msg tea.KeyMsg) bool {
 }
 
 func (gui *Gui) scrollDetailDown() {
+	if gui.state.IsDiffMode() {
+		gui.selectNextDiffLine(1)
+		return
+	}
 	gui.detailViewport.ScrollDown(1)
 }
 
 func (gui *Gui) scrollDetailUp() {
+	if gui.state.IsDiffMode() {
+		gui.selectPrevDiffLine(1)
+		return
+	}
 	gui.detailViewport.ScrollUp(1)
 }

@@ -22,6 +22,19 @@ func TestScrollDetailByKey(t *testing.T) {
 			setup: func(g *Gui) {
 				g.switchToDiff()
 				g.focus = panelDiffContent
+				g.updateDiffFiles(strings.Join([]string{
+					"diff --git a/a.txt b/a.txt",
+					"--- a/a.txt",
+					"+++ b/a.txt",
+					"@@ -1,6 +1,6 @@",
+					" line1",
+					" line2",
+					"-line3",
+					"+line3x",
+					" line4",
+					" line5",
+					" line6",
+				}, "\n"))
 			},
 			key:            tea.KeyMsg{Type: tea.KeyPgDown},
 			wantHandled:    true,
@@ -53,14 +66,15 @@ func TestScrollDetailByKey(t *testing.T) {
 
 			g.syncDetailViewport(20, 4, strings.Repeat("line\n", 30))
 			before := g.detailViewport.YOffset
+			beforeLine := g.diffLineSelected
 
 			handled := g.scrollDetailByKey(tt.key)
 			if handled != tt.wantHandled {
 				t.Fatalf("got %v, want %v", handled, tt.wantHandled)
 			}
 			if tt.wantOffsetMove {
-				if g.detailViewport.YOffset <= before {
-					t.Fatalf("expected offset to increase, before=%d after=%d", before, g.detailViewport.YOffset)
+				if g.diffLineSelected <= beforeLine {
+					t.Fatalf("expected selected line to increase, before=%d after=%d", beforeLine, g.diffLineSelected)
 				}
 				return
 			}

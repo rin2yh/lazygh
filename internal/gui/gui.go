@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
@@ -14,6 +15,7 @@ const (
 	panelPRs panelFocus = iota
 	panelDiffFiles
 	panelDiffContent
+	panelReviewDrawer
 )
 
 const (
@@ -37,15 +39,21 @@ type Gui struct {
 
 	diffFiles        []gh.DiffFile
 	diffFileSelected int
+	diffLineSelected int
 
 	detailViewport       viewport.Model
 	detailViewportWidth  int
 	detailViewportHeight int
 	detailViewportBody   string
+
+	commentEditor textarea.Model
+	summaryEditor textarea.Model
 }
 
 func NewGui(cfg *config.Config, client gh.ClientInterface) (*Gui, error) {
 	vp := viewport.New(1, 1)
+	commentEditor := newReviewEditor("Add review comment")
+	summaryEditor := newReviewEditor("Review summary")
 	return &Gui{
 		config:               cfg,
 		state:                core.NewState(),
@@ -54,6 +62,8 @@ func NewGui(cfg *config.Config, client gh.ClientInterface) (*Gui, error) {
 		detailViewport:       vp,
 		detailViewportWidth:  1,
 		detailViewportHeight: 1,
+		commentEditor:        commentEditor,
+		summaryEditor:        summaryEditor,
 	}, nil
 }
 
@@ -74,6 +84,23 @@ type detailLoadedMsg struct {
 	number  int
 	content string
 	err     error
+}
+
+type reviewCommentSavedMsg struct {
+	prNumber int
+	ctx      gh.ReviewContext
+	reviewID string
+	comment  gh.ReviewComment
+	err      error
+}
+
+type reviewSubmittedMsg struct {
+	reviewID string
+	err      error
+}
+
+type reviewDiscardedMsg struct {
+	err error
 }
 
 func (gui *Gui) applyPRsResult(msg prsLoadedMsg) {
@@ -101,6 +128,52 @@ func (gui *Gui) applyDetailResult(msg detailLoadedMsg) {
 	gui.state.ApplyDetailResult(msg.content, msg.err)
 }
 
+func (gui *Gui) applyReviewCommentResult(msg reviewCommentSavedMsg) {
+	gui.state.Loading = core.LoadingNone
+	if msg.reviewID != "" || msg.ctx.PullRequestID != "" || msg.ctx.CommitOID != "" {
+		gui.state.SetReviewContext(msg.prNumber, msg.ctx.PullRequestID, msg.ctx.CommitOID, msg.reviewID)
+	}
+	if msg.err != nil {
+		gui.state.SetReviewNotice(msg.err.Error())
+		return
+	}
+	gui.state.AddReviewComment(core.ReviewComment{
+		Path:      msg.comment.Path,
+		Body:      msg.comment.Body,
+		Side:      string(msg.comment.Side),
+		Line:      msg.comment.Line,
+		StartSide: string(msg.comment.StartSide),
+		StartLine: msg.comment.StartLine,
+	})
+	gui.commentEditor.SetValue("")
+	gui.commentEditor.Blur()
+	gui.focus = panelReviewDrawer
+}
+
+func (gui *Gui) applyReviewSubmitResult(msg reviewSubmittedMsg) {
+	gui.state.Loading = core.LoadingNone
+	if msg.err != nil {
+		gui.state.SetReviewNotice(msg.err.Error())
+		return
+	}
+	gui.stopReviewInput()
+	gui.state.ResetReviewAfterSubmit("Review submitted.")
+	gui.focus = panelDiffContent
+}
+
+func (gui *Gui) applyReviewDiscardResult(msg reviewDiscardedMsg) {
+	gui.state.Loading = core.LoadingNone
+	if msg.err != nil {
+		gui.state.SetReviewNotice(msg.err.Error())
+		return
+	}
+	gui.stopReviewInput()
+	gui.commentEditor.SetValue("")
+	gui.summaryEditor.SetValue("")
+	gui.state.ResetReviewAfterDiscard("Review draft discarded.")
+	gui.focus = panelDiffContent
+}
+
 func (gui *Gui) switchToOverview() bool {
 	changed := gui.state.SwitchToOverview()
 	if changed {
@@ -119,6 +192,7 @@ func (gui *Gui) switchToDiff() bool {
 		gui.focus = panelDiffFiles
 		gui.diffFiles = nil
 		gui.diffFileSelected = 0
+		gui.diffLineSelected = 0
 	}
 	return changed
 }
@@ -149,6 +223,9 @@ func (gui *Gui) focusOrder() []panelFocus {
 		order = append(order, panelDiffFiles)
 	}
 	order = append(order, panelDiffContent)
+	if gui.shouldShowReviewDrawer() {
+		order = append(order, panelReviewDrawer)
+	}
 	return order
 }
 
@@ -167,6 +244,7 @@ func (gui *Gui) updateDiffFiles(content string) {
 	if len(files) == 0 {
 		gui.diffFiles = nil
 		gui.diffFileSelected = 0
+		gui.diffLineSelected = 0
 		if gui.focus == panelDiffFiles {
 			gui.focus = panelDiffContent
 		}
@@ -180,6 +258,7 @@ func (gui *Gui) updateDiffFiles(content string) {
 
 	gui.diffFiles = files
 	gui.diffFileSelected = 0
+	gui.diffLineSelected = 0
 	if prevPath != "" {
 		for i, file := range files {
 			if file.Path == prevPath {
@@ -188,4 +267,15 @@ func (gui *Gui) updateDiffFiles(content string) {
 			}
 		}
 	}
+	gui.ensureDiffLineSelection()
+}
+
+func newReviewEditor(placeholder string) textarea.Model {
+	editor := textarea.New()
+	editor.Placeholder = placeholder
+	editor.ShowLineNumbers = false
+	editor.SetHeight(4)
+	editor.Prompt = ""
+	editor.CharLimit = 0
+	return editor
 }

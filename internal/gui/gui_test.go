@@ -201,6 +201,43 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 	}
 }
 
+func TestApplyReviewCommentResult_PersistsPendingReviewContextOnError(t *testing.T) {
+	g := newTestGuiWithPRs(&testmock.GHClient{}, core.Item{Number: 1, Title: "Fix bug"})
+	g.state.Loading = core.LoadingReview
+
+	g.applyReviewCommentResult(reviewCommentSavedMsg{
+		prNumber: 1,
+		ctx: gh.ReviewContext{
+			PullRequestID: "PR_kwDO123",
+			CommitOID:     "deadbeef",
+		},
+		reviewID: "PRR_kwDO456",
+		comment: gh.ReviewComment{
+			Path: "a.txt",
+			Body: "body",
+			Line: 1,
+			Side: gh.DiffSideRight,
+		},
+		err: errors.New("add failed"),
+	})
+
+	if g.state.Review.ReviewID != "PRR_kwDO456" {
+		t.Fatalf("got %q, want %q", g.state.Review.ReviewID, "PRR_kwDO456")
+	}
+	if g.state.Review.PullRequestID != "PR_kwDO123" {
+		t.Fatalf("got %q, want %q", g.state.Review.PullRequestID, "PR_kwDO123")
+	}
+	if g.state.Review.CommitOID != "deadbeef" {
+		t.Fatalf("got %q, want %q", g.state.Review.CommitOID, "deadbeef")
+	}
+	if len(g.state.Review.Comments) != 0 {
+		t.Fatalf("got %d comments, want 0", len(g.state.Review.Comments))
+	}
+	if g.state.Review.Notice != "add failed" {
+		t.Fatalf("got %q, want %q", g.state.Review.Notice, "add failed")
+	}
+}
+
 func TestUpdateDiffFiles(t *testing.T) {
 	g := newTestGuiWithClient(&testmock.GHClient{})
 	diff := strings.Join([]string{
@@ -237,7 +274,7 @@ func TestUpdateDiffFiles(t *testing.T) {
 			"+y",
 		}, "\n"), Status: gh.DiffFileStatusModified, Additions: 1, Deletions: 1},
 	}
-	if diff := cmp.Diff(want, g.diffFiles); diff != "" {
+	if diff := cmp.Diff(want, g.diffFiles, cmpopts.IgnoreFields(gh.DiffFile{}, "Lines")); diff != "" {
 		t.Fatalf("diffFiles mismatch (-want +got)\n%s", diff)
 	}
 

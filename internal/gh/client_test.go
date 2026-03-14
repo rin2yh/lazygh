@@ -35,6 +35,10 @@ func TestFakeProcess(t *testing.T) {
 			Stdout:   "PR diff content",
 			ExitCode: 0,
 		},
+		"api graphql": {
+			Stdout:   `{"data":{"repository":{"pullRequest":{"id":"PR_kwDOAA","headRefOid":"deadbeef"}}}}`,
+			ExitCode: 0,
+		},
 	}
 
 	gh := fake.Gh{Table: table}
@@ -139,6 +143,21 @@ func TestResolveCurrentRepo_Error(t *testing.T) {
 	_, err := c.ResolveCurrentRepo()
 	if err == nil {
 		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestGetReviewContext(t *testing.T) {
+	c := newTestClient(t)
+
+	ctx, err := c.GetReviewContext("owner/repo1", 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ctx.PullRequestID != "PR_kwDOAA" {
+		t.Fatalf("got %q, want %q", ctx.PullRequestID, "PR_kwDOAA")
+	}
+	if ctx.CommitOID != "deadbeef" {
+		t.Fatalf("got %q, want %q", ctx.CommitOID, "deadbeef")
 	}
 }
 

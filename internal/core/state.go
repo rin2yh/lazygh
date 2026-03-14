@@ -30,7 +30,47 @@ const (
 	LoadingNone LoadingKind = iota
 	LoadingPRs
 	LoadingDetail
+	LoadingReview
 )
+
+type ReviewInputMode int
+
+const (
+	ReviewInputNone ReviewInputMode = iota
+	ReviewInputComment
+	ReviewInputSummary
+)
+
+type ReviewComment struct {
+	Path      string
+	Body      string
+	Side      string
+	Line      int
+	StartSide string
+	StartLine int
+}
+
+type ReviewRange struct {
+	Path      string
+	Index     int
+	Side      string
+	Line      int
+	StartSide string
+	StartLine int
+}
+
+type ReviewState struct {
+	PRNumber      int
+	PullRequestID string
+	CommitOID     string
+	ReviewID      string
+	DrawerOpen    bool
+	InputMode     ReviewInputMode
+	Summary       string
+	Comments      []ReviewComment
+	RangeStart    *ReviewRange
+	Notice        string
+}
 
 type EnterAction struct {
 	Kind   EnterActionKind
@@ -48,6 +88,7 @@ type State struct {
 	DetailMode    DetailMode
 	DetailContent string
 	Loading       LoadingKind
+	Review        ReviewState
 
 	Width  int
 	Height int
@@ -57,6 +98,9 @@ func NewState() *State {
 	return &State{
 		PRs:        []Item{},
 		DetailMode: DetailModeOverview,
+		Review: ReviewState{
+			Comments: []ReviewComment{},
+		},
 	}
 }
 
@@ -82,6 +126,7 @@ func (s *State) ApplyPRsResult(repo string, prs []Item, err error) {
 	s.PRs = prs
 	s.PRsSelected = 0
 	s.DetailMode = DetailModeOverview
+	s.resetReview()
 	if len(prs) == 0 {
 		s.DetailContent = "No pull requests"
 		return
@@ -108,6 +153,10 @@ func (s *State) ApplyDiffResult(content string, err error) {
 }
 
 func (s *State) NavigateDown() bool {
+	if s.blocksPRSelectionChange() {
+		s.Review.Notice = "Pending review exists. Submit with S or discard with X."
+		return false
+	}
 	changed := false
 	if s.PRsSelected < len(s.PRs)-1 {
 		s.PRsSelected++
@@ -120,6 +169,10 @@ func (s *State) NavigateDown() bool {
 }
 
 func (s *State) NavigateUp() bool {
+	if s.blocksPRSelectionChange() {
+		s.Review.Notice = "Pending review exists. Submit with S or discard with X."
+		return false
+	}
 	changed := false
 	if s.PRsSelected > 0 {
 		s.PRsSelected--
@@ -137,6 +190,7 @@ func (s *State) SwitchToOverview() bool {
 	}
 	s.DetailMode = DetailModeOverview
 	s.Loading = LoadingNone
+	s.Review.InputMode = ReviewInputNone
 	s.refreshDetailPreview()
 	return true
 }
@@ -147,6 +201,8 @@ func (s *State) SwitchToDiff() bool {
 	}
 	s.DetailMode = DetailModeDiff
 	s.Loading = LoadingNone
+	s.Review.DrawerOpen = false
+	s.Review.InputMode = ReviewInputNone
 	return true
 }
 
@@ -206,6 +262,106 @@ func (s *State) selectedPR() (Item, bool) {
 func (s *State) showError(msg string, err error) {
 	s.Loading = LoadingNone
 	s.DetailContent = sanitizeMultiline(fmt.Sprintf("%s: %v", msg, err))
+}
+
+func (s *State) SelectedPR() (Item, bool) {
+	return s.selectedPR()
+}
+
+func (s *State) OpenReviewDrawer() {
+	s.Review.DrawerOpen = true
+}
+
+func (s *State) CloseReviewDrawer() {
+	s.Review.DrawerOpen = false
+	s.Review.InputMode = ReviewInputNone
+	s.Review.Notice = ""
+}
+
+func (s *State) BeginReviewCommentInput() {
+	s.Review.DrawerOpen = true
+	s.Review.InputMode = ReviewInputComment
+	s.Review.Notice = ""
+}
+
+func (s *State) BeginReviewSummaryInput() {
+	s.Review.DrawerOpen = true
+	s.Review.InputMode = ReviewInputSummary
+	s.Review.Notice = ""
+}
+
+func (s *State) SetReviewSummary(summary string) {
+	s.Review.Summary = sanitizeMultiline(summary)
+}
+
+func (s *State) SetReviewContext(prNumber int, pullRequestID string, commitOID string, reviewID string) {
+	s.Review.PRNumber = prNumber
+	s.Review.PullRequestID = sanitizeSingleLine(pullRequestID)
+	s.Review.CommitOID = sanitizeSingleLine(commitOID)
+	s.Review.ReviewID = sanitizeSingleLine(reviewID)
+}
+
+func (s *State) AddReviewComment(comment ReviewComment) {
+	s.Review.Comments = append(s.Review.Comments, ReviewComment{
+		Path:      sanitizeSingleLine(comment.Path),
+		Body:      sanitizeMultiline(comment.Body),
+		Side:      sanitizeSingleLine(comment.Side),
+		Line:      comment.Line,
+		StartSide: sanitizeSingleLine(comment.StartSide),
+		StartLine: comment.StartLine,
+	})
+	s.Review.Notice = "Review comment added."
+	s.Review.DrawerOpen = true
+	s.Review.InputMode = ReviewInputNone
+	s.Review.RangeStart = nil
+}
+
+func (s *State) SetReviewNotice(msg string) {
+	s.Review.Notice = sanitizeMultiline(msg)
+}
+
+func (s *State) ClearReviewNotice() {
+	s.Review.Notice = ""
+}
+
+func (s *State) HasPendingReview() bool {
+	return s.Review.ReviewID != ""
+}
+
+func (s *State) MarkReviewRangeStart(anchor ReviewRange) {
+	copied := anchor
+	s.Review.RangeStart = &copied
+	s.Review.DrawerOpen = true
+	s.Review.Notice = "Range start selected."
+}
+
+func (s *State) ClearReviewRangeStart() {
+	s.Review.RangeStart = nil
+}
+
+func (s *State) ResetReviewAfterSubmit(notice string) {
+	s.resetReview()
+	s.Review.Notice = sanitizeMultiline(notice)
+}
+
+func (s *State) ResetReviewAfterDiscard(notice string) {
+	s.resetReview()
+	s.Review.Notice = sanitizeMultiline(notice)
+}
+
+func (s *State) blocksPRSelectionChange() bool {
+	item, ok := s.selectedPR()
+	if !ok {
+		return false
+	}
+	return s.HasPendingReview() && s.Review.PRNumber == item.Number
+}
+
+func (s *State) resetReview() {
+	s.Review = ReviewState{
+		Comments: []ReviewComment{},
+		Notice:   s.Review.Notice,
+	}
 }
 
 func FormatPRItem(item Item) string {

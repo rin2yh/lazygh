@@ -1,9 +1,11 @@
 package gui
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/rin2yh/lazygh/internal/core"
+	"github.com/rin2yh/lazygh/internal/gh"
 )
 
 func (gui *Gui) render() string {
@@ -37,11 +39,30 @@ func (gui *Gui) render() string {
 		contentHeight = 1
 	}
 
-	leftLines := gui.renderLeftPanels(leftWidth, contentHeight)
-	rightLines := gui.renderRightPanels(rightWidth, contentHeight)
+	mainHeight := contentHeight
+	drawerHeight := 0
+	if gui.shouldShowReviewDrawer() {
+		drawerHeight = contentHeight / 3
+		if drawerHeight < 8 {
+			drawerHeight = 8
+		}
+		if drawerHeight >= contentHeight {
+			drawerHeight = contentHeight - 1
+		}
+		if drawerHeight < 0 {
+			drawerHeight = 0
+		}
+		mainHeight = contentHeight - drawerHeight
+	}
+	if mainHeight < 1 {
+		mainHeight = 1
+	}
+
+	leftLines := gui.renderLeftPanels(leftWidth, mainHeight)
+	rightLines := gui.renderRightPanels(rightWidth, mainHeight)
 
 	var b strings.Builder
-	for i := 0; i < contentHeight; i++ {
+	for i := 0; i < mainHeight; i++ {
 		left := ""
 		if i < len(leftLines) {
 			left = leftLines[i]
@@ -55,6 +76,12 @@ func (gui *Gui) render() string {
 		b.WriteString(padOrTrim(right, rightWidth))
 		b.WriteByte('\n')
 	}
+	if drawerHeight > 0 {
+		for _, line := range gui.renderReviewDrawer(w, drawerHeight) {
+			b.WriteString(padOrTrim(line, w))
+			b.WriteByte('\n')
+		}
+	}
 	b.WriteString(padOrTrim(
 		formatStatusLine(
 			gui.state.Loading != core.LoadingNone,
@@ -62,6 +89,8 @@ func (gui *Gui) render() string {
 			len(gui.state.PRs) > 0,
 			gui.focus,
 			len(gui.diffFiles) > 0,
+			gui.shouldShowReviewDrawer(),
+			gui.state.Review.InputMode,
 		),
 		w,
 	))
@@ -91,7 +120,7 @@ func (gui *Gui) renderRightPanels(width int, height int) []string {
 	}
 
 	filesLines := gui.renderDiffFilesPanel(filesWidth, height)
-	diffLines := gui.renderDetailPanel("Diff", gui.focus == panelDiffContent, diffWidth, height, coloredDiff)
+	diffLines := gui.renderDiffContentPanel(diffWidth, height, coloredDiff)
 
 	lines := make([]string, 0, height)
 	for i := 0; i < height; i++ {
@@ -106,6 +135,53 @@ func (gui *Gui) renderRightPanels(width int, height int) []string {
 		lines = append(lines, padOrTrim(left, filesWidth)+" "+padOrTrim(right, diffWidth))
 	}
 	return lines
+}
+
+func (gui *Gui) renderDiffContentPanel(width int, height int, content string) []string {
+	if height <= 0 {
+		return nil
+	}
+	file, ok := gui.currentDiffFile()
+	if !ok || len(file.Lines) == 0 {
+		return gui.renderDetailPanel("Diff", gui.focus == panelDiffContent, width, height, content)
+	}
+	innerHeight := height
+	if height > 2 {
+		innerHeight = height - 2
+	}
+	start := 0
+	if gui.diffLineSelected >= innerHeight {
+		start = gui.diffLineSelected - innerHeight + 1
+	}
+	lines := make([]string, 0, innerHeight)
+	for i := 0; len(lines) < innerHeight; i++ {
+		idx := start + i
+		if idx >= len(file.Lines) {
+			lines = append(lines, "")
+			continue
+		}
+		line := colorizeDiffContent(file.Lines[idx].Text)
+		prefix := "  "
+		location := gh.FormatDiffLineLocation(file.Lines[idx])
+		if location != "" {
+			prefix = padOrTrim(location, 7) + " "
+		}
+		inRange := gui.isDiffLineWithinPendingRange(file.Lines[idx])
+		renderedPrefix := prefix
+		if inRange {
+			renderedPrefix = highlightPendingRangeLine(prefix)
+		}
+		rendered := renderedPrefix + styleDiffContentLine(line, false)
+		if idx == gui.diffLineSelected {
+			if inRange {
+				rendered = highlightLine(renderedPrefix) + line
+			} else {
+				rendered = highlightLine(prefix) + line
+			}
+		}
+		lines = append(lines, rendered)
+	}
+	return gui.framePanel("Diff", gui.focus == panelDiffContent, lines, width, height)
 }
 
 func (gui *Gui) renderPRPanel(height int) []string {
@@ -287,6 +363,87 @@ func highlightLine(s string) string {
 	// keep reverse-video active even when the line contains inner color resets.
 	restyled := strings.ReplaceAll(s, ansiReset, ansiReset+ansiReverse)
 	return ansiReverse + restyled + ansiReset
+}
+
+func highlightPendingRangeLine(s string) string {
+	if s == "" {
+		return s
+	}
+	restyled := strings.ReplaceAll(s, ansiReset, ansiReset+ansiCyan)
+	return ansiCyan + restyled + ansiReset
+}
+
+func styleDiffContentLine(s string, inRange bool) string {
+	_ = inRange
+	return s
+}
+
+func appendReviewSummaryLines(lines []string, summary string) []string {
+	summary = strings.TrimSpace(summary)
+	if summary == "" {
+		return append(lines, "Summary: (empty)")
+	}
+	lines = append(lines, "Summary:")
+	for _, line := range strings.Split(summary, "\n") {
+		lines = append(lines, "  "+line)
+	}
+	return lines
+}
+
+func (gui *Gui) renderReviewDrawer(width int, height int) []string {
+	if height <= 0 {
+		return nil
+	}
+	innerHeight := height
+	if height > 2 {
+		innerHeight = height - 2
+	}
+	lines := make([]string, 0, innerHeight)
+
+	summary := gui.state.Review.Summary
+	if gui.state.Review.InputMode == core.ReviewInputSummary {
+		summary = gui.summaryEditor.Value()
+	}
+	lines = appendReviewSummaryLines(lines, summary)
+	modeLabel := "single-line"
+	if gui.state.Review.RangeStart != nil {
+		modeLabel = "range-selecting"
+	}
+	lines = append(lines, "Comment mode: "+modeLabel)
+
+	if gui.state.Review.RangeStart != nil {
+		lines = append(lines, "Range start: "+gui.state.Review.RangeStart.Path+":"+strconv.Itoa(gui.state.Review.RangeStart.Line))
+	}
+
+	if len(gui.state.Review.Comments) == 0 {
+		lines = append(lines, "Comments: none")
+	} else {
+		lines = append(lines, "Comments:")
+		for _, comment := range gui.state.Review.Comments {
+			lines = append(lines, "  - "+renderReviewCommentSummary(comment))
+		}
+	}
+
+	if notice := strings.TrimSpace(gui.state.Review.Notice); notice != "" {
+		lines = append(lines, "")
+		lines = append(lines, "Notice: "+notice)
+	}
+
+	if gui.state.Review.InputMode == core.ReviewInputComment {
+		lines = append(lines, "")
+		lines = append(lines, "Comment Input [Ctrl+S save / Esc cancel]")
+		lines = append(lines, strings.Split(gui.commentEditor.View(), "\n")...)
+	}
+	if gui.state.Review.InputMode == core.ReviewInputSummary {
+		lines = append(lines, "")
+		lines = append(lines, "Summary Input [Ctrl+S save / Esc cancel]")
+		lines = append(lines, strings.Split(gui.summaryEditor.View(), "\n")...)
+	}
+
+	for len(lines) < innerHeight {
+		lines = append(lines, "")
+	}
+	return gui.framePanel("Review", gui.focus == panelReviewDrawer, lines[:innerHeight], width, height)
 }
 
 func (gui *Gui) syncDetailViewport(width int, height int, content string) {
