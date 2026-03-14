@@ -74,7 +74,8 @@ func TestRenderPRPanel(t *testing.T) {
 	}
 
 	type want struct {
-		line1 string
+		line1          string
+		line1Highlight bool
 	}
 
 	tests := []struct {
@@ -86,7 +87,8 @@ func TestRenderPRPanel(t *testing.T) {
 			name:    "empty placeholder",
 			fixture: fixture{},
 			want: want{
-				line1: "No pull requests",
+				line1:          "No pull requests",
+				line1Highlight: false,
 			},
 		},
 		{
@@ -95,7 +97,8 @@ func TestRenderPRPanel(t *testing.T) {
 				prsLoading: true,
 			},
 			want: want{
-				line1: "",
+				line1:          "",
+				line1Highlight: false,
 			},
 		},
 		{
@@ -105,7 +108,8 @@ func TestRenderPRPanel(t *testing.T) {
 				selected: 0,
 			},
 			want: want{
-				line1: "> PR #1 Fix bug",
+				line1:          "> PR #1 Fix bug",
+				line1Highlight: true,
 			},
 		},
 	}
@@ -121,10 +125,49 @@ func TestRenderPRPanel(t *testing.T) {
 			if len(lines) != 3 {
 				t.Fatalf("got %d, want %d", len(lines), 3)
 			}
-			if lines[0] != tt.want.line1 {
-				t.Fatalf("got %q, want %q", lines[0], tt.want.line1)
+			if xansi.Strip(lines[0]) != tt.want.line1 {
+				t.Fatalf("got %q, want %q", xansi.Strip(lines[0]), tt.want.line1)
+			}
+			if tt.want.line1Highlight && !strings.Contains(lines[0], ansiReverse) {
+				t.Fatalf("selected line should be highlighted: %q", lines[0])
+			}
+			if !tt.want.line1Highlight && strings.Contains(lines[0], ansiReverse) {
+				t.Fatalf("line should not be highlighted: %q", lines[0])
 			}
 		})
+	}
+}
+
+func TestRenderDiffFilesPanel_HighlightsSelectedLine(t *testing.T) {
+	g := newTestGuiWithPRs(&testmock.GHClient{}, core.Item{Number: 1, Title: "x"})
+	g.switchToDiff()
+	g.updateDiffFiles(strings.Join([]string{
+		"diff --git a/a.txt b/a.txt",
+		"--- a/a.txt",
+		"+++ b/a.txt",
+		"@@ -1 +1 @@",
+		"-old",
+		"+new",
+		"diff --git a/b.txt b/b.txt",
+		"--- a/b.txt",
+		"+++ b/b.txt",
+		"@@ -1 +1 @@",
+		"-one",
+		"+two",
+	}, "\n"))
+
+	lines := g.renderDiffFilesPanel(40, 6)
+	if len(lines) != 6 {
+		t.Fatalf("got %d, want %d", len(lines), 6)
+	}
+	if !strings.Contains(lines[1], ansiReverse) {
+		t.Fatalf("selected file line should be highlighted: %q", lines[1])
+	}
+	if !strings.Contains(xansi.Strip(lines[1]), "> M a.txt +1 -1") {
+		t.Fatalf("unexpected selected file row: %q", xansi.Strip(lines[1]))
+	}
+	if strings.Contains(lines[2], ansiReverse) {
+		t.Fatalf("non-selected line should not be highlighted: %q", lines[2])
 	}
 }
 

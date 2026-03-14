@@ -17,14 +17,15 @@ const (
 )
 
 const (
-	ansiReset  = "\x1b[0m"
-	ansiGreen  = "\x1b[32m"
-	ansiRed    = "\x1b[31m"
-	ansiYellow = "\x1b[33m"
-	ansiBlue   = "\x1b[34m"
-	ansiCyan   = "\x1b[36m"
-	ansiPurple = "\x1b[35m"
-	ansiGray   = "\x1b[90m"
+	ansiReset   = "\x1b[0m"
+	ansiReverse = "\x1b[7m"
+	ansiGreen   = "\x1b[32m"
+	ansiRed     = "\x1b[31m"
+	ansiYellow  = "\x1b[33m"
+	ansiBlue    = "\x1b[34m"
+	ansiCyan    = "\x1b[36m"
+	ansiPurple  = "\x1b[35m"
+	ansiGray    = "\x1b[90m"
 )
 
 type Gui struct {

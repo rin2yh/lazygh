@@ -138,10 +138,12 @@ func (gui *Gui) renderPRPanel(height int) []string {
 			continue
 		}
 		prefix := "  "
+		line := prefix + core.FormatPRItem(gui.state.PRs[i])
 		if i == gui.state.PRsSelected {
 			prefix = "> "
+			line = highlightLine(prefix + core.FormatPRItem(gui.state.PRs[i]))
 		}
-		lines = append(lines, prefix+core.FormatPRItem(gui.state.PRs[i]))
+		lines = append(lines, line)
 	}
 	return lines
 }
@@ -236,10 +238,12 @@ func (gui *Gui) renderDiffFilesPanel(width int, height int) []string {
 			continue
 		}
 		prefix := "  "
+		line := prefix + renderDiffFileListLine(gui.diffFiles[idx])
 		if idx == gui.diffFileSelected {
 			prefix = "> "
+			line = highlightLine(prefix + renderDiffFileListLine(gui.diffFiles[idx]))
 		}
-		lines = append(lines, prefix+renderDiffFileListLine(gui.diffFiles[idx]))
+		lines = append(lines, line)
 	}
 	return gui.framePanel("Files", gui.focus == panelDiffFiles, lines, width, height)
 }
@@ -274,6 +278,15 @@ func (gui *Gui) renderDetailPanel(title string, active bool, width int, height i
 		lines = append(lines, "")
 	}
 	return gui.framePanel(title, active, lines, width, height)
+}
+
+func highlightLine(s string) string {
+	if s == "" {
+		return s
+	}
+	// keep reverse-video active even when the line contains inner color resets.
+	restyled := strings.ReplaceAll(s, ansiReset, ansiReset+ansiReverse)
+	return ansiReverse + restyled + ansiReset
 }
 
 func (gui *Gui) syncDetailViewport(width int, height int, content string) {
