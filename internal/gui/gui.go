@@ -22,25 +22,6 @@ const (
 	panelDiffContent
 )
 
-type diffFile struct {
-	path      string
-	content   string
-	status    diffFileStatus
-	additions int
-	deletions int
-}
-
-type diffFileStatus string
-
-const (
-	diffFileStatusModified diffFileStatus = "M"
-	diffFileStatusAdded    diffFileStatus = "A"
-	diffFileStatusDeleted  diffFileStatus = "D"
-	diffFileStatusRenamed  diffFileStatus = "R"
-	diffFileStatusCopied   diffFileStatus = "C"
-	diffFileStatusType     diffFileStatus = "T"
-)
-
 const (
 	ansiReset  = "\x1b[0m"
 	ansiGreen  = "\x1b[32m"
@@ -59,7 +40,7 @@ type Gui struct {
 
 	focus panelFocus
 
-	diffFiles        []diffFile
+	diffFiles        []gh.DiffFile
 	diffFileSelected int
 
 	detailViewport       viewport.Model
@@ -322,7 +303,7 @@ func (gui *Gui) applyDetailResult(msg detailLoadedMsg) {
 			}
 			return
 		}
-		gui.updateDiffFiles(msg.content)
+		gui.updateDiffFiles(gui.state.DetailContent)
 		return
 	}
 	gui.state.ApplyDetailResult(msg.content, msg.err)
@@ -730,11 +711,11 @@ func (gui *Gui) currentDiffContent() string {
 	if gui.diffFileSelected < 0 || gui.diffFileSelected >= len(gui.diffFiles) {
 		return gui.state.DetailContent
 	}
-	return gui.diffFiles[gui.diffFileSelected].content
+	return gui.diffFiles[gui.diffFileSelected].Content
 }
 
 func (gui *Gui) updateDiffFiles(content string) {
-	files := parseUnifiedDiffFiles(content)
+	files := gh.ParseUnifiedDiff(content)
 	if len(files) == 0 {
 		gui.diffFiles = nil
 		gui.diffFileSelected = 0
@@ -746,145 +727,42 @@ func (gui *Gui) updateDiffFiles(content string) {
 
 	prevPath := ""
 	if gui.diffFileSelected >= 0 && gui.diffFileSelected < len(gui.diffFiles) {
-		prevPath = gui.diffFiles[gui.diffFileSelected].path
+		prevPath = gui.diffFiles[gui.diffFileSelected].Path
 	}
 
 	gui.diffFiles = files
 	gui.diffFileSelected = 0
 	if prevPath != "" {
 		for i, file := range files {
-			if file.path == prevPath {
+			if file.Path == prevPath {
 				gui.diffFileSelected = i
 				break
 			}
 		}
 	}
 }
-
-func parseUnifiedDiffFiles(content string) []diffFile {
-	if content == "" {
-		return nil
-	}
-
-	lines := strings.Split(content, "\n")
-	files := make([]diffFile, 0)
-	start := -1
-	currentPath := ""
-
-	appendFile := func(end int) {
-		if start < 0 || start >= end {
-			return
-		}
-		segment := strings.Join(lines[start:end], "\n")
-		if strings.TrimSpace(segment) == "" {
-			return
-		}
-		path := currentPath
-		if path == "" {
-			path = "(unknown)"
-		}
-		status, additions, deletions, refinedPath := parseDiffFileMetadata(lines[start:end])
-		if refinedPath != "" {
-			path = refinedPath
-		}
-		if status == "" {
-			status = diffFileStatusModified
-		}
-		files = append(files, diffFile{
-			path:      path,
-			content:   segment,
-			status:    status,
-			additions: additions,
-			deletions: deletions,
-		})
-	}
-
-	for i, line := range lines {
-		if !strings.HasPrefix(line, "diff --git ") {
-			continue
-		}
-		appendFile(i)
-		start = i
-		currentPath = parseDiffPath(line)
-	}
-	appendFile(len(lines))
-	return files
-}
-
-func parseDiffPath(line string) string {
-	fields := strings.Fields(line)
-	if len(fields) < 4 {
-		return ""
-	}
-	path := fields[3]
-	if strings.HasPrefix(path, "b/") {
-		return path[2:]
-	}
-	return path
-}
-
-func parseDiffFileMetadata(lines []string) (diffFileStatus, int, int, string) {
-	status := diffFileStatusModified
-	additions := 0
-	deletions := 0
-	path := ""
-
-	for _, line := range lines {
-		switch {
-		case strings.HasPrefix(line, "new file mode "):
-			status = diffFileStatusAdded
-		case strings.HasPrefix(line, "deleted file mode "):
-			status = diffFileStatusDeleted
-		case strings.HasPrefix(line, "rename from "), strings.HasPrefix(line, "rename to "):
-			status = diffFileStatusRenamed
-			if strings.HasPrefix(line, "rename to ") {
-				path = strings.TrimSpace(strings.TrimPrefix(line, "rename to "))
-			}
-		case strings.HasPrefix(line, "copy from "), strings.HasPrefix(line, "copy to "):
-			status = diffFileStatusCopied
-			if strings.HasPrefix(line, "copy to ") {
-				path = strings.TrimSpace(strings.TrimPrefix(line, "copy to "))
-			}
-		case strings.HasPrefix(line, "old mode "), strings.HasPrefix(line, "new mode "):
-			if status == diffFileStatusModified {
-				status = diffFileStatusType
-			}
-		case strings.HasPrefix(line, "+++ "):
-			if strings.HasPrefix(line, "+++ b/") {
-				path = strings.TrimPrefix(line, "+++ b/")
-			}
-		case strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++"):
-			additions++
-		case strings.HasPrefix(line, "-") && !strings.HasPrefix(line, "---"):
-			deletions++
-		}
-	}
-
-	return status, additions, deletions, path
-}
-
-func renderDiffFileListLine(file diffFile) string {
-	label := string(file.status)
+func renderDiffFileListLine(file gh.DiffFile) string {
+	label := string(file.Status)
 	if label == "" {
-		label = string(diffFileStatusModified)
+		label = string(gh.DiffFileStatusModified)
 	}
-	status := colorizeDiffStatus(label, file.status)
-	additions := colorize(ansiGreen, "+"+strconv.Itoa(file.additions))
-	deletions := colorize(ansiRed, "-"+strconv.Itoa(file.deletions))
-	return status + " " + file.path + " " + additions + " " + deletions
+	status := colorizeDiffStatus(label, file.Status)
+	additions := colorize(ansiGreen, "+"+strconv.Itoa(file.Additions))
+	deletions := colorize(ansiRed, "-"+strconv.Itoa(file.Deletions))
+	return status + " " + file.Path + " " + additions + " " + deletions
 }
 
-func colorizeDiffStatus(label string, status diffFileStatus) string {
+func colorizeDiffStatus(label string, status gh.DiffFileStatus) string {
 	switch status {
-	case diffFileStatusAdded:
+	case gh.DiffFileStatusAdded:
 		return colorize(ansiGreen, label)
-	case diffFileStatusDeleted:
+	case gh.DiffFileStatusDeleted:
 		return colorize(ansiRed, label)
-	case diffFileStatusRenamed:
+	case gh.DiffFileStatusRenamed:
 		return colorize(ansiCyan, label)
-	case diffFileStatusCopied:
+	case gh.DiffFileStatusCopied:
 		return colorize(ansiBlue, label)
-	case diffFileStatusType:
+	case gh.DiffFileStatusType:
 		return colorize(ansiPurple, label)
 	default:
 		return colorize(ansiYellow, label)

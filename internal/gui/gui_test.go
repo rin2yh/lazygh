@@ -165,6 +165,40 @@ func TestApplyDetailResult(t *testing.T) {
 	}
 }
 
+func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
+	g := newTestGuiWithPRs(&testmock.GHClient{}, core.Item{Number: 1, Title: "Fix bug"})
+	g.switchToDiff()
+	g.state.Loading = core.LoadingDetail
+
+	raw := strings.Join([]string{
+		"diff --git a/a.txt b/a.txt",
+		"--- a/a.txt",
+		"+++ b/a.txt",
+		"@@ -1 +1 @@",
+		"-old",
+		"+ok\x1b[31mred",
+	}, "\n")
+
+	g.applyDetailResult(detailLoadedMsg{
+		mode:    core.DetailModeDiff,
+		number:  1,
+		content: raw,
+	})
+
+	if strings.Contains(g.state.DetailContent, "\x1b") {
+		t.Fatalf("detail content should be sanitized: %q", g.state.DetailContent)
+	}
+	if len(g.diffFiles) != 1 {
+		t.Fatalf("got %d, want %d", len(g.diffFiles), 1)
+	}
+	if strings.Contains(g.diffFiles[0].Content, "\x1b") {
+		t.Fatalf("diff file content should be sanitized: %q", g.diffFiles[0].Content)
+	}
+	if !strings.Contains(g.diffFiles[0].Content, "+ok[31mred") {
+		t.Fatalf("unexpected diff content: %q", g.diffFiles[0].Content)
+	}
+}
+
 func TestModelInitLoadsPRs(t *testing.T) {
 	mc := &testmock.GHClient{Repo: "owner/repo", PRs: []gh.PRItem{{Number: 2, Title: "p"}}}
 	g := newTestGuiWithClient(mc)
@@ -358,25 +392,25 @@ func TestUpdateDiffFiles(t *testing.T) {
 	}, "\n")
 
 	g.updateDiffFiles(diff)
-	want := []diffFile{
-		{path: "a.txt", content: strings.Join([]string{
+	want := []gh.DiffFile{
+		{Path: "a.txt", Content: strings.Join([]string{
 			"diff --git a/a.txt b/a.txt",
 			"--- a/a.txt",
 			"+++ b/a.txt",
 			"@@ -1 +1 @@",
 			"-old",
 			"+new",
-		}, "\n"), status: diffFileStatusModified, additions: 1, deletions: 1},
-		{path: "b.txt", content: strings.Join([]string{
+		}, "\n"), Status: gh.DiffFileStatusModified, Additions: 1, Deletions: 1},
+		{Path: "b.txt", Content: strings.Join([]string{
 			"diff --git a/b.txt b/b.txt",
 			"--- a/b.txt",
 			"+++ b/b.txt",
 			"@@ -1 +1 @@",
 			"-x",
 			"+y",
-		}, "\n"), status: diffFileStatusModified, additions: 1, deletions: 1},
+		}, "\n"), Status: gh.DiffFileStatusModified, Additions: 1, Deletions: 1},
 	}
-	if diff := cmp.Diff(want, g.diffFiles, cmp.AllowUnexported(diffFile{})); diff != "" {
+	if diff := cmp.Diff(want, g.diffFiles); diff != "" {
 		t.Fatalf("diffFiles mismatch (-want +got)\n%s", diff)
 	}
 
@@ -387,94 +421,12 @@ func TestUpdateDiffFiles(t *testing.T) {
 	}
 }
 
-func TestParseUnifiedDiffFiles_StatusAndCounts(t *testing.T) {
-	diff := strings.Join([]string{
-		"diff --git a/new.txt b/new.txt",
-		"new file mode 100644",
-		"index 0000000..1111111",
-		"--- /dev/null",
-		"+++ b/new.txt",
-		"@@ -0,0 +2 @@",
-		"+line1",
-		"+line2",
-		"diff --git a/old.txt b/old.txt",
-		"deleted file mode 100644",
-		"index 1111111..0000000",
-		"--- a/old.txt",
-		"+++ /dev/null",
-		"@@ -2,0 +0,0 @@",
-		"-line1",
-		"-line2",
-		"diff --git a/before.txt b/after.txt",
-		"similarity index 98%",
-		"rename from before.txt",
-		"rename to after.txt",
-		"@@ -1 +1 @@",
-		"-old",
-		"+new",
-	}, "\n")
-
-	files := parseUnifiedDiffFiles(diff)
-	want := []diffFile{
-		{
-			path: "new.txt",
-			content: strings.Join([]string{
-				"diff --git a/new.txt b/new.txt",
-				"new file mode 100644",
-				"index 0000000..1111111",
-				"--- /dev/null",
-				"+++ b/new.txt",
-				"@@ -0,0 +2 @@",
-				"+line1",
-				"+line2",
-			}, "\n"),
-			status:    diffFileStatusAdded,
-			additions: 2,
-			deletions: 0,
-		},
-		{
-			path: "old.txt",
-			content: strings.Join([]string{
-				"diff --git a/old.txt b/old.txt",
-				"deleted file mode 100644",
-				"index 1111111..0000000",
-				"--- a/old.txt",
-				"+++ /dev/null",
-				"@@ -2,0 +0,0 @@",
-				"-line1",
-				"-line2",
-			}, "\n"),
-			status:    diffFileStatusDeleted,
-			additions: 0,
-			deletions: 2,
-		},
-		{
-			path: "after.txt",
-			content: strings.Join([]string{
-				"diff --git a/before.txt b/after.txt",
-				"similarity index 98%",
-				"rename from before.txt",
-				"rename to after.txt",
-				"@@ -1 +1 @@",
-				"-old",
-				"+new",
-			}, "\n"),
-			status:    diffFileStatusRenamed,
-			additions: 1,
-			deletions: 1,
-		},
-	}
-	if diff := cmp.Diff(want, files, cmp.AllowUnexported(diffFile{})); diff != "" {
-		t.Fatalf("parse result mismatch (-want +got)\n%s", diff)
-	}
-}
-
 func TestRenderDiffFileListLineShowsColoredStatusAndCounts(t *testing.T) {
-	line := renderDiffFileListLine(diffFile{
-		path:      "a.txt",
-		status:    diffFileStatusAdded,
-		additions: 3,
-		deletions: 1,
+	line := renderDiffFileListLine(gh.DiffFile{
+		Path:      "a.txt",
+		Status:    gh.DiffFileStatusAdded,
+		Additions: 3,
+		Deletions: 1,
 	})
 
 	if !strings.Contains(line, ansiGreen+"A"+ansiReset) {
@@ -521,7 +473,7 @@ func TestColorizeDiffContent(t *testing.T) {
 func TestCycleFocus_DiffMode(t *testing.T) {
 	g := newTestGuiWithPRs(&testmock.GHClient{}, core.Item{Number: 1, Title: "x"})
 	g.switchToDiff()
-	g.diffFiles = []diffFile{{path: "a.txt", content: "x"}}
+	g.diffFiles = []gh.DiffFile{{Path: "a.txt", Content: "x"}}
 
 	if g.focus != panelDiffFiles {
 		t.Fatalf("got %v, want %v", g.focus, panelDiffFiles)
@@ -602,7 +554,7 @@ func TestModelUpdateFocusKeysInDiffMode(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := newTestGuiWithPRs(&testmock.GHClient{}, core.Item{Number: 1, Title: "x"})
 			g.switchToDiff()
-			g.diffFiles = []diffFile{{path: "a.txt", content: "x"}}
+			g.diffFiles = []gh.DiffFile{{Path: "a.txt", Content: "x"}}
 			g.focus = tt.start
 			m := &model{gui: g}
 
