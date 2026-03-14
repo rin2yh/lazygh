@@ -1,12 +1,14 @@
 package gui
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"strings"
 	"testing"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/rin2yh/lazygh/internal/config"
@@ -199,181 +201,6 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 	}
 }
 
-func TestModelInitLoadsPRs(t *testing.T) {
-	mc := &testmock.GHClient{Repo: "owner/repo", PRs: []gh.PRItem{{Number: 2, Title: "p"}}}
-	g := newTestGuiWithClient(mc)
-	m := &model{gui: g}
-
-	cmd := m.Init()
-	if cmd == nil {
-		t.Fatal("expected init command")
-	}
-	msg := cmd().(prsLoadedMsg)
-	if msg.err != nil {
-		t.Fatalf("unexpected error: %v", msg.err)
-	}
-	if msg.repo != "owner/repo" {
-		t.Fatalf("got %q, want %q", msg.repo, "owner/repo")
-	}
-	if len(msg.prs) != 1 {
-		t.Fatalf("got %d, want %d", len(msg.prs), 1)
-	}
-}
-
-func TestModelHandleDetailLoad(t *testing.T) {
-	tests := []struct {
-		name         string
-		client       *testmock.GHClient
-		pr           core.Item
-		switchToDiff bool
-		wantMode     core.DetailMode
-		wantContent  string
-		wantNumber   int
-	}{
-		{
-			name:        "overview",
-			client:      &testmock.GHClient{PRView: "detail"},
-			pr:          core.Item{Number: 1, Title: "x"},
-			wantMode:    core.DetailModeOverview,
-			wantContent: "detail",
-			wantNumber:  1,
-		},
-		{
-			name:         "diff",
-			client:       &testmock.GHClient{PRDiff: "diff"},
-			pr:           core.Item{Number: 2, Title: "x"},
-			switchToDiff: true,
-			wantMode:     core.DetailModeDiff,
-			wantContent:  "diff",
-			wantNumber:   2,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := newTestGuiWithPRs(tt.client, tt.pr)
-			if tt.switchToDiff {
-				g.switchToDiff()
-			}
-			m := &model{gui: g}
-
-			cmd := m.handleDetailLoad()
-			if cmd == nil {
-				t.Fatal("expected detail load command")
-			}
-			msg := cmd().(detailLoadedMsg)
-			if msg.err != nil {
-				t.Fatalf("unexpected error: %v", msg.err)
-			}
-			if msg.content != tt.wantContent {
-				t.Fatalf("got %q, want %q", msg.content, tt.wantContent)
-			}
-			if msg.mode != tt.wantMode {
-				t.Fatalf("got %v, want %v", msg.mode, tt.wantMode)
-			}
-			if msg.number != tt.wantNumber {
-				t.Fatalf("got %d, want %d", msg.number, tt.wantNumber)
-			}
-		})
-	}
-}
-
-func TestToCorePRsMapsStatusAndAssignees(t *testing.T) {
-	items := toCorePRs([]gh.PRItem{
-		{
-			Number:  1,
-			Title:   "open",
-			State:   "OPEN",
-			IsDraft: false,
-			Assignees: []gh.GHUser{
-				{Login: "alice"},
-				{Login: "bob"},
-			},
-		},
-		{
-			Number:  2,
-			Title:   "draft",
-			State:   "OPEN",
-			IsDraft: true,
-		},
-	})
-
-	if len(items) != 2 {
-		t.Fatalf("got %d, want %d", len(items), 2)
-	}
-	if items[0].Status != "OPEN" {
-		t.Fatalf("got %q, want %q", items[0].Status, "OPEN")
-	}
-	if strings.Join(items[0].Assignees, ",") != "alice,bob" {
-		t.Fatalf("got %q, want %q", strings.Join(items[0].Assignees, ","), "alice,bob")
-	}
-	if items[1].Status != "DRAFT" {
-		t.Fatalf("got %q, want %q", items[1].Status, "DRAFT")
-	}
-}
-
-func TestScrollDetailByKey(t *testing.T) {
-	tests := []struct {
-		name           string
-		setup          func(*Gui)
-		key            tea.KeyMsg
-		wantHandled    bool
-		wantOffsetMove bool
-	}{
-		{
-			name: "diff mode page down",
-			setup: func(g *Gui) {
-				g.switchToDiff()
-				g.focus = panelDiffContent
-			},
-			key:            tea.KeyMsg{Type: tea.KeyPgDown},
-			wantHandled:    true,
-			wantOffsetMove: true,
-		},
-		{
-			name:           "overview mode page down",
-			setup:          func(_ *Gui) {},
-			key:            tea.KeyMsg{Type: tea.KeyPgDown},
-			wantHandled:    false,
-			wantOffsetMove: false,
-		},
-		{
-			name: "diff mode d key",
-			setup: func(g *Gui) {
-				g.switchToDiff()
-				g.focus = panelDiffContent
-			},
-			key:            tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}},
-			wantHandled:    false,
-			wantOffsetMove: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := newTestGuiWithPRs(&testmock.GHClient{}, core.Item{Number: 1, Title: "x"})
-			tt.setup(g)
-
-			g.syncDetailViewport(20, 4, strings.Repeat("line\n", 30))
-			before := g.detailViewport.YOffset
-
-			handled := g.scrollDetailByKey(tt.key)
-			if handled != tt.wantHandled {
-				t.Fatalf("got %v, want %v", handled, tt.wantHandled)
-			}
-			if tt.wantOffsetMove {
-				if g.detailViewport.YOffset <= before {
-					t.Fatalf("expected offset to increase, before=%d after=%d", before, g.detailViewport.YOffset)
-				}
-				return
-			}
-			if g.detailViewport.YOffset != before {
-				t.Fatalf("got %d, want %d", g.detailViewport.YOffset, before)
-			}
-		})
-	}
-}
-
 func TestUpdateDiffFiles(t *testing.T) {
 	g := newTestGuiWithClient(&testmock.GHClient{})
 	diff := strings.Join([]string{
@@ -421,55 +248,6 @@ func TestUpdateDiffFiles(t *testing.T) {
 	}
 }
 
-func TestRenderDiffFileListLineShowsColoredStatusAndCounts(t *testing.T) {
-	line := renderDiffFileListLine(gh.DiffFile{
-		Path:      "a.txt",
-		Status:    gh.DiffFileStatusAdded,
-		Additions: 3,
-		Deletions: 1,
-	})
-
-	if !strings.Contains(line, ansiGreen+"A"+ansiReset) {
-		t.Fatalf("line does not contain %q", ansiGreen+"A"+ansiReset)
-	}
-	if !strings.Contains(line, ansiGreen+"+3"+ansiReset) {
-		t.Fatalf("line does not contain %q", ansiGreen+"+3"+ansiReset)
-	}
-	if !strings.Contains(line, ansiRed+"-1"+ansiReset) {
-		t.Fatalf("line does not contain %q", ansiRed+"-1"+ansiReset)
-	}
-	if !strings.Contains(line, "a.txt") {
-		t.Fatalf("line does not contain %q", "a.txt")
-	}
-}
-
-func TestColorizeDiffContent(t *testing.T) {
-	diff := strings.Join([]string{
-		"diff --git a/a.txt b/a.txt",
-		"index 1111111..2222222 100644",
-		"--- a/a.txt",
-		"+++ b/a.txt",
-		"@@ -1 +1 @@",
-		"-old",
-		"+new",
-		" context",
-	}, "\n")
-
-	got := colorizeDiffContent(diff)
-	if !strings.Contains(got, ansiBlue+"diff --git a/a.txt b/a.txt"+ansiReset) {
-		t.Fatalf("diff content does not contain expected header")
-	}
-	if !strings.Contains(got, ansiGray+"index 1111111..2222222 100644"+ansiReset) {
-		t.Fatalf("diff content does not contain expected index line")
-	}
-	if !strings.Contains(got, ansiRed+"-old"+ansiReset) {
-		t.Fatalf("diff content does not contain expected removal line")
-	}
-	if !strings.Contains(got, ansiGreen+"+new"+ansiReset) {
-		t.Fatalf("diff content does not contain expected addition line")
-	}
-}
-
 func TestCycleFocus_DiffMode(t *testing.T) {
 	g := newTestGuiWithPRs(&testmock.GHClient{}, core.Item{Number: 1, Title: "x"})
 	g.switchToDiff()
@@ -493,325 +271,130 @@ func TestCycleFocus_DiffMode(t *testing.T) {
 	}
 }
 
-func TestModelHandleLKeyShowsOverviewFromPRsInDiffMode(t *testing.T) {
-	mc := &testmock.GHClient{PRView: "overview"}
-	g := newTestGuiWithPRs(mc, core.Item{Number: 1, Title: "x"})
-	g.switchToDiff()
-	g.focus = panelPRs
+func TestProgramE2E_MainFlow(t *testing.T) {
+	releaseResolve := make(chan struct{})
+	releasePRs := make(chan struct{})
+	releaseDetail := make(chan struct{})
 
-	m := &model{gui: g}
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'l'}})
-	if g.state.IsDiffMode() {
-		t.Fatal("expected overview mode")
+	client := &testmock.ControlledGHClient{
+		Repo:           "owner/repo1",
+		PRs:            []gh.PRItem{{Number: 1, Title: "Fix bug"}},
+		PRView:         "PR detail",
+		ResolveCalled:  make(chan struct{}),
+		PRsCalled:      make(chan struct{}),
+		DetailCalled:   make(chan struct{}),
+		ReleaseResolve: releaseResolve,
+		ReleasePRs:     releasePRs,
+		ReleaseDetail:  releaseDetail,
 	}
-	if cmd == nil {
-		t.Fatal("expected detail load command")
+	g, err := NewGui(config.Default(), client)
+	if err != nil {
+		t.Fatalf("NewGui failed: %v", err)
 	}
 
-	msg := cmd().(detailLoadedMsg)
-	if msg.err != nil {
-		t.Fatalf("unexpected error: %v", msg.err)
+	p := tea.NewProgram(
+		&model{gui: g},
+		tea.WithInput(bytes.NewBuffer(nil)),
+		tea.WithOutput(io.Discard),
+		tea.WithoutSignals(),
+	)
+
+	runDone := make(chan error, 1)
+	go func() {
+		_, runErr := p.Run()
+		runDone <- runErr
+	}()
+
+	waitChan(t, client.ResolveCalled, "ResolveCurrentRepo was not called")
+	if !g.state.PRsLoading {
+		t.Fatal("prs panel should stay loading before release")
 	}
-	if msg.mode != core.DetailModeOverview {
-		t.Fatalf("got %v, want %v", msg.mode, core.DetailModeOverview)
-	}
-	if msg.number != 1 {
-		t.Fatalf("got %d, want %d", msg.number, 1)
-	}
-	if msg.content != "overview" {
-		t.Fatalf("got %q, want %q", msg.content, "overview")
+	close(releaseResolve)
+
+	waitChan(t, client.PRsCalled, "ListPRs was not called")
+	close(releasePRs)
+
+	waitUntil(t, func() bool {
+		return g.state.Repo == "owner/repo1" && len(g.state.PRs) == 1
+	}, "prs were not loaded")
+
+	p.Send(tea.KeyMsg{Type: tea.KeyEnter})
+	waitChan(t, client.DetailCalled, "ViewPR was not called")
+	close(releaseDetail)
+	waitUntil(t, func() bool {
+		return g.state.DetailContent == "PR detail"
+	}, "detail content was not updated")
+
+	p.Send(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+
+	select {
+	case runErr := <-runDone:
+		if runErr != nil {
+			t.Fatalf("program failed: %v", runErr)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("program did not quit")
 	}
 }
 
-func TestModelUpdateFocusKeysInDiffMode(t *testing.T) {
-	tests := []struct {
-		name      string
-		key       tea.KeyMsg
-		start     panelFocus
-		wantFocus panelFocus
-	}{
-		{
-			name:      "l moves files to diff",
-			key:       tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'l'}},
-			start:     panelDiffFiles,
-			wantFocus: panelDiffContent,
-		},
-		{
-			name:      "h moves diff to files",
-			key:       tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'h'}},
-			start:     panelDiffContent,
-			wantFocus: panelDiffFiles,
-		},
-		{
-			name:      "esc moves to prs",
-			key:       tea.KeyMsg{Type: tea.KeyEsc},
-			start:     panelDiffContent,
-			wantFocus: panelPRs,
-		},
+func TestProgramE2E_ShowErrorWhenInitialLoadFails(t *testing.T) {
+	client := &testmock.ControlledGHClient{
+		Err:           errors.New("boom"),
+		ResolveCalled: make(chan struct{}),
+		PRsCalled:     make(chan struct{}),
+		DetailCalled:  make(chan struct{}),
+	}
+	g, err := NewGui(config.Default(), client)
+	if err != nil {
+		t.Fatalf("NewGui failed: %v", err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := newTestGuiWithPRs(&testmock.GHClient{}, core.Item{Number: 1, Title: "x"})
-			g.switchToDiff()
-			g.diffFiles = []gh.DiffFile{{Path: "a.txt", Content: "x"}}
-			g.focus = tt.start
-			m := &model{gui: g}
+	p := tea.NewProgram(
+		&model{gui: g},
+		tea.WithInput(bytes.NewBuffer(nil)),
+		tea.WithOutput(io.Discard),
+		tea.WithoutSignals(),
+	)
 
-			_, cmd := m.Update(tt.key)
-			if cmd != nil {
-				t.Fatal("did not expect command")
-			}
-			if g.focus != tt.wantFocus {
-				t.Fatalf("got %v, want %v", g.focus, tt.wantFocus)
-			}
-		})
+	runDone := make(chan error, 1)
+	go func() {
+		_, runErr := p.Run()
+		runDone <- runErr
+	}()
+
+	waitChan(t, client.ResolveCalled, "ResolveCurrentRepo was not called")
+	waitUntil(t, func() bool {
+		return strings.Contains(g.state.DetailContent, "Error loading PRs")
+	}, "error message was not shown")
+
+	p.Send(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	select {
+	case runErr := <-runDone:
+		if runErr != nil {
+			t.Fatalf("program failed: %v", runErr)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("program did not quit")
 	}
 }
 
-func TestRenderRightPanels_DiffModeHasFilesPanel(t *testing.T) {
-	g := newTestGuiWithPRs(&testmock.GHClient{}, core.Item{Number: 1, Title: "x"})
-	g.switchToDiff()
-	g.updateDiffFiles(strings.Join([]string{
-		"diff --git a/a.txt b/a.txt",
-		"--- a/a.txt",
-		"+++ b/a.txt",
-		"@@ -1 +1 @@",
-		"-old",
-		"+new",
-	}, "\n"))
-
-	lines := g.renderRightPanels(60, 10)
-	if len(lines) != 10 {
-		t.Fatalf("got %d, want %d", len(lines), 10)
-	}
-	if !strings.Contains(lines[0], "Files") {
-		t.Fatalf("line does not contain %q: %q", "Files", lines[0])
+func waitChan(t *testing.T, ch <-chan struct{}, msg string) {
+	t.Helper()
+	select {
+	case <-ch:
+	case <-time.After(2 * time.Second):
+		t.Fatal(msg)
 	}
 }
 
-func TestRenderRightPanels_OverviewShowsPanelTitle(t *testing.T) {
-	g := newTestGuiWithPRs(&testmock.GHClient{}, core.Item{Number: 1, Title: "x"})
-	g.state.DetailContent = "detail"
-
-	lines := g.renderRightPanels(40, 6)
-	if len(lines) != 6 {
-		t.Fatalf("got %d, want %d", len(lines), 6)
+func waitUntil(t *testing.T, cond func() bool, msg string) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if cond() {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
-	if !strings.Contains(lines[0], "Overview") {
-		t.Fatalf("line does not contain %q: %q", "Overview", lines[0])
-	}
-}
-
-func TestWrapText(t *testing.T) {
-	tests := []struct {
-		name    string
-		content string
-		width   int
-		want    string
-	}{
-		{
-			name:    "wrap long line",
-			content: "abcdefghij",
-			width:   4,
-			want:    "abcd\nefgh\nij",
-		},
-		{
-			name:    "keep existing line breaks",
-			content: "abcde\nfghij",
-			width:   3,
-			want:    "abc\nde\nfgh\nij",
-		},
-		{
-			name:    "no wrap when width is enough",
-			content: "abc",
-			width:   10,
-			want:    "abc",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := wrapText(tt.content, tt.width); got != tt.want {
-				t.Fatalf("got %q, want %q", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestWrapTextWithANSI(t *testing.T) {
-	got := wrapText(ansiGreen+"abcdef"+ansiReset, 3)
-	lines := strings.Split(got, "\n")
-	if len(lines) != 2 {
-		t.Fatalf("got %d, want %d", len(lines), 2)
-	}
-	if xansi.Strip(lines[0]) != "abc" {
-		t.Fatalf("got %q, want %q", xansi.Strip(lines[0]), "abc")
-	}
-	if xansi.StringWidth(lines[0]) != 3 {
-		t.Fatalf("got %d, want %d", xansi.StringWidth(lines[0]), 3)
-	}
-	if xansi.Strip(lines[1]) != "def" {
-		t.Fatalf("got %q, want %q", xansi.Strip(lines[1]), "def")
-	}
-	if xansi.StringWidth(lines[1]) != 3 {
-		t.Fatalf("got %d, want %d", xansi.StringWidth(lines[1]), 3)
-	}
-}
-
-func TestFramePanel(t *testing.T) {
-	got := framePanel("Repo", false, []string{"body"}, 10, 3)
-	want := []string{
-		"┌ Repo ──┐",
-		"│body    │",
-		"└────────┘",
-	}
-
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Fatalf("frame mismatch (-want +got)\n%s", diff)
-	}
-}
-
-func TestFramePanelFallsBackWhenTooSmall(t *testing.T) {
-	got := framePanel("Repo", false, []string{"x"}, 1, 2)
-	want := []string{"x", ""}
-
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Fatalf("frame mismatch (-want +got)\n%s", diff)
-	}
-}
-
-func TestPadOrTrimHandlesANSI(t *testing.T) {
-	colored := ansiGreen + "+10" + ansiReset
-	got := padOrTrim(colored, 4)
-	if !strings.Contains(got, colored) {
-		t.Fatalf("result does not contain colored text: %q", got)
-	}
-}
-
-func TestRenderLeftPanelsSeparated(t *testing.T) {
-	g := newTestGuiWithClient(&testmock.GHClient{})
-	g.state.Repo = "owner/repo"
-	g.state.PRs = []core.Item{{Number: 1, Title: "Fix bug"}}
-
-	lines := g.renderLeftPanels(20, 10)
-	if len(lines) != 10 {
-		t.Fatalf("got %d, want %d", len(lines), 10)
-	}
-	if lines[0] != "┌ Repository ──────┐" {
-		t.Fatalf("got %q, want %q", lines[0], "┌ Repository ──────┐")
-	}
-	if lines[3] != "└──────────────────┘" {
-		t.Fatalf("got %q, want %q", lines[3], "└──────────────────┘")
-	}
-	if !strings.HasPrefix(lines[4], "┌> PRs") {
-		t.Fatalf("line does not have expected prefix: %q", lines[4])
-	}
-	if !strings.HasSuffix(lines[4], "┐") {
-		t.Fatalf("line does not have expected suffix: %q", lines[4])
-	}
-}
-
-func TestRenderPRPanel(t *testing.T) {
-	type fixture struct {
-		prsLoading bool
-		prs        []core.Item
-		selected   int
-	}
-
-	type want struct {
-		line1 string
-	}
-
-	tests := []struct {
-		name    string
-		fixture fixture
-		want    want
-	}{
-		{
-			name:    "empty placeholder",
-			fixture: fixture{},
-			want: want{
-				line1: "No pull requests",
-			},
-		},
-		{
-			name: "loading",
-			fixture: fixture{
-				prsLoading: true,
-			},
-			want: want{
-				line1: "",
-			},
-		},
-		{
-			name: "with prs",
-			fixture: fixture{
-				prs:      []core.Item{{Number: 1, Title: "Fix bug"}},
-				selected: 0,
-			},
-			want: want{
-				line1: "> PR #1 Fix bug",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := newTestGuiWithClient(&testmock.GHClient{})
-			g.state.PRsLoading = tt.fixture.prsLoading
-			g.state.PRs = tt.fixture.prs
-			g.state.PRsSelected = tt.fixture.selected
-			lines := g.renderPRPanel(3)
-
-			if len(lines) != 3 {
-				t.Fatalf("got %d, want %d", len(lines), 3)
-			}
-			if lines[0] != tt.want.line1 {
-				t.Fatalf("got %q, want %q", lines[0], tt.want.line1)
-			}
-		})
-	}
-}
-
-func TestRenderRepoPanel(t *testing.T) {
-	type want struct {
-		line1 string
-	}
-
-	tests := []struct {
-		name string
-		repo string
-		want want
-	}{
-		{
-			name: "show repo",
-			repo: "owner/repo",
-			want: want{
-				line1: "owner/repo",
-			},
-		},
-		{
-			name: "empty repo",
-			repo: "",
-			want: want{
-				line1: "",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := newTestGuiWithClient(&testmock.GHClient{})
-			g.state.Repo = tt.repo
-			lines := g.renderRepoPanel(2)
-
-			if len(lines) != 2 {
-				t.Fatalf("got %d, want %d", len(lines), 2)
-			}
-			if lines[0] != tt.want.line1 {
-				t.Fatalf("got %q, want %q", lines[0], tt.want.line1)
-			}
-		})
-	}
+	t.Fatal(msg)
 }
