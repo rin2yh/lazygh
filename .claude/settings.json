@@ -1,5 +1,23 @@
 {
   "enabledPlugins": {
     "code-simplifier@claude-plugins-official": true
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": true,
+    "excludedCommands": ["git", "docker", "go"]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(gh issue:*)",
+      "Bash(gh api:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(go build:*)",
+      "Bash(go test:*)",
+      "Bash(go fmt:*)",
+      "Bash(go vet:*)"
+    ]
   }
 }
