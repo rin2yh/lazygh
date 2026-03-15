@@ -5,7 +5,7 @@ import (
 
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/gui/diff"
+	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
 	"github.com/rin2yh/lazygh/internal/gui/draw"
 	"github.com/rin2yh/lazygh/internal/gui/layout"
 	"github.com/rin2yh/lazygh/internal/gui/widget"
@@ -22,24 +22,13 @@ func (gui *Gui) syncDetailViewport(width int, height int, content string) {
 	if height < 1 {
 		height = 1
 	}
-	if gui.detailViewportWidth != width || gui.detailViewportHeight != height {
-		gui.detailViewport.Width = width
-		gui.detailViewport.Height = height
-		gui.detailViewportWidth = width
-		gui.detailViewportHeight = height
-	}
-	wrapped := widget.WrapText(content, width)
-	if gui.detailViewportBody != wrapped {
-		gui.detailViewport.SetContent(wrapped)
-		gui.detailViewportBody = wrapped
-		gui.detailViewport.GotoTop()
-	}
+	gui.detail.Sync(width, height, widget.WrapText(content, width))
 }
 
 func (gui *Gui) buildRenderInput() draw.Input {
 	rightLines := gui.currentDetailLines(gui.state.DetailContent)
 	if gui.state.IsDiffMode() {
-		rightLines = gui.currentDetailLines(diff.ColorizeContent(gui.currentDiffContent()))
+		rightLines = gui.currentDetailLines(guidiff.ColorizeContent(gui.currentDiffContent()))
 	}
 
 	return draw.Input{
@@ -50,7 +39,7 @@ func (gui *Gui) buildRenderInput() draw.Input {
 			DiffMode:        gui.state.IsDiffMode(),
 			HasPR:           len(gui.state.PRs) > 0,
 			Focus:           gui.renderFocus(),
-			HasFiles:        len(gui.diffFiles) > 0,
+			HasFiles:        len(gui.diff.Files()) > 0,
 			HasReviewDrawer: gui.review.ShouldShowDrawer(),
 			InputMode:       gui.state.Review.InputMode,
 			Keys:            gui.config.KeyBindings,
@@ -70,8 +59,8 @@ func (gui *Gui) buildRenderInput() draw.Input {
 			DiffMode:         gui.state.IsDiffMode(),
 			OverviewTitle:    "Overview",
 			OverviewLines:    rightLines,
-			DiffFiles:        gui.diffFiles,
-			DiffFileSelected: gui.diffFileSelected,
+			DiffFiles:        gui.diff.Files(),
+			DiffFileSelected: gui.diff.FileSelected(),
 			DiffContentLines: gui.renderDiffContentLines(),
 		},
 		Review: gui.buildReviewDrawerInput(),
@@ -120,11 +109,11 @@ func (gui *Gui) currentDetailLines(content string) []string {
 		bodyHeight = 1
 	}
 	gui.syncDetailViewport(innerWidth, bodyHeight, content)
-	return strings.Split(gui.detailViewport.View(), "\n")
+	return strings.Split(gui.detail.View(), "\n")
 }
 
 func (gui *Gui) renderDiffContentLines() []draw.DiffContentLine {
-	file, ok := gui.currentDiffFile()
+	file, ok := gui.diff.CurrentFile()
 	if !ok || len(file.Lines) == 0 {
 		return nil
 	}
@@ -132,8 +121,8 @@ func (gui *Gui) renderDiffContentLines() []draw.DiffContentLine {
 	for idx, line := range file.Lines {
 		lines = append(lines, draw.DiffContentLine{
 			Location: gh.FormatDiffLineLocation(line),
-			Text:     diff.ColorizeContent(line.Text),
-			Selected: idx == gui.diffLineSelected,
+			Text:     guidiff.ColorizeContent(line.Text),
+			Selected: idx == gui.diff.LineSelected(),
 			InRange:  gui.review.IsLineWithinPendingRange(line),
 		})
 	}

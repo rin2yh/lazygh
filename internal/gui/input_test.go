@@ -28,7 +28,7 @@ func TestModelUpdate_VKeyTogglesRangeSelection(t *testing.T) {
 		"+new",
 	}, "\n"))
 	g.focus = panelDiffContent
-	g.diffLineSelected = 5
+	g.diff.SetLineSelected(5)
 
 	m := &screen{gui: g}
 	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'v'}})
@@ -61,7 +61,7 @@ func TestModelUpdate_CKeyUsesRangeFlowAfterV(t *testing.T) {
 		"+new",
 	}, "\n"))
 	g.focus = panelDiffContent
-	g.diffLineSelected = 5
+	g.diff.SetLineSelected(5)
 
 	m := &screen{gui: g}
 	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'v'}})
@@ -97,7 +97,7 @@ func TestModelUpdate_EscCancelsCommentAndClearsRangeHighlight(t *testing.T) {
 		"+new",
 	}, "\n"))
 	g.focus = panelDiffContent
-	g.diffLineSelected = 5
+	g.diff.SetLineSelected(5)
 	m := &screen{gui: g}
 	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'v'}})
 	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
@@ -136,7 +136,7 @@ func TestModelUpdate_EscClearsRangeSelectionWithoutLeavingDiff(t *testing.T) {
 		"+new",
 	}, "\n"))
 	g.focus = panelDiffContent
-	g.diffLineSelected = 5
+	g.diff.SetLineSelected(5)
 
 	m := &screen{gui: g}
 	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'v'}})

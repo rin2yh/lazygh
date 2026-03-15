@@ -18,7 +18,7 @@ func TestCycleFocus_DiffMode(t *testing.T) {
 	}
 	g.state.ApplyPRsResult("owner/repo", []core.Item{testfactory.CoreItem(1, "x")}, nil)
 	g.switchToDiff()
-	g.diffFiles = []gh.DiffFile{{Path: "a.txt", Content: "x"}}
+	g.diff.SetFiles([]gh.DiffFile{{Path: "a.txt", Content: "x"}})
 
 	if g.focus != panelDiffFiles {
 		t.Fatalf("got %v, want %v", g.focus, panelDiffFiles)
@@ -137,7 +137,7 @@ func TestModelUpdateFocusKeysInDiffMode(t *testing.T) {
 			}
 			g.state.ApplyPRsResult("owner/repo", []core.Item{testfactory.CoreItem(1, "x")}, nil)
 			g.switchToDiff()
-			g.diffFiles = tt.files
+			g.diff.SetFiles(tt.files)
 			g.focus = tt.start
 			g.state.Review.DrawerOpen = true
 			m := &screen{gui: g}

@@ -168,7 +168,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 			"+new",
 		}, "\n"))
 		g.focus = panelDiffContent
-		g.diffLineSelected = 0
+		g.diff.SetLineSelected(0)
 		m := &screen{gui: g}
 
 		_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
@@ -178,7 +178,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 		if g.state.PRsSelected != 0 {
 			t.Fatalf("got selected %d, want %d", g.state.PRsSelected, 0)
 		}
-		if g.diffLineSelected == 0 {
+		if g.diff.LineSelected() == 0 {
 			t.Fatal("expected diff line selection to move")
 		}
 	})

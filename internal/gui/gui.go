@@ -1,11 +1,12 @@
 package gui
 
 import (
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	"github.com/rin2yh/lazygh/internal/gui/detail"
+	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
 	guireview "github.com/rin2yh/lazygh/internal/gui/review"
 )
 
@@ -35,30 +36,21 @@ type Gui struct {
 
 	focus panelFocus
 
-	diffFiles        []gh.DiffFile
-	diffFileSelected int
-	diffLineSelected int
-
-	detailViewport       viewport.Model
-	detailViewportWidth  int
-	detailViewportHeight int
-	detailViewportBody   string
+	diff   guidiff.Selection
+	detail detail.State
 
 	review *guireview.Controller
 }
 
 func NewGui(cfg *config.Config, prClient PRClient, reviewClient guireview.PendingReviewClient) (*Gui, error) {
-	vp := viewport.New(1, 1)
 	gui := &Gui{
-		config:               cfg,
-		state:                core.NewState(),
-		client:               prClient,
-		focus:                panelPRs,
-		detailViewport:       vp,
-		detailViewportWidth:  1,
-		detailViewportHeight: 1,
+		config: cfg,
+		state:  core.NewState(),
+		client: prClient,
+		focus:  panelPRs,
+		detail: detail.NewState(),
 	}
-	gui.review = guireview.NewController(cfg, gui.state, reviewClient, gui, gui.setReviewFocus)
+	gui.review = guireview.NewController(cfg, gui.state, reviewClient, &gui.diff, gui.setReviewFocus)
 	return gui, nil
 }
 

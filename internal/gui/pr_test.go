@@ -293,14 +293,14 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 	if strings.Contains(g.state.DetailContent, "\x1b") {
 		t.Fatalf("detail content should be sanitized: %q", g.state.DetailContent)
 	}
-	if len(g.diffFiles) != 1 {
-		t.Fatalf("got %d, want %d", len(g.diffFiles), 1)
+	if len(g.diff.Files()) != 1 {
+		t.Fatalf("got %d, want %d", len(g.diff.Files()), 1)
 	}
-	if strings.Contains(g.diffFiles[0].Content, "\x1b") {
-		t.Fatalf("diff file content should be sanitized: %q", g.diffFiles[0].Content)
+	if strings.Contains(g.diff.Files()[0].Content, "\x1b") {
+		t.Fatalf("diff file content should be sanitized: %q", g.diff.Files()[0].Content)
 	}
-	if !strings.Contains(g.diffFiles[0].Content, "+ok[31mred") {
-		t.Fatalf("unexpected diff content: %q", g.diffFiles[0].Content)
+	if !strings.Contains(g.diff.Files()[0].Content, "+ok[31mred") {
+		t.Fatalf("unexpected diff content: %q", g.diff.Files()[0].Content)
 	}
 }
 
@@ -343,13 +343,13 @@ func TestUpdateDiffFiles(t *testing.T) {
 			"+y",
 		}, "\n"), Status: gh.DiffFileStatusModified, Additions: 1, Deletions: 1},
 	}
-	if diff := cmp.Diff(want, g.diffFiles, cmpopts.IgnoreFields(gh.DiffFile{}, "Lines")); diff != "" {
+	if diff := cmp.Diff(want, g.diff.Files(), cmpopts.IgnoreFields(gh.DiffFile{}, "Lines")); diff != "" {
 		t.Fatalf("diffFiles mismatch (-want +got)\n%s", diff)
 	}
 
-	g.diffFileSelected = 1
+	g.diff.SetFileSelected(1)
 	g.updateDiffFiles(diff)
-	if g.diffFileSelected != 1 {
-		t.Fatalf("got %d, want %d", g.diffFileSelected, 1)
+	if g.diff.FileSelected() != 1 {
+		t.Fatalf("got %d, want %d", g.diff.FileSelected(), 1)
 	}
 }

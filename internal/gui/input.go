@@ -44,8 +44,7 @@ func (s *screen) handleKeyInput(msg tea.KeyMsg) tea.Cmd {
 		keys.Matches(msg, config.ActionPageUp),
 		keys.Matches(msg, config.ActionGoTop),
 		keys.Matches(msg, config.ActionGoBottom):
-		s.gui.scrollDetailByKey(msg)
-		s.gui.scrollOverviewByKey(msg)
+		s.handleDetailScrollKey(msg)
 		return nil
 	case keys.Matches(msg, config.ActionPanelPrev):
 		s.gui.moveFocus(-1)
@@ -112,10 +111,10 @@ func (s *screen) moveDown() tea.Cmd {
 			}
 			return nil
 		case panelDiffFiles:
-			s.gui.selectNextDiffFile()
+			s.gui.diff.SelectNextFile()
 			return nil
 		case panelDiffContent:
-			s.gui.scrollDetailDown()
+			s.scrollDetailDown()
 			return nil
 		case panelReviewDrawer:
 			return nil
@@ -138,10 +137,10 @@ func (s *screen) moveUp() tea.Cmd {
 			}
 			return nil
 		case panelDiffFiles:
-			s.gui.selectPrevDiffFile()
+			s.gui.diff.SelectPrevFile()
 			return nil
 		case panelDiffContent:
-			s.gui.scrollDetailUp()
+			s.scrollDetailUp()
 			return nil
 		case panelReviewDrawer:
 			return nil
@@ -165,6 +164,49 @@ func (s *screen) openSelectedPR() tea.Cmd {
 	default:
 		return nil
 	}
+}
+
+func (s *screen) handleDetailScrollKey(msg tea.KeyMsg) {
+	if s.gui.focus != panelDiffContent {
+		return
+	}
+
+	keys := s.gui.config.KeyBindings
+	if s.gui.state.IsDiffMode() {
+		switch {
+		case keys.Matches(msg, config.ActionPageUp):
+			s.gui.diff.SelectPrevLine(s.gui.detail.Height())
+		case keys.Matches(msg, config.ActionPageDown):
+			s.gui.diff.SelectNextLine(s.gui.detail.Height())
+		case keys.Matches(msg, config.ActionGoTop):
+			s.gui.diff.GotoFirstLine()
+		case keys.Matches(msg, config.ActionGoBottom):
+			s.gui.diff.GotoLastLine()
+		}
+		return
+	}
+
+	switch {
+	case keys.Matches(msg, config.ActionPageDown),
+		keys.Matches(msg, config.ActionPageUp):
+		s.gui.detail.Update(msg)
+	}
+}
+
+func (s *screen) scrollDetailDown() {
+	if s.gui.state.IsDiffMode() {
+		s.gui.diff.SelectNextLine(1)
+		return
+	}
+	s.gui.detail.ScrollDown(1)
+}
+
+func (s *screen) scrollDetailUp() {
+	if s.gui.state.IsDiffMode() {
+		s.gui.diff.SelectPrevLine(1)
+		return
+	}
+	s.gui.detail.ScrollUp(1)
 }
 
 func (s *screen) startReviewRange() tea.Cmd {

@@ -6,7 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/gui/diff"
+	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
 )
 
 type prsLoadedMsg struct {
@@ -88,8 +88,7 @@ func (gui *Gui) applyDetailResult(msg detailLoadedMsg) {
 	if msg.mode == core.DetailModeDiff {
 		gui.state.ApplyDiffResult(msg.content, msg.err)
 		if msg.err != nil {
-			gui.diffFiles = nil
-			gui.diffFileSelected = 0
+			gui.diff.Reset()
 			if gui.focus == panelDiffFiles {
 				gui.focus = panelDiffContent
 			}
@@ -102,29 +101,29 @@ func (gui *Gui) applyDetailResult(msg detailLoadedMsg) {
 }
 
 func (gui *Gui) currentDiffContent() string {
-	if len(gui.diffFiles) == 0 {
+	files := gui.diff.Files()
+	selected := gui.diff.FileSelected()
+	if len(files) == 0 {
 		return gui.state.DetailContent
 	}
-	if gui.diffFileSelected < 0 || gui.diffFileSelected >= len(gui.diffFiles) {
+	if selected < 0 || selected >= len(files) {
 		return gui.state.DetailContent
 	}
-	return gui.diffFiles[gui.diffFileSelected].Content
+	return files[selected].Content
 }
 
 func (gui *Gui) updateDiffFiles(content string) {
-	files, selected, lineSelected := diff.ParseFiles(gui.diffFiles, gui.diffFileSelected, content)
+	files, selected, lineSelected := guidiff.ParseFiles(gui.diff.Files(), gui.diff.FileSelected(), content)
 	if len(files) == 0 {
-		gui.diffFiles = nil
-		gui.diffFileSelected = 0
-		gui.diffLineSelected = 0
+		gui.diff.Reset()
 		if gui.focus == panelDiffFiles {
 			gui.focus = panelDiffContent
 		}
 		return
 	}
 
-	gui.diffFiles = files
-	gui.diffFileSelected = selected
-	gui.diffLineSelected = lineSelected
-	gui.ensureDiffLineSelection()
+	gui.diff.SetFiles(files)
+	gui.diff.SetFileSelected(selected)
+	gui.diff.SetLineSelected(lineSelected)
+	gui.diff.EnsureLineSelection()
 }

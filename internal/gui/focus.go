@@ -28,9 +28,7 @@ func (gui *Gui) switchToDiff() bool {
 	changed := gui.state.SwitchToDiff()
 	if changed {
 		gui.focus = panelDiffFiles
-		gui.diffFiles = nil
-		gui.diffFileSelected = 0
-		gui.diffLineSelected = 0
+		gui.diff.Reset()
 	}
 	return changed
 }
@@ -80,7 +78,7 @@ func (gui *Gui) moveFocus(delta int) bool {
 
 func (gui *Gui) focusOrder() []panelFocus {
 	order := []panelFocus{panelRepo, panelPRs}
-	if len(gui.diffFiles) > 0 {
+	if len(gui.diff.Files()) > 0 {
 		order = append(order, panelDiffFiles)
 	}
 	order = append(order, panelDiffContent)
