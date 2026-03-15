@@ -22,7 +22,8 @@ type Gui struct {
 	state  *core.State
 	client PRClient
 
-	focus panelFocus
+	focus    panelFocus
+	showHelp bool
 
 	diff   guidiff.Selection
 	detail detail.State

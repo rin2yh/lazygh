@@ -45,6 +45,9 @@ func (s *screen) handleKeyInput(msg tea.KeyMsg) tea.Cmd {
 
 func (s *screen) handleGlobalAction(action config.Action) (tea.Cmd, bool) {
 	switch action {
+	case config.ActionShowHelp:
+		s.gui.showHelp = !s.gui.showHelp
+		return nil, true
 	case config.ActionQuit:
 		return tea.Quit, true
 	case config.ActionCancel:

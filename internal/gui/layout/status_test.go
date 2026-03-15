@@ -9,19 +9,20 @@ import (
 
 func TestFormatStatusLine(t *testing.T) {
 	tests := []struct {
-		name     string
-		loading  bool
-		diffMode bool
-		hasPR    bool
-		focus    Focus
-		hasFiles bool
-		want     string
+		name      string
+		loading   bool
+		diffMode  bool
+		hasPR     bool
+		focus     Focus
+		hasFiles  bool
+		inputMode core.ReviewInputMode
+		want      string
 	}{
 		{
 			name:  "overview repo focus with pr",
 			hasPR: true,
 			focus: FocusRepo,
-			want:  "[q]Quit [r]Reload | [Repo] [l]Next Panel [d]Diff",
+			want:  "[q]Quit [?]Help | [h/l]Panels [d]Diff",
 		},
 		{
 			name:     "diff focus files",
@@ -29,14 +30,34 @@ func TestFormatStatusLine(t *testing.T) {
 			hasPR:    true,
 			focus:    FocusDiffFiles,
 			hasFiles: true,
-			want:     "[q]Quit [r]Reload | [tab]Focus [Files] [j/k/↑/↓]Move [h/l]Prev/Next Panel [o]Overview [v]Range [enter]Comment",
+			want:     "[q]Quit [?]Help | [h/l]Panels [o]Overview",
 		},
 		{
 			name:     "loading",
 			loading:  true,
 			diffMode: true,
 			focus:    FocusDiffContent,
-			want:     "Loading...  | [q]Quit | [o]Overview",
+			want:     "Loading... | [q]Quit [?]Help | [h/l]Panels [o]Overview",
+		},
+		{
+			name:      "review input comment",
+			diffMode:  true,
+			focus:     FocusReviewDrawer,
+			inputMode: core.ReviewInputComment,
+			want:      "[q]Quit [?]Help | [Ctrl+S]Save Comment [Esc]Cancel",
+		},
+		{
+			name:      "review input summary",
+			diffMode:  true,
+			focus:     FocusReviewDrawer,
+			inputMode: core.ReviewInputSummary,
+			want:      "[q]Quit [?]Help | [Ctrl+S]Save Summary [Esc]Cancel",
+		},
+		{
+			name:     "review drawer focus",
+			diffMode: true,
+			focus:    FocusReviewDrawer,
+			want:     "[q]Quit [?]Help | [Review] [S]Submit [X]Discard [Esc]Cancel",
 		},
 	}
 
@@ -48,7 +69,7 @@ func TestFormatStatusLine(t *testing.T) {
 				HasPR:     tt.hasPR,
 				Focus:     tt.focus,
 				HasFiles:  tt.hasFiles,
-				InputMode: core.ReviewInputNone,
+				InputMode: tt.inputMode,
 				Keys:      config.Default().KeyBindings,
 			}.String()
 			if got != tt.want {
@@ -72,7 +93,7 @@ func TestFormatStatusLine_UsesCustomBindings(t *testing.T) {
 		Keys:      keys,
 	}.String()
 
-	want := "[q]Quit [r]Reload | [tab]Focus [PRs] [h/n]Prev/Next Panel [j/p/↑/↓]Move [enter/r]Review"
+	want := "[q]Quit [?]Help | [h/n]Panels [o]Overview"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}

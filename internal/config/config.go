@@ -35,6 +35,7 @@ const (
 	ActionReviewDiscard
 	ActionReviewSave
 	ActionReviewClearComment
+	ActionShowHelp
 )
 
 type ActionSpec struct {
@@ -65,6 +66,7 @@ var actionSpecs = []ActionSpec{
 	{Action: ActionReviewDiscard, Name: "Review Discard", DefaultKeys: []string{"X"}},
 	{Action: ActionReviewSave, Name: "Review Save", DefaultKeys: []string{"ctrl+s"}},
 	{Action: ActionReviewClearComment, Name: "Review Clear Comment", DefaultKeys: []string{"x"}},
+	{Action: ActionShowHelp, Name: "Show Help", DefaultKeys: []string{"?"}},
 }
 
 type KeyBinding struct {
@@ -220,6 +222,15 @@ func (k KeyBindings) CommentLabel() string {
 
 func (k KeyBindings) SummaryLabel() string {
 	return k.PrimaryLabel(ActionReviewSummary)
+}
+
+func (k KeyBindings) HelpLabel() string {
+	return k.PrimaryLabel(ActionShowHelp)
+}
+
+// AllSpecs returns the full list of action specs for display purposes.
+func AllSpecs() []ActionSpec {
+	return actionSpecs
 }
 
 func (k KeyBindings) labels(action Action) []string {

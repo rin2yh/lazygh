@@ -6,6 +6,7 @@ import (
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
 	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
+	"github.com/rin2yh/lazygh/internal/gui/help"
 	"github.com/rin2yh/lazygh/internal/gui/layout"
 	"github.com/rin2yh/lazygh/internal/gui/prs"
 	guireview "github.com/rin2yh/lazygh/internal/gui/review"
@@ -73,6 +74,22 @@ func (gui *Gui) render() string {
 		}
 	}
 	b.WriteString(widget.PadOrTrim(statusLine, screen.Width))
+
+	if gui.showHelp {
+		lines := strings.Split(b.String(), "\n")
+		// Remove trailing empty entry from final newline split
+		if len(lines) > 0 && lines[len(lines)-1] == "" {
+			lines = lines[:len(lines)-1]
+		}
+		lines = help.RenderOverlay(lines, gui.config.KeyBindings, screen.Width)
+		var hb strings.Builder
+		for _, line := range lines {
+			hb.WriteString(line)
+			hb.WriteByte('\n')
+		}
+		return hb.String()
+	}
+
 	return b.String()
 }
 
