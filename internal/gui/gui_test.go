@@ -47,7 +47,7 @@ func TestGuiRun_LoadsPRsAndDetail(t *testing.T) {
 	}()
 
 	waitChan(t, client.ResolveCalled, "ResolveCurrentRepo was not called")
-	if !g.state.PRsLoading {
+	if !g.state.List.PRsLoading {
 		t.Fatal("prs panel should stay loading before release")
 	}
 	close(releaseResolve)
@@ -56,14 +56,14 @@ func TestGuiRun_LoadsPRsAndDetail(t *testing.T) {
 	close(releasePRs)
 
 	waitUntil(t, func() bool {
-		return g.state.Repo == "owner/repo1" && len(g.state.PRs) == 1
+		return g.state.List.Repo == "owner/repo1" && len(g.state.List.PRs) == 1
 	}, "prs were not loaded")
 
 	p.Send(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
 	waitChan(t, client.DetailCalled, "ViewPR was not called")
 	close(releaseDetail)
 	waitUntil(t, func() bool {
-		return g.state.DetailContent == "PR detail"
+		return g.state.Detail.Content == "PR detail"
 	}, "detail content was not updated")
 
 	p.Send(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})

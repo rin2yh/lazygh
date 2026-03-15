@@ -19,13 +19,13 @@ func TestNavigatePRList(t *testing.T) {
 	g.state.ApplyPRsResult("owner/repo", []core.Item{testfactory.CoreItem(1, "a"), testfactory.CoreItem(2, "b")}, nil)
 
 	g.navigateDown()
-	if g.state.PRsSelected != 1 {
-		t.Fatalf("got %d, want %d", g.state.PRsSelected, 1)
+	if g.state.List.PRsSelected != 1 {
+		t.Fatalf("got %d, want %d", g.state.List.PRsSelected, 1)
 	}
 
 	g.navigateUp()
-	if g.state.PRsSelected != 0 {
-		t.Fatalf("got %d, want %d", g.state.PRsSelected, 0)
+	if g.state.List.PRsSelected != 0 {
+		t.Fatalf("got %d, want %d", g.state.List.PRsSelected, 0)
 	}
 }
 
@@ -81,19 +81,19 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 			}
 			g.state.ApplyPRsResult("owner/repo", prs, nil)
 			g.focus = tt.startFocus
-			g.state.PRsSelected = tt.startIndex
-			g.state.DetailContent = "PR #1 one\nStatus: \nAssignee: -"
+			g.state.List.PRsSelected = tt.startIndex
+			g.state.Detail.Content = "PR #1 one\nStatus: \nAssignee: -"
 			m := &screen{gui: g}
 
 			_, cmd := m.Update(tt.key)
 			if (cmd != nil) != tt.wantCmd {
 				t.Fatalf("cmd returned = %v, want %v", cmd != nil, tt.wantCmd)
 			}
-			if g.state.PRsSelected != tt.wantIndex {
-				t.Fatalf("got selected %d, want %d", g.state.PRsSelected, tt.wantIndex)
+			if g.state.List.PRsSelected != tt.wantIndex {
+				t.Fatalf("got selected %d, want %d", g.state.List.PRsSelected, tt.wantIndex)
 			}
-			if g.state.DetailContent != tt.wantDetail {
-				t.Fatalf("got detail %q, want %q", g.state.DetailContent, tt.wantDetail)
+			if g.state.Detail.Content != tt.wantDetail {
+				t.Fatalf("got detail %q, want %q", g.state.Detail.Content, tt.wantDetail)
 			}
 		})
 	}
@@ -117,8 +117,8 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 		if cmd == nil {
 			t.Fatal("expected reload command")
 		}
-		if g.state.PRsSelected != 1 {
-			t.Fatalf("got selected %d, want %d", g.state.PRsSelected, 1)
+		if g.state.List.PRsSelected != 1 {
+			t.Fatalf("got selected %d, want %d", g.state.List.PRsSelected, 1)
 		}
 
 		msg := cmd().(detailLoadedMsg)
@@ -147,8 +147,8 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 		if cmd != nil {
 			t.Fatal("did not expect command")
 		}
-		if g.state.PRsSelected != 0 {
-			t.Fatalf("got selected %d, want %d", g.state.PRsSelected, 0)
+		if g.state.List.PRsSelected != 0 {
+			t.Fatalf("got selected %d, want %d", g.state.List.PRsSelected, 0)
 		}
 	})
 
@@ -175,8 +175,8 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 		if cmd != nil {
 			t.Fatal("did not expect command")
 		}
-		if g.state.PRsSelected != 0 {
-			t.Fatalf("got selected %d, want %d", g.state.PRsSelected, 0)
+		if g.state.List.PRsSelected != 0 {
+			t.Fatalf("got selected %d, want %d", g.state.List.PRsSelected, 0)
 		}
 		if g.diff.LineSelected() == 0 {
 			t.Fatal("expected diff line selection to move")

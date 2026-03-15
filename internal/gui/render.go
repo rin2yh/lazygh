@@ -26,7 +26,7 @@ func (gui *Gui) syncDetailViewport(width int, height int, content string) {
 }
 
 func (gui *Gui) buildRenderInput() draw.Input {
-	rightLines := gui.currentDetailLines(gui.state.DetailContent)
+	rightLines := gui.currentDetailLines(gui.state.Detail.Content)
 	if gui.state.IsDiffMode() {
 		rightLines = gui.currentDetailLines(guidiff.ColorizeContent(gui.currentDiffContent()))
 	}
@@ -35,9 +35,9 @@ func (gui *Gui) buildRenderInput() draw.Input {
 		Width:  gui.state.Width,
 		Height: gui.state.Height,
 		StatusLine: layout.Status{
-			Loading:         gui.state.Loading != core.LoadingNone,
+			Loading:         gui.state.Detail.Loading != core.LoadingNone,
 			DiffMode:        gui.state.IsDiffMode(),
-			HasPR:           len(gui.state.PRs) > 0,
+			HasPR:           len(gui.state.List.PRs) > 0,
 			Focus:           gui.renderFocus(),
 			HasFiles:        len(gui.diff.Files()) > 0,
 			HasReviewDrawer: gui.review.ShouldShowDrawer(),
@@ -50,10 +50,10 @@ func (gui *Gui) buildRenderInput() draw.Input {
 		},
 		Focus: gui.renderFocus(),
 		Left: draw.LeftPanelsInput{
-			Repo:       gui.state.Repo,
-			PRsLoading: gui.state.PRsLoading,
+			Repo:       gui.state.List.Repo,
+			PRsLoading: gui.state.List.PRsLoading,
 			PRs:        gui.renderPRItems(),
-			PRSelected: gui.state.PRsSelected,
+			PRSelected: gui.state.List.PRsSelected,
 		},
 		Right: draw.RightPanelsInput{
 			DiffMode:         gui.state.IsDiffMode(),
@@ -83,8 +83,8 @@ func (gui *Gui) renderFocus() layout.Focus {
 }
 
 func (gui *Gui) renderPRItems() []string {
-	items := make([]string, 0, len(gui.state.PRs))
-	for _, pr := range gui.state.PRs {
+	items := make([]string, 0, len(gui.state.List.PRs))
+	for _, pr := range gui.state.List.PRs {
 		items = append(items, core.FormatPRItem(pr))
 	}
 	return items

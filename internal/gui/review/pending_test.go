@@ -14,7 +14,7 @@ import (
 func TestApplyCommentResult_PersistsPendingReviewContextOnError(t *testing.T) {
 	state := core.NewState()
 	state.ApplyPRsResult("owner/repo", []core.Item{{Number: 1, Title: "Fix bug"}}, nil)
-	state.Loading = core.LoadingReview
+	state.BeginReviewLoad()
 	controller := NewController(config.Default(), state, &testmock.GHClient{}, reviewstub.Selection{}, func(FocusTarget) {})
 
 	controller.ApplyCommentResult(CommentSavedMsg{

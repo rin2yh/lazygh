@@ -37,7 +37,7 @@ func (f *view) StopInput() {
 		f.state.ClearReviewRangeStart()
 		f.comment.editor.SetValue("")
 	}
-	f.state.Review.InputMode = core.ReviewInputNone
+	f.state.StopReviewInput()
 	if f.ShouldShowDrawer() {
 		f.setFocus(FocusReviewDrawer)
 	}

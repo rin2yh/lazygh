@@ -72,6 +72,21 @@ type ReviewState struct {
 	Notice        string
 }
 
+// ListState holds PR list and selection state.
+type ListState struct {
+	Repo        string
+	PRs         []Item
+	PRsLoading  bool
+	PRsSelected int
+}
+
+// DetailState holds detail panel display and loading state.
+type DetailState struct {
+	Mode    DetailMode
+	Content string
+	Loading LoadingKind
+}
+
 type EnterAction struct {
 	Kind   EnterActionKind
 	Repo   string
@@ -79,16 +94,9 @@ type EnterAction struct {
 }
 
 type State struct {
-	Repo string
-
-	PRs         []Item
-	PRsLoading  bool
-	PRsSelected int
-
-	DetailMode    DetailMode
-	DetailContent string
-	Loading       LoadingKind
-	Review        ReviewState
+	List   ListState
+	Detail DetailState
+	Review ReviewState
 
 	Width  int
 	Height int
@@ -96,8 +104,12 @@ type State struct {
 
 func NewState() *State {
 	return &State{
-		PRs:        []Item{},
-		DetailMode: DetailModeOverview,
+		List: ListState{
+			PRs: []Item{},
+		},
+		Detail: DetailState{
+			Mode: DetailModeOverview,
+		},
 		Review: ReviewState{
 			Comments: []ReviewComment{},
 		},
@@ -110,28 +122,43 @@ func (s *State) SetWindowSize(width int, height int) {
 }
 
 func (s *State) BeginLoadPRs() {
-	s.PRsLoading = true
-	s.Loading = LoadingPRs
+	s.List.PRsLoading = true
+	s.Detail.Loading = LoadingPRs
+}
+
+// BeginReviewLoad marks a review operation as in-progress.
+func (s *State) BeginReviewLoad() {
+	s.Detail.Loading = LoadingReview
+}
+
+// ClearLoading clears any in-progress loading indicator.
+func (s *State) ClearLoading() {
+	s.Detail.Loading = LoadingNone
+}
+
+// StopReviewInput exits any active review input mode without closing the drawer.
+func (s *State) StopReviewInput() {
+	s.Review.InputMode = ReviewInputNone
 }
 
 func (s *State) ApplyPRsResult(repo string, prs []Item, err error) {
-	s.PRsLoading = false
-	s.Loading = LoadingNone
+	s.List.PRsLoading = false
+	s.Detail.Loading = LoadingNone
 	if err != nil {
 		s.showError("Error loading PRs", err)
 		return
 	}
 
-	s.Repo = repo
-	s.PRs = prs
-	s.PRsSelected = 0
-	s.DetailMode = DetailModeOverview
+	s.List.Repo = repo
+	s.List.PRs = prs
+	s.List.PRsSelected = 0
+	s.Detail.Mode = DetailModeOverview
 	s.resetReview()
 	if len(prs) == 0 {
-		s.DetailContent = "No pull requests"
+		s.Detail.Content = "No pull requests"
 		return
 	}
-	s.DetailContent = FormatPROverview(prs[s.PRsSelected])
+	s.Detail.Content = FormatPROverview(prs[s.List.PRsSelected])
 }
 
 func (s *State) ApplyDetailResult(content string, err error) {
@@ -139,8 +166,8 @@ func (s *State) ApplyDetailResult(content string, err error) {
 		s.showError("Error loading detail", err)
 		return
 	}
-	s.Loading = LoadingNone
-	s.DetailContent = sanitizeMultiline(content)
+	s.Detail.Loading = LoadingNone
+	s.Detail.Content = sanitizeMultiline(content)
 }
 
 func (s *State) ApplyDiffResult(content string, err error) {
@@ -148,8 +175,8 @@ func (s *State) ApplyDiffResult(content string, err error) {
 		s.showError("Error loading diff", err)
 		return
 	}
-	s.Loading = LoadingNone
-	s.DetailContent = sanitizeMultiline(content)
+	s.Detail.Loading = LoadingNone
+	s.Detail.Content = sanitizeMultiline(content)
 }
 
 func (s *State) NavigateDown() bool {
@@ -158,11 +185,11 @@ func (s *State) NavigateDown() bool {
 		return false
 	}
 	changed := false
-	if s.PRsSelected < len(s.PRs)-1 {
-		s.PRsSelected++
+	if s.List.PRsSelected < len(s.List.PRs)-1 {
+		s.List.PRsSelected++
 		changed = true
 	}
-	if changed && s.DetailMode == DetailModeOverview {
+	if changed && s.Detail.Mode == DetailModeOverview {
 		s.refreshDetailPreview()
 	}
 	return changed
@@ -174,44 +201,44 @@ func (s *State) NavigateUp() bool {
 		return false
 	}
 	changed := false
-	if s.PRsSelected > 0 {
-		s.PRsSelected--
+	if s.List.PRsSelected > 0 {
+		s.List.PRsSelected--
 		changed = true
 	}
-	if changed && s.DetailMode == DetailModeOverview {
+	if changed && s.Detail.Mode == DetailModeOverview {
 		s.refreshDetailPreview()
 	}
 	return changed
 }
 
 func (s *State) SwitchToOverview() bool {
-	if s.DetailMode == DetailModeOverview {
+	if s.Detail.Mode == DetailModeOverview {
 		return false
 	}
-	s.DetailMode = DetailModeOverview
-	s.Loading = LoadingNone
+	s.Detail.Mode = DetailModeOverview
+	s.Detail.Loading = LoadingNone
 	s.Review.InputMode = ReviewInputNone
 	s.refreshDetailPreview()
 	return true
 }
 
 func (s *State) SwitchToDiff() bool {
-	if s.DetailMode == DetailModeDiff {
+	if s.Detail.Mode == DetailModeDiff {
 		return false
 	}
-	s.DetailMode = DetailModeDiff
-	s.Loading = LoadingNone
+	s.Detail.Mode = DetailModeDiff
+	s.Detail.Loading = LoadingNone
 	s.Review.DrawerOpen = false
 	s.Review.InputMode = ReviewInputNone
 	return true
 }
 
 func (s *State) IsDiffMode() bool {
-	return s.DetailMode == DetailModeDiff
+	return s.Detail.Mode == DetailModeDiff
 }
 
 func (s *State) ShouldApplyDetailResult(mode DetailMode, number int) bool {
-	if s.DetailMode != mode {
+	if s.Detail.Mode != mode {
 		return false
 	}
 	item, ok := s.selectedPR()
@@ -222,7 +249,7 @@ func (s *State) ShouldApplyDetailResult(mode DetailMode, number int) bool {
 }
 
 func (s *State) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
-	if !hasClient || s.PRsLoading {
+	if !hasClient || s.List.PRsLoading {
 		return EnterAction{}
 	}
 	item, ok := s.selectedPR()
@@ -230,15 +257,15 @@ func (s *State) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
 		return EnterAction{}
 	}
 	if forcedDetailText != "" {
-		s.Loading = LoadingNone
-		s.DetailContent = forcedDetailText
+		s.Detail.Loading = LoadingNone
+		s.Detail.Content = forcedDetailText
 		return EnterAction{}
 	}
-	s.Loading = LoadingDetail
-	if s.DetailMode == DetailModeDiff {
-		return EnterAction{Kind: EnterLoadPRDiff, Repo: s.Repo, Number: item.Number}
+	s.Detail.Loading = LoadingDetail
+	if s.Detail.Mode == DetailModeDiff {
+		return EnterAction{Kind: EnterLoadPRDiff, Repo: s.List.Repo, Number: item.Number}
 	}
-	return EnterAction{Kind: EnterLoadPRDetail, Repo: s.Repo, Number: item.Number}
+	return EnterAction{Kind: EnterLoadPRDetail, Repo: s.List.Repo, Number: item.Number}
 }
 
 func (s *State) refreshDetailPreview() {
@@ -246,22 +273,22 @@ func (s *State) refreshDetailPreview() {
 	if !ok {
 		return
 	}
-	s.DetailContent = FormatPROverview(item)
+	s.Detail.Content = FormatPROverview(item)
 }
 
 func (s *State) selectedPR() (Item, bool) {
-	if len(s.PRs) == 0 {
+	if len(s.List.PRs) == 0 {
 		return Item{}, false
 	}
-	if s.PRsSelected < 0 || s.PRsSelected >= len(s.PRs) {
+	if s.List.PRsSelected < 0 || s.List.PRsSelected >= len(s.List.PRs) {
 		return Item{}, false
 	}
-	return s.PRs[s.PRsSelected], true
+	return s.List.PRs[s.List.PRsSelected], true
 }
 
 func (s *State) showError(msg string, err error) {
-	s.Loading = LoadingNone
-	s.DetailContent = sanitizeMultiline(fmt.Sprintf("%s: %v", msg, err))
+	s.Detail.Loading = LoadingNone
+	s.Detail.Content = sanitizeMultiline(fmt.Sprintf("%s: %v", msg, err))
 }
 
 func (s *State) SelectedPR() (Item, bool) {

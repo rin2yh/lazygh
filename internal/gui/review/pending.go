@@ -63,14 +63,14 @@ func (f *pending) HandleCommentSave() tea.Cmd {
 		f.state.SetReviewNotice(err.Error())
 		return nil
 	}
-	repo := f.state.Repo
+	repo := f.state.List.Repo
 	reviewID := f.state.Review.ReviewID
 	ctx := gh.ReviewContext{
 		PullRequestID: f.state.Review.PullRequestID,
 		CommitOID:     f.state.Review.CommitOID,
 	}
 
-	f.state.Loading = core.LoadingReview
+	f.state.BeginReviewLoad()
 	return func() tea.Msg {
 		var runErr error
 		if reviewID == "" {
@@ -98,16 +98,16 @@ func (f *pending) HandleSubmit() tea.Cmd {
 	if f.state.Review.InputMode == core.ReviewInputSummary {
 		f.summary.Save()
 		f.summary.StopInput()
-		f.state.Review.InputMode = core.ReviewInputNone
+		f.state.StopReviewInput()
 	}
 	if !f.state.HasPendingReview() {
 		f.state.SetReviewNotice("No pending review to submit.")
 		return nil
 	}
-	f.state.Loading = core.LoadingReview
+	f.state.BeginReviewLoad()
 	reviewID := f.state.Review.ReviewID
 	body := f.state.Review.Summary
-	repo := f.state.Repo
+	repo := f.state.List.Repo
 	return func() tea.Msg {
 		err := f.client.SubmitReview(repo, reviewID, body)
 		return SubmittedMsg{ReviewID: reviewID, Err: err}
@@ -117,15 +117,15 @@ func (f *pending) HandleSubmit() tea.Cmd {
 func (f *pending) HandleDiscard() tea.Cmd {
 	if f.state.Review.InputMode == core.ReviewInputSummary {
 		f.summary.StopInput()
-		f.state.Review.InputMode = core.ReviewInputNone
+		f.state.StopReviewInput()
 	}
 	reviewID := f.state.Review.ReviewID
 	if reviewID == "" {
 		f.state.ResetReviewAfterDiscard("Review draft discarded.")
 		return nil
 	}
-	f.state.Loading = core.LoadingReview
-	repo := f.state.Repo
+	f.state.BeginReviewLoad()
+	repo := f.state.List.Repo
 	return func() tea.Msg {
 		err := f.client.DeletePendingReview(repo, reviewID)
 		return DiscardedMsg{Err: err}
@@ -133,7 +133,7 @@ func (f *pending) HandleDiscard() tea.Cmd {
 }
 
 func (f *pending) ApplyCommentResult(msg CommentSavedMsg) {
-	f.state.Loading = core.LoadingNone
+	f.state.ClearLoading()
 	if msg.ReviewID != "" || msg.Context.PullRequestID != "" || msg.Context.CommitOID != "" {
 		f.state.SetReviewContext(msg.PRNumber, msg.Context.PullRequestID, msg.Context.CommitOID, msg.ReviewID)
 	}
@@ -153,7 +153,7 @@ func (f *pending) ApplyCommentResult(msg CommentSavedMsg) {
 }
 
 func (f *pending) ApplySubmitResult(msg SubmittedMsg) {
-	f.state.Loading = core.LoadingNone
+	f.state.ClearLoading()
 	if msg.Err != nil {
 		f.state.SetReviewNotice(msg.Err.Error())
 		return
@@ -165,7 +165,7 @@ func (f *pending) ApplySubmitResult(msg SubmittedMsg) {
 }
 
 func (f *pending) ApplyDiscardResult(msg DiscardedMsg) {
-	f.state.Loading = core.LoadingNone
+	f.state.ClearLoading()
 	if msg.Err != nil {
 		f.state.SetReviewNotice(msg.Err.Error())
 		return

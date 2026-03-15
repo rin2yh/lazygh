@@ -192,20 +192,20 @@ func TestApplyPRsResult(t *testing.T) {
 
 			g.applyPRsResult(tt.msg)
 
-			if g.state.PRsLoading {
+			if g.state.List.PRsLoading {
 				t.Fatal("expected PRsLoading=false")
 			}
-			if g.state.Loading != core.LoadingNone {
-				t.Fatalf("got %v, want %v", g.state.Loading, core.LoadingNone)
+			if g.state.Detail.Loading != core.LoadingNone {
+				t.Fatalf("got %v, want %v", g.state.Detail.Loading, core.LoadingNone)
 			}
-			if g.state.Repo != tt.want.repo {
-				t.Fatalf("got %q, want %q", g.state.Repo, tt.want.repo)
+			if g.state.List.Repo != tt.want.repo {
+				t.Fatalf("got %q, want %q", g.state.List.Repo, tt.want.repo)
 			}
-			if diff := cmp.Diff(tt.want.prs, g.state.PRs, cmpopts.EquateEmpty()); diff != "" {
+			if diff := cmp.Diff(tt.want.prs, g.state.List.PRs, cmpopts.EquateEmpty()); diff != "" {
 				t.Fatalf("prs mismatch (-want +got)\n%s", diff)
 			}
-			if g.state.DetailContent != tt.want.detail {
-				t.Fatalf("got %q, want %q", g.state.DetailContent, tt.want.detail)
+			if g.state.Detail.Content != tt.want.detail {
+				t.Fatalf("got %q, want %q", g.state.Detail.Content, tt.want.detail)
 			}
 		})
 	}
@@ -252,15 +252,15 @@ func TestApplyDetailResult(t *testing.T) {
 				t.Fatalf("NewGui failed: %v", err)
 			}
 			g.state.ApplyPRsResult("owner/repo", []core.Item{{Number: 1, Title: "Fix bug"}}, nil)
-			g.state.Loading = core.LoadingDetail
+			g.state.Detail.Loading = core.LoadingDetail
 
 			g.applyDetailResult(tt.msg)
 
-			if g.state.Loading != core.LoadingNone {
-				t.Fatalf("got %v, want %v", g.state.Loading, core.LoadingNone)
+			if g.state.Detail.Loading != core.LoadingNone {
+				t.Fatalf("got %v, want %v", g.state.Detail.Loading, core.LoadingNone)
 			}
-			if g.state.DetailContent != tt.want.detail {
-				t.Fatalf("got %q, want %q", g.state.DetailContent, tt.want.detail)
+			if g.state.Detail.Content != tt.want.detail {
+				t.Fatalf("got %q, want %q", g.state.Detail.Content, tt.want.detail)
 			}
 		})
 	}
@@ -273,7 +273,7 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 	}
 	g.state.ApplyPRsResult("owner/repo", []core.Item{{Number: 1, Title: "Fix bug"}}, nil)
 	g.switchToDiff()
-	g.state.Loading = core.LoadingDetail
+	g.state.Detail.Loading = core.LoadingDetail
 
 	raw := strings.Join([]string{
 		"diff --git a/a.txt b/a.txt",
@@ -290,8 +290,8 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 		content: raw,
 	})
 
-	if strings.Contains(g.state.DetailContent, "\x1b") {
-		t.Fatalf("detail content should be sanitized: %q", g.state.DetailContent)
+	if strings.Contains(g.state.Detail.Content, "\x1b") {
+		t.Fatalf("detail content should be sanitized: %q", g.state.Detail.Content)
 	}
 	if len(g.diff.Files()) != 1 {
 		t.Fatalf("got %d, want %d", len(g.diff.Files()), 1)
