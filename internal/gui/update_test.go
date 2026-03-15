@@ -12,7 +12,7 @@ import (
 )
 
 func TestNavigatePRList(t *testing.T) {
-	g, err := NewGui(config.Default(), &testmock.GHClient{})
+	g, err := NewGui(config.Default(), &testmock.GHClient{}, &testmock.GHClient{})
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 	prs := []core.Item{testfactory.CoreItem(1, "one"), testfactory.CoreItem(2, "two")}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), tt.client)
+			g, err := NewGui(config.Default(), tt.client, tt.client)
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
@@ -104,7 +104,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 
 	t.Run("j on prs returns reload command", func(t *testing.T) {
 		client := &testmock.GHClient{PRDiff: "diff for two"}
-		g, err := NewGui(config.Default(), client)
+		g, err := NewGui(config.Default(), client, client)
 		if err != nil {
 			t.Fatalf("NewGui failed: %v", err)
 		}
@@ -134,7 +134,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 	})
 
 	t.Run("j on repo does nothing", func(t *testing.T) {
-		g, err := NewGui(config.Default(), &testmock.GHClient{PRDiff: "diff for two"})
+		g, err := NewGui(config.Default(), &testmock.GHClient{PRDiff: "diff for two"}, &testmock.GHClient{PRDiff: "diff for two"})
 		if err != nil {
 			t.Fatalf("NewGui failed: %v", err)
 		}
@@ -153,7 +153,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 	})
 
 	t.Run("j on diff content scrolls without changing prs", func(t *testing.T) {
-		g, err := NewGui(config.Default(), &testmock.GHClient{PRDiff: "diff for two"})
+		g, err := NewGui(config.Default(), &testmock.GHClient{PRDiff: "diff for two"}, &testmock.GHClient{PRDiff: "diff for two"})
 		if err != nil {
 			t.Fatalf("NewGui failed: %v", err)
 		}

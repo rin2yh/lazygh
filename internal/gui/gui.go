@@ -9,6 +9,13 @@ import (
 	guireview "github.com/rin2yh/lazygh/internal/gui/review"
 )
 
+type PRClient interface {
+	ResolveCurrentRepo() (string, error)
+	ListPRs(repo string) ([]gh.PRItem, error)
+	ViewPR(repo string, number int) (string, error)
+	DiffPR(repo string, number int) (string, error)
+}
+
 const (
 	ansiReset   = "\x1b[0m"
 	ansiReverse = "\x1b[7m"
@@ -24,7 +31,7 @@ const (
 type Gui struct {
 	config *config.Config
 	state  *core.State
-	client gh.ClientInterface
+	client PRClient
 
 	focus panelFocus
 
@@ -40,18 +47,18 @@ type Gui struct {
 	review *guireview.Controller
 }
 
-func NewGui(cfg *config.Config, client gh.ClientInterface) (*Gui, error) {
+func NewGui(cfg *config.Config, prClient PRClient, reviewClient guireview.PendingReviewClient) (*Gui, error) {
 	vp := viewport.New(1, 1)
 	gui := &Gui{
 		config:               cfg,
 		state:                core.NewState(),
-		client:               client,
+		client:               prClient,
 		focus:                panelPRs,
 		detailViewport:       vp,
 		detailViewportWidth:  1,
 		detailViewportHeight: 1,
 	}
-	gui.review = guireview.NewController(gui.state, client, gui, gui.setReviewFocus)
+	gui.review = guireview.NewController(gui.state, reviewClient, gui, gui.setReviewFocus)
 	return gui, nil
 }
 

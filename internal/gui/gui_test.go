@@ -28,7 +28,7 @@ func TestGuiRun_LoadsPRsAndDetail(t *testing.T) {
 		ReleasePRs:     releasePRs,
 		ReleaseDetail:  releaseDetail,
 	}
-	g, err := NewGui(config.Default(), client)
+	g, err := NewGui(config.Default(), client, client)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}

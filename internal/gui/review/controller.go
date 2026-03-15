@@ -27,7 +27,7 @@ type Controller struct {
 	view    *view
 }
 
-func NewController(state *core.State, client gh.ClientInterface, selection Selection, setFocus func(FocusTarget)) *Controller {
+func NewController(state *core.State, client PendingReviewClient, selection Selection, setFocus func(FocusTarget)) *Controller {
 	comment := newComment(state, setFocus)
 	summary := newSummary(state, setFocus)
 	rng := newRange(state, selection, setFocus)

@@ -63,7 +63,7 @@ func TestScrollDetailByKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), &testmock.GHClient{})
+			g, err := NewGui(config.Default(), &testmock.GHClient{}, &testmock.GHClient{})
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}

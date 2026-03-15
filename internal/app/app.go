@@ -16,7 +16,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 		return nil, err
 	}
 	client := gh.NewClient()
-	g, err := gui.NewGui(cfg, client)
+	g, err := gui.NewGui(cfg, client, client)
 	if err != nil {
 		return nil, err
 	}

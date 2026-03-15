@@ -16,7 +16,7 @@ import (
 
 func TestModelInitLoadsPRs(t *testing.T) {
 	mc := &testmock.GHClient{Repo: "owner/repo", PRs: []gh.PRItem{testfactory.GHPRItem(2, "p")}}
-	g, err := NewGui(config.Default(), mc)
+	g, err := NewGui(config.Default(), mc, mc)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), tt.client)
+			g, err := NewGui(config.Default(), tt.client, tt.client)
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
@@ -184,7 +184,7 @@ func TestApplyPRsResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), &testmock.GHClient{})
+			g, err := NewGui(config.Default(), &testmock.GHClient{}, &testmock.GHClient{})
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
@@ -247,7 +247,7 @@ func TestApplyDetailResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), &testmock.GHClient{})
+			g, err := NewGui(config.Default(), &testmock.GHClient{}, &testmock.GHClient{})
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
@@ -267,7 +267,7 @@ func TestApplyDetailResult(t *testing.T) {
 }
 
 func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
-	g, err := NewGui(config.Default(), &testmock.GHClient{})
+	g, err := NewGui(config.Default(), &testmock.GHClient{}, &testmock.GHClient{})
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
@@ -305,7 +305,7 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 }
 
 func TestUpdateDiffFiles(t *testing.T) {
-	g, err := NewGui(config.Default(), &testmock.GHClient{})
+	g, err := NewGui(config.Default(), &testmock.GHClient{}, &testmock.GHClient{})
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}

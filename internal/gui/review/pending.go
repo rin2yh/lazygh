@@ -6,6 +6,14 @@ import (
 	"github.com/rin2yh/lazygh/internal/gh"
 )
 
+type PendingReviewClient interface {
+	GetReviewContext(repo string, number int) (gh.ReviewContext, error)
+	StartPendingReview(repo string, number int, ctx gh.ReviewContext) (string, error)
+	AddReviewComment(repo string, reviewID string, comment gh.ReviewComment) error
+	SubmitReview(repo string, reviewID string, body string) error
+	DeletePendingReview(repo string, reviewID string) error
+}
+
 type CommentSavedMsg struct {
 	PRNumber int
 	Context  gh.ReviewContext
@@ -25,14 +33,14 @@ type DiscardedMsg struct {
 
 type pending struct {
 	state     *core.State
-	client    gh.ClientInterface
+	client    PendingReviewClient
 	selection Selection
 	setFocus  func(FocusTarget)
 	comment   *comment
 	summary   *summary
 }
 
-func newPending(state *core.State, client gh.ClientInterface, selection Selection, setFocus func(FocusTarget), comment *comment, summary *summary) *pending {
+func newPending(state *core.State, client PendingReviewClient, selection Selection, setFocus func(FocusTarget), comment *comment, summary *summary) *pending {
 	comment.bindSelection(selection)
 	return &pending{
 		state:     state,

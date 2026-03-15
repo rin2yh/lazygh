@@ -9,18 +9,6 @@ import (
 	"strings"
 )
 
-type ClientInterface interface {
-	ResolveCurrentRepo() (string, error)
-	ListPRs(repo string) ([]PRItem, error)
-	ViewPR(repo string, number int) (string, error)
-	DiffPR(repo string, number int) (string, error)
-	GetReviewContext(repo string, number int) (ReviewContext, error)
-	StartPendingReview(repo string, number int, ctx ReviewContext) (string, error)
-	AddReviewComment(repo string, reviewID string, comment ReviewComment) error
-	SubmitReview(repo string, reviewID string, body string) error
-	DeletePendingReview(repo string, reviewID string) error
-}
-
 type PRItem struct {
 	Number    int      `json:"number"`
 	Title     string   `json:"title"`
