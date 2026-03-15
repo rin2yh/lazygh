@@ -115,7 +115,7 @@ func RenderOverlay(background []string, keys config.KeyBindings, screenWidth int
 }
 
 func buildContent(sections []section) []string {
-	lines := make([]string, 0)
+	var lines []string
 	for i, sec := range sections {
 		if i > 0 {
 			lines = append(lines, "")
