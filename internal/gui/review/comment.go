@@ -45,11 +45,7 @@ func (f *comment) InputLines() []string {
 }
 
 func (f *comment) BeginInput() {
-	f.state.BeginReviewCommentInput()
-	f.state.OpenReviewDrawer()
-	f.setFocus(FocusReviewDrawer)
-	f.editor.Focus()
-	f.editor.SetValue("")
+	beginInput(f.state, f.setFocus, &f.editor, f.state.BeginReviewCommentInput, "")
 }
 
 func (f *comment) Clear() {

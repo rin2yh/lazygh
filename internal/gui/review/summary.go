@@ -31,11 +31,7 @@ func (f *summary) InputLines() []string {
 }
 
 func (f *summary) BeginInput() {
-	f.state.BeginReviewSummaryInput()
-	f.state.OpenReviewDrawer()
-	f.setFocus(FocusReviewDrawer)
-	f.editor.SetValue(f.state.Review.Summary)
-	f.editor.Focus()
+	beginInput(f.state, f.setFocus, &f.editor, f.state.BeginReviewSummaryInput, f.state.Review.Summary)
 }
 
 func (f *summary) StopInput() {
