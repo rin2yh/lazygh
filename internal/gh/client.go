@@ -2,6 +2,7 @@ package gh
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -35,12 +36,25 @@ type ReviewComment struct {
 	StartLine int
 }
 
-type Client struct {
+type commandRunner struct {
 	execCommand func(name string, args ...string) *exec.Cmd
 }
 
+type apiClient struct {
+	runner *commandRunner
+}
+
+type Client struct {
+	runner *commandRunner
+	api    *apiClient
+}
+
 func NewClient() *Client {
-	return &Client{execCommand: exec.Command}
+	runner := &commandRunner{execCommand: exec.Command}
+	return &Client{
+		runner: runner,
+		api:    &apiClient{runner: runner},
+	}
 }
 
 func ValidateCLI() error {
@@ -62,24 +76,62 @@ func withGHCommandEnv(base []string) []string {
 	)
 }
 
-func (c *Client) runCommand(args ...string) ([]byte, error) {
-	cmd := c.execCommand("gh", args...)
-	cmd.Env = withGHCommandEnv(cmd.Env)
-	return cmd.Output()
+type CommandError struct {
+	Command []string
+	Stderr  string
+	Err     error
 }
 
-func (c *Client) runJSON(dst any, args ...string) error {
-	out, err := c.runCommand(args...)
+func (e *CommandError) Error() string {
+	command := "gh"
+	if len(e.Command) > 0 {
+		command += " " + strings.Join(e.Command, " ")
+	}
+	if stderr := strings.TrimSpace(e.Stderr); stderr != "" {
+		return fmt.Sprintf("%s failed: %s: %v", command, stderr, e.Err)
+	}
+	return fmt.Sprintf("%s failed: %v", command, e.Err)
+}
+
+func (e *CommandError) Unwrap() error {
+	return e.Err
+}
+
+func (r *commandRunner) Run(args ...string) ([]byte, error) {
+	cmd := r.execCommand("gh", args...)
+	cmd.Env = withGHCommandEnv(cmd.Env)
+	out, err := cmd.Output()
+	if err == nil {
+		return out, nil
+	}
+
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		return nil, &CommandError{
+			Command: append([]string(nil), args...),
+			Stderr:  string(exitErr.Stderr),
+			Err:     err,
+		}
+	}
+
+	return nil, &CommandError{
+		Command: append([]string(nil), args...),
+		Err:     err,
+	}
+}
+
+func (a *apiClient) RunJSON(dst any, args ...string) error {
+	out, err := a.runner.Run(args...)
 	if err != nil {
 		return err
 	}
 	return json.Unmarshal(out, dst)
 }
 
-func (c *Client) runGraphQL(dst any, query string, variables ...string) error {
+func (a *apiClient) RunGraphQL(dst any, query string, variables ...string) error {
 	args := []string{"api", "graphql", "-f", "query=" + query}
 	args = append(args, variables...)
-	return c.runJSON(dst, args...)
+	return a.RunJSON(dst, args...)
 }
 
 func (c *Client) ResolveCurrentRepo() (string, error) {
@@ -87,7 +139,7 @@ func (c *Client) ResolveCurrentRepo() (string, error) {
 		NameWithOwner string `json:"nameWithOwner"`
 	}
 	var e entry
-	if err := c.runJSON(&e, "repo", "view", "--json", "nameWithOwner"); err != nil {
+	if err := c.api.RunJSON(&e, "repo", "view", "--json", "nameWithOwner"); err != nil {
 		return "", err
 	}
 	repo := strings.TrimSpace(e.NameWithOwner)
@@ -99,14 +151,14 @@ func (c *Client) ResolveCurrentRepo() (string, error) {
 
 func (c *Client) ListPRs(repo string) ([]PRItem, error) {
 	var items []PRItem
-	if err := c.runJSON(&items, "pr", "list", "--repo", repo, "--state", "open", "--json", "number,title,state,isDraft,assignees", "--limit", "100"); err != nil {
+	if err := c.api.RunJSON(&items, "pr", "list", "--repo", repo, "--state", "open", "--json", "number,title,state,isDraft,assignees", "--limit", "100"); err != nil {
 		return nil, err
 	}
 	return items, nil
 }
 
 func (c *Client) ViewPR(repo string, number int) (string, error) {
-	out, err := c.runCommand(
+	out, err := c.runner.Run(
 		"pr", "view", strconv.Itoa(number),
 		"--repo", repo,
 		"--json", "title,body,state,isDraft,assignees",
@@ -119,7 +171,7 @@ func (c *Client) ViewPR(repo string, number int) (string, error) {
 }
 
 func (c *Client) DiffPR(repo string, number int) (string, error) {
-	out, err := c.runCommand(
+	out, err := c.runner.Run(
 		"pr", "diff", strconv.Itoa(number),
 		"--repo", repo,
 	)
@@ -145,7 +197,7 @@ func (c *Client) GetReviewContext(repo string, number int) (ReviewContext, error
 		} `json:"data"`
 	}
 	query := `query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){id headRefOid}}}`
-	if err := c.runGraphQL(
+	if err := c.api.RunGraphQL(
 		&resp,
 		query,
 		"-f", "owner="+owner,
@@ -175,7 +227,7 @@ func (c *Client) StartPendingReview(_ string, _ int, ctx ReviewContext) (string,
 		} `json:"data"`
 	}
 	query := `mutation($pullRequestId:ID!,$commitOID:GitObjectID!){addPullRequestReview(input:{pullRequestId:$pullRequestId,commitOID:$commitOID}){pullRequestReview{id}}}`
-	if err := c.runGraphQL(
+	if err := c.api.RunGraphQL(
 		&resp,
 		query,
 		"-f", "pullRequestId="+ctx.PullRequestID,
@@ -227,7 +279,7 @@ func (c *Client) AddReviewComment(_ string, reviewID string, comment ReviewComme
 			} `json:"addPullRequestReviewThread"`
 		} `json:"data"`
 	}
-	return c.runGraphQL(&resp, query, args...)
+	return c.api.RunGraphQL(&resp, query, args...)
 }
 
 func (c *Client) SubmitReview(_ string, reviewID string, body string) error {
@@ -241,7 +293,7 @@ func (c *Client) SubmitReview(_ string, reviewID string, body string) error {
 		} `json:"data"`
 	}
 	query := `mutation($pullRequestReviewId:ID!,$body:String!){submitPullRequestReview(input:{pullRequestReviewId:$pullRequestReviewId,event:COMMENT,body:$body}){pullRequestReview{id}}}`
-	return c.runGraphQL(
+	return c.api.RunGraphQL(
 		&resp,
 		query,
 		"-f", "pullRequestReviewId="+reviewID,
@@ -258,7 +310,7 @@ func (c *Client) DeletePendingReview(_ string, reviewID string) error {
 		} `json:"data"`
 	}
 	query := `mutation($pullRequestReviewId:ID!){deletePullRequestReview(input:{pullRequestReviewId:$pullRequestReviewId}){clientMutationId}}`
-	return c.runGraphQL(
+	return c.api.RunGraphQL(
 		&resp,
 		query,
 		"-f", "pullRequestReviewId="+reviewID,

@@ -1,6 +1,7 @@
 package gh
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -65,7 +66,8 @@ func TestFakeProcess(t *testing.T) {
 
 func newTestClient(t *testing.T) *Client {
 	t.Helper()
-	return &Client{execCommand: ghstub.NewCommand(t, "TestFakeProcess", "GO_TEST_HELPER_PROCESS")}
+	runner := &commandRunner{execCommand: ghstub.NewCommand(t, "TestFakeProcess", "GO_TEST_HELPER_PROCESS")}
+	return &Client{runner: runner, api: &apiClient{runner: runner}}
 }
 
 func TestResolveCurrentRepo(t *testing.T) {
@@ -137,12 +139,54 @@ func TestDiffPR(t *testing.T) {
 }
 
 func TestResolveCurrentRepo_Error(t *testing.T) {
-	c := &Client{execCommand: func(name string, args ...string) *exec.Cmd {
+	runner := &commandRunner{execCommand: func(name string, args ...string) *exec.Cmd {
 		return exec.Command("false")
 	}}
+	c := &Client{runner: runner, api: &apiClient{runner: runner}}
 	_, err := c.ResolveCurrentRepo()
 	if err == nil {
 		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestResolveCurrentRepo_CommandErrorIncludesContext(t *testing.T) {
+	runner := &commandRunner{execCommand: func(name string, args ...string) *exec.Cmd {
+		return exec.Command("sh", "-c", "echo permission denied >&2; exit 1")
+	}}
+	c := &Client{runner: runner, api: &apiClient{runner: runner}}
+
+	_, err := c.ResolveCurrentRepo()
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var cmdErr *CommandError
+	if !errors.As(err, &cmdErr) {
+		t.Fatalf("expected CommandError, got %T", err)
+	}
+	if got := strings.Join(cmdErr.Command, " "); got != "repo view --json nameWithOwner" {
+		t.Fatalf("unexpected command: %q", got)
+	}
+	if !strings.Contains(cmdErr.Stderr, "permission denied") {
+		t.Fatalf("stderr was not captured: %q", cmdErr.Stderr)
+	}
+	if !strings.Contains(err.Error(), "gh repo view --json nameWithOwner failed") {
+		t.Fatalf("missing command context: %v", err)
+	}
+}
+
+func TestListPRs_InvalidJSON(t *testing.T) {
+	runner := &commandRunner{execCommand: func(name string, args ...string) *exec.Cmd {
+		return exec.Command("sh", "-c", "printf 'not-json'")
+	}}
+	c := &Client{runner: runner, api: &apiClient{runner: runner}}
+
+	_, err := c.ListPRs("owner/repo1")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "invalid character") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
