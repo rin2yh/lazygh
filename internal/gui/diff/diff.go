@@ -33,32 +33,36 @@ func ColorizeContent(content string) string {
 	if content == "" {
 		return ""
 	}
-
 	lines := strings.Split(content, "\n")
 	for i, line := range lines {
-		switch {
-		case strings.HasPrefix(line, "diff --git "):
-			lines[i] = colorize(ansiBlue, line)
-		case strings.HasPrefix(line, "@@"):
-			lines[i] = colorize(ansiCyan, line)
-		case strings.HasPrefix(line, "+++ "):
-			lines[i] = colorize(ansiGreen, line)
-		case strings.HasPrefix(line, "--- "):
-			lines[i] = colorize(ansiRed, line)
-		case strings.HasPrefix(line, "+"):
-			lines[i] = colorize(ansiGreen, line)
-		case strings.HasPrefix(line, "-"):
-			lines[i] = colorize(ansiRed, line)
-		case strings.HasPrefix(line, "new file mode "), strings.HasPrefix(line, "deleted file mode "):
-			lines[i] = colorize(ansiYellow, line)
-		case strings.HasPrefix(line, "rename from "), strings.HasPrefix(line, "rename to "):
-			lines[i] = colorize(ansiPurple, line)
-		case strings.HasPrefix(line, "index "), strings.HasPrefix(line, "similarity index "):
-			lines[i] = colorize(ansiGray, line)
-		}
+		lines[i] = ColorizeLine(line)
 	}
-
 	return strings.Join(lines, "\n")
+}
+
+func ColorizeLine(line string) string {
+	switch {
+	case strings.HasPrefix(line, "diff --git "):
+		return colorize(ansiBlue, line)
+	case strings.HasPrefix(line, "@@"):
+		return colorize(ansiCyan, line)
+	case strings.HasPrefix(line, "+++ "):
+		return colorize(ansiGreen, line)
+	case strings.HasPrefix(line, "--- "):
+		return colorize(ansiRed, line)
+	case strings.HasPrefix(line, "+"):
+		return colorize(ansiGreen, line)
+	case strings.HasPrefix(line, "-"):
+		return colorize(ansiRed, line)
+	case strings.HasPrefix(line, "new file mode "), strings.HasPrefix(line, "deleted file mode "):
+		return colorize(ansiYellow, line)
+	case strings.HasPrefix(line, "rename from "), strings.HasPrefix(line, "rename to "):
+		return colorize(ansiPurple, line)
+	case strings.HasPrefix(line, "index "), strings.HasPrefix(line, "similarity index "):
+		return colorize(ansiGray, line)
+	default:
+		return line
+	}
 }
 
 func colorizeDiffStatus(label string, status gh.DiffFileStatus) string {

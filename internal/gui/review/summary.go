@@ -1,8 +1,6 @@
 package review
 
 import (
-	"strings"
-
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/core"
@@ -27,7 +25,7 @@ func (f *summary) CurrentValue() string {
 }
 
 func (f *summary) InputLines() []string {
-	return strings.Split(f.editor.View(), "\n")
+	return editorLines(f.editor)
 }
 
 func (f *summary) BeginInput() {
@@ -38,10 +36,10 @@ func (f *summary) StopInput() {
 	f.editor.Blur()
 }
 
-func (f *summary) HandleKey(msg tea.KeyMsg) (bool, tea.Cmd) {
+func (f *summary) HandleKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	updated, cmd := f.editor.Update(msg)
 	f.editor = updated
-	return true, cmd
+	return cmd, true
 }
 
 func (f *summary) Save() {

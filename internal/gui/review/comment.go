@@ -41,7 +41,7 @@ func (f *comment) SetValue(value string) {
 }
 
 func (f *comment) InputLines() []string {
-	return strings.Split(f.editor.View(), "\n")
+	return editorLines(f.editor)
 }
 
 func (f *comment) BeginInput() {
@@ -58,20 +58,15 @@ func (f *comment) StopInput() {
 	f.editor.SetValue("")
 }
 
-func (f *comment) HandleKey(msg tea.KeyMsg) (bool, tea.Cmd) {
-	switch msg.Type {
-	case tea.KeyEsc:
-		return false, nil
-	}
-
+func (f *comment) HandleKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	switch {
 	case f.keys.Matches(msg, config.ActionReviewSave):
-		return true, nil
+		return nil, true
 	}
 
 	updated, cmd := f.editor.Update(msg)
 	f.editor = updated
-	return true, cmd
+	return cmd, true
 }
 
 func (f *comment) BuildDraft(body string, start *core.ReviewRange) (gh.ReviewComment, error) {

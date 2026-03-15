@@ -1,6 +1,8 @@
 package review
 
 import (
+	"strings"
+
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/rin2yh/lazygh/internal/core"
 )
@@ -13,6 +15,10 @@ func newEditor(placeholder string) textarea.Model {
 	editor.Prompt = ""
 	editor.CharLimit = 0
 	return editor
+}
+
+func editorLines(e textarea.Model) []string {
+	return strings.Split(e.View(), "\n")
 }
 
 // beginInput performs the shared steps to start a review input form:

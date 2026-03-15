@@ -6,11 +6,39 @@ import (
 	xansi "github.com/charmbracelet/x/ansi"
 )
 
-const ansiReset = "\x1b[0m"
+const (
+	ansiReset   = "\x1b[0m"
+	ansiReverse = "\x1b[7m"
+)
+
+// Highlight applies reverse-video ANSI styling to s, preserving any inner resets.
+func Highlight(s string) string {
+	if s == "" {
+		return s
+	}
+	restyled := strings.ReplaceAll(s, ansiReset, ansiReset+ansiReverse)
+	return ansiReverse + restyled + ansiReset
+}
+
+// ListItem formats a list entry with selection indicator.
+func ListItem(text string, selected bool) string {
+	if selected {
+		return Highlight("> " + text)
+	}
+	return "  " + text
+}
 
 type PanelStyle struct {
 	BorderColor string
 	TitleColor  string
+}
+
+// InnerPanelHeight returns the content height inside a bordered panel.
+func InnerPanelHeight(height int) int {
+	if height > 2 {
+		return height - 2
+	}
+	return height
 }
 
 func PadOrTrim(s string, width int) string {
@@ -23,6 +51,23 @@ func PadOrTrim(s string, width int) string {
 		out += strings.Repeat(" ", width-col)
 	}
 	return out
+}
+
+// JoinColumns horizontally joins two padded column slices into one slice of combined lines.
+func JoinColumns(left []string, leftW int, right []string, rightW int, height int) []string {
+	lines := make([]string, 0, height)
+	for i := 0; i < height; i++ {
+		l := ""
+		if i < len(left) {
+			l = left[i]
+		}
+		r := ""
+		if i < len(right) {
+			r = right[i]
+		}
+		lines = append(lines, PadOrTrim(l, leftW)+" "+PadOrTrim(r, rightW))
+	}
+	return lines
 }
 
 func FramePanel(title string, content []string, width int, height int, style PanelStyle) []string {

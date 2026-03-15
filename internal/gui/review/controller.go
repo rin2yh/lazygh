@@ -68,10 +68,6 @@ func (c *Controller) SummaryInputLines() []string {
 	return c.summary.InputLines()
 }
 
-func (c *Controller) BeginCommentInput() {
-	c.comment.BeginInput()
-}
-
 func (c *Controller) BeginSummaryInput() {
 	c.summary.BeginInput()
 }
@@ -91,11 +87,9 @@ func (c *Controller) HandleEditorKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 
 	switch c.view.InputMode() {
 	case core.ReviewInputComment:
-		handled, cmd := c.comment.HandleKey(msg)
-		return cmd, handled
+		return c.comment.HandleKey(msg)
 	case core.ReviewInputSummary:
-		handled, cmd := c.summary.HandleKey(msg)
-		return cmd, handled
+		return c.summary.HandleKey(msg)
 	default:
 		return nil, false
 	}
@@ -141,6 +135,6 @@ func (c *Controller) ApplyDiscardResult(msg DiscardedMsg) {
 	c.pending.ApplyDiscardResult(msg)
 }
 
-func (c *Controller) IsLineWithinPendingRange(line gh.DiffLine) bool {
-	return c.rng.IsLineWithinPendingRange(line)
+func (c *Controller) IsIndexWithinPendingRange(path string, commentable bool, idx int) bool {
+	return c.rng.IsIndexWithinPendingRange(path, commentable, idx)
 }

@@ -6,14 +6,104 @@ import (
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
 	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
-	"github.com/rin2yh/lazygh/internal/gui/draw"
 	"github.com/rin2yh/lazygh/internal/gui/layout"
+	"github.com/rin2yh/lazygh/internal/gui/prs"
+	guireview "github.com/rin2yh/lazygh/internal/gui/review"
 	"github.com/rin2yh/lazygh/internal/gui/widget"
 )
 
 func (gui *Gui) render() string {
-	return draw.New(gui.buildRenderInput()).String()
+	isDiff := gui.state.IsDiffMode()
+	showDrawer := gui.review.ShouldShowDrawer()
+	screen := layout.New(gui.state.Width, gui.state.Height, isDiff, showDrawer)
+	focus := gui.renderFocus()
+	statusLine := layout.Status{
+		Loading:         gui.state.Detail.Loading != core.LoadingNone,
+		DiffMode:        isDiff,
+		HasPR:           len(gui.state.List.PRs) > 0,
+		Focus:           focus,
+		HasFiles:        len(gui.diff.Files()) > 0,
+		HasReviewDrawer: showDrawer,
+		InputMode:       gui.state.Review.InputMode,
+		Keys:            gui.config.KeyBindings,
+	}.String()
+
+	leftInput := prs.Input{
+		Repo:       gui.state.List.Repo,
+		PRsLoading: gui.state.List.PRsLoading,
+		PRs:        gui.renderPRItems(),
+		PRSelected: gui.state.List.PRsSelected,
+	}
+
+	var rightLines []string
+	if isDiff {
+		rightLines = gui.currentDetailLines(screen, guidiff.ColorizeContent(gui.currentDiffContent()))
+	} else {
+		rightLines = gui.currentDetailLines(screen, gui.state.Detail.Content)
+	}
+	rightInput := guidiff.PanelInput{
+		DiffMode:      isDiff,
+		OverviewTitle: "Overview",
+		OverviewLines: rightLines,
+	}
+	if isDiff {
+		rightInput.DiffFiles = gui.diff.Files()
+		rightInput.DiffFileSelected = gui.diff.FileSelected()
+		rightInput.DiffContentLines = gui.renderDiffContentLines()
+	}
+
+	leftLines := prs.RenderLeft(leftInput, screen.RepoHeight, screen.PRHeight,
+		func(f layout.Focus) bool { return focus == f },
+		gui.style,
+		screen.LeftWidth,
+	)
+	rightPanelLines := gui.renderRight(rightInput, screen, focus)
+
+	var b strings.Builder
+	for _, line := range widget.JoinColumns(leftLines, screen.LeftWidth, rightPanelLines, screen.RightWidth, screen.MainHeight) {
+		b.WriteString(line)
+		b.WriteByte('\n')
+	}
+	drawerInput := gui.buildReviewDrawerInput(showDrawer)
+	if drawerInput != nil && screen.DrawerHeight > 0 {
+		drawerActive := focus == layout.FocusReviewDrawer
+		for _, line := range guireview.RenderDrawer(*drawerInput, gui.style(drawerActive), screen.Width, screen.DrawerHeight) {
+			b.WriteString(widget.PadOrTrim(line, screen.Width))
+			b.WriteByte('\n')
+		}
+	}
+	b.WriteString(widget.PadOrTrim(statusLine, screen.Width))
+	return b.String()
 }
+
+func (gui *Gui) renderRight(input guidiff.PanelInput, screen layout.Screen, focus layout.Focus) []string {
+	diffActive := focus == layout.FocusDiffContent
+	if !input.DiffMode {
+		return widget.FramePanel(input.OverviewTitle, input.OverviewLines, screen.RightWidth, screen.MainHeight, gui.style(diffActive))
+	}
+	filesWidth, diffWidth := layout.DiffSplitWidths(screen.RightWidth)
+	if filesWidth == 0 {
+		lines := guidiff.ContentLines(input, screen.MainHeight)
+		if lines == nil {
+			lines = input.OverviewLines
+		}
+		return widget.FramePanel("Diff", lines, screen.RightWidth, screen.MainHeight, gui.style(diffActive))
+	}
+	filesActive := focus == layout.FocusDiffFiles
+	filesLines := guidiff.RenderFiles(input, gui.style(filesActive), filesWidth, screen.MainHeight)
+	diffLines := guidiff.RenderContent(input, gui.style(diffActive), diffWidth, screen.MainHeight)
+	return widget.JoinColumns(filesLines, filesWidth, diffLines, diffWidth, screen.MainHeight)
+}
+
+func (gui *Gui) style(active bool) widget.PanelStyle {
+	if active {
+		borderColor := widget.ResolveColorName(gui.config.Theme.ActiveBorderColor, "green")
+		return widget.PanelStyle{BorderColor: borderColor, TitleColor: borderColor}
+	}
+	borderColor := widget.ResolveColorName(gui.config.Theme.InactiveBorderColor, "white")
+	return widget.PanelStyle{BorderColor: borderColor}
+}
+
 
 func (gui *Gui) syncDetailViewport(width int, height int, content string) {
 	if width < 1 {
@@ -23,48 +113,6 @@ func (gui *Gui) syncDetailViewport(width int, height int, content string) {
 		height = 1
 	}
 	gui.detail.Sync(width, height, widget.WrapText(content, width))
-}
-
-func (gui *Gui) buildRenderInput() draw.Input {
-	rightLines := gui.currentDetailLines(gui.state.Detail.Content)
-	if gui.state.IsDiffMode() {
-		rightLines = gui.currentDetailLines(guidiff.ColorizeContent(gui.currentDiffContent()))
-	}
-
-	return draw.Input{
-		Width:  gui.state.Width,
-		Height: gui.state.Height,
-		StatusLine: layout.Status{
-			Loading:         gui.state.Detail.Loading != core.LoadingNone,
-			DiffMode:        gui.state.IsDiffMode(),
-			HasPR:           len(gui.state.List.PRs) > 0,
-			Focus:           gui.renderFocus(),
-			HasFiles:        len(gui.diff.Files()) > 0,
-			HasReviewDrawer: gui.review.ShouldShowDrawer(),
-			InputMode:       gui.state.Review.InputMode,
-			Keys:            gui.config.KeyBindings,
-		}.String(),
-		Theme: draw.Theme{
-			ActiveBorderColor:   gui.config.Theme.ActiveBorderColor,
-			InactiveBorderColor: gui.config.Theme.InactiveBorderColor,
-		},
-		Focus: gui.renderFocus(),
-		Left: draw.LeftPanelsInput{
-			Repo:       gui.state.List.Repo,
-			PRsLoading: gui.state.List.PRsLoading,
-			PRs:        gui.renderPRItems(),
-			PRSelected: gui.state.List.PRsSelected,
-		},
-		Right: draw.RightPanelsInput{
-			DiffMode:         gui.state.IsDiffMode(),
-			OverviewTitle:    "Overview",
-			OverviewLines:    rightLines,
-			DiffFiles:        gui.diff.Files(),
-			DiffFileSelected: gui.diff.FileSelected(),
-			DiffContentLines: gui.renderDiffContentLines(),
-		},
-		Review: gui.buildReviewDrawerInput(),
-	}
 }
 
 func (gui *Gui) renderFocus() layout.Focus {
@@ -90,8 +138,7 @@ func (gui *Gui) renderPRItems() []string {
 	return items
 }
 
-func (gui *Gui) currentDetailLines(content string) []string {
-	dims := layout.New(gui.state.Width, gui.state.Height, gui.state.IsDiffMode(), gui.review.ShouldShowDrawer())
+func (gui *Gui) currentDetailLines(dims layout.Screen, content string) []string {
 	innerWidth := dims.RightWidth
 	if gui.state.IsDiffMode() {
 		filesWidth, diffWidth := layout.DiffSplitWidths(dims.RightWidth)
@@ -108,45 +155,47 @@ func (gui *Gui) currentDetailLines(content string) []string {
 	return strings.Split(gui.detail.View(), "\n")
 }
 
-func (gui *Gui) renderDiffContentLines() []draw.DiffContentLine {
+func (gui *Gui) renderDiffContentLines() []guidiff.ContentLine {
 	file, ok := gui.diff.CurrentFile()
 	if !ok || len(file.Lines) == 0 {
 		return nil
 	}
-	lines := make([]draw.DiffContentLine, 0, len(file.Lines))
+	lineSelected := gui.diff.LineSelected()
+	lines := make([]guidiff.ContentLine, 0, len(file.Lines))
 	for idx, line := range file.Lines {
-		lines = append(lines, draw.DiffContentLine{
+		lines = append(lines, guidiff.ContentLine{
 			Location: gh.FormatDiffLineLocation(line),
-			Text:     guidiff.ColorizeContent(line.Text),
-			Selected: idx == gui.diff.LineSelected(),
-			InRange:  gui.review.IsLineWithinPendingRange(line),
+			Text:     guidiff.ColorizeLine(line.Text),
+			Selected: idx == lineSelected,
+			InRange:  gui.review.IsIndexWithinPendingRange(line.Path, line.Commentable, idx),
 		})
 	}
 	return lines
 }
 
-func (gui *Gui) buildReviewDrawerInput() *draw.ReviewDrawerInput {
-	if !gui.review.ShouldShowDrawer() {
+func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *guireview.DrawerInput {
+	if !showDrawer {
 		return nil
 	}
 	summary := gui.state.Review.Summary
 	if gui.state.Review.InputMode == core.ReviewInputSummary {
 		summary = gui.review.CurrentSummaryValue()
 	}
-	input := &draw.ReviewDrawerInput{
+	input := &guireview.DrawerInput{
 		SummaryLines:     splitNonEmptyLines(summary),
-		CommentModeLabel: "single-line",
+		CommentModeLabel: guireview.CommentModeSingleLine,
 		Notice:           gui.state.Review.Notice,
 	}
 	if gui.state.Review.RangeStart != nil {
-		input.CommentModeLabel = "range-selecting"
-		input.RangeStart = &draw.Range{
+		input.CommentModeLabel = guireview.CommentModeRangeSelecting
+		input.RangeStart = &guireview.DrawerRange{
 			Path: gui.state.Review.RangeStart.Path,
 			Line: gui.state.Review.RangeStart.Line,
 		}
 	}
+	input.Comments = make([]guireview.DrawerComment, 0, len(gui.state.Review.Comments))
 	for _, comment := range gui.state.Review.Comments {
-		input.Comments = append(input.Comments, draw.Comment{
+		input.Comments = append(input.Comments, guireview.DrawerComment{
 			Path:      comment.Path,
 			Line:      comment.Line,
 			StartLine: comment.StartLine,

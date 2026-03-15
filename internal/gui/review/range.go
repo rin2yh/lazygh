@@ -2,8 +2,6 @@ package review
 
 import (
 	"github.com/rin2yh/lazygh/internal/core"
-	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/gui/diff"
 )
 
 type rangeState struct {
@@ -22,10 +20,6 @@ func newRange(state *core.State, selection Selection, setFocus func(FocusTarget)
 
 func (f *rangeState) RangeStart() *core.ReviewRange {
 	return f.state.Review.RangeStart
-}
-
-func (f *rangeState) Clear() {
-	f.state.ClearReviewRangeStart()
 }
 
 func (f *rangeState) ToggleSelection() {
@@ -55,17 +49,9 @@ func (f *rangeState) ToggleSelection() {
 	f.setFocus(FocusDiffContent)
 }
 
-func (f *rangeState) IsLineWithinPendingRange(line gh.DiffLine) bool {
+func (f *rangeState) IsIndexWithinPendingRange(path string, commentable bool, idx int) bool {
 	start := f.state.Review.RangeStart
-	if start == nil || start.Path != line.Path || !line.Commentable {
-		return false
-	}
-	file, ok := f.selection.CurrentDiffFile()
-	if !ok {
-		return false
-	}
-	lineIndex := diff.LineIndex(file, line)
-	if lineIndex < 0 {
+	if start == nil || start.Path != path || !commentable {
 		return false
 	}
 	minIndex := start.Index
@@ -73,5 +59,5 @@ func (f *rangeState) IsLineWithinPendingRange(line gh.DiffLine) bool {
 	if minIndex > maxIndex {
 		minIndex, maxIndex = maxIndex, minIndex
 	}
-	return lineIndex >= minIndex && lineIndex <= maxIndex
+	return idx >= minIndex && idx <= maxIndex
 }
