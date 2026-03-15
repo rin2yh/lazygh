@@ -21,7 +21,7 @@ func TestFormatStatusLine(t *testing.T) {
 			name:  "overview repo focus with pr",
 			hasPR: true,
 			focus: FocusRepo,
-			want:  "[q]Quit [enter]Reload | [Repo] [l]Next Panel [d]Diff",
+			want:  "[q]Quit [r]Reload | [Repo] [l]Next Panel [d]Diff",
 		},
 		{
 			name:     "diff focus files",
@@ -29,7 +29,7 @@ func TestFormatStatusLine(t *testing.T) {
 			hasPR:    true,
 			focus:    FocusDiffFiles,
 			hasFiles: true,
-			want:     "[q]Quit [enter]Reload | [tab]Focus [Files] [j/k/↑/↓]Move [h/l]Prev/Next Panel [o]Overview [v]Range [c]Comment",
+			want:     "[q]Quit [r]Reload | [tab]Focus [Files] [j/k/↑/↓]Move [h/l]Prev/Next Panel [o]Overview [v]Range [enter]Comment",
 		},
 		{
 			name:     "loading",
@@ -72,7 +72,7 @@ func TestFormatStatusLine_UsesCustomBindings(t *testing.T) {
 		Keys:      keys,
 	}.String()
 
-	want := "[q]Quit [enter]Reload | [tab]Focus [PRs] [h/n]Prev/Next Panel [j/p/↑/↓]Move [c/r]Review"
+	want := "[q]Quit [r]Reload | [tab]Focus [PRs] [h/n]Prev/Next Panel [j/p/↑/↓]Move [enter/r]Review"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}

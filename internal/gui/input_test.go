@@ -45,7 +45,7 @@ func TestModelUpdate_VKeyTogglesRangeSelection(t *testing.T) {
 	}
 }
 
-func TestModelUpdate_CKeyUsesRangeFlowAfterV(t *testing.T) {
+func TestModelUpdate_EnterKeyUsesRangeFlowAfterV(t *testing.T) {
 	g, err := NewGui(config.Default(), &testmock.GHClient{}, &testmock.GHClient{})
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
@@ -72,7 +72,7 @@ func TestModelUpdate_CKeyUsesRangeFlowAfterV(t *testing.T) {
 		t.Fatal("expected range start")
 	}
 
-	_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
+	_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	if cmd != nil {
 		t.Fatal("did not expect command")
 	}
@@ -100,7 +100,7 @@ func TestModelUpdate_EscCancelsCommentAndClearsRangeHighlight(t *testing.T) {
 	g.diff.SetLineSelected(5)
 	m := &screen{gui: g}
 	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'v'}})
-	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
+	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	if g.state.Review.RangeStart == nil {
 		t.Fatal("expected range start before cancel")
 	}
@@ -220,7 +220,7 @@ func TestModelUpdate_ReviewKeysIgnoredOutsideDiff(t *testing.T) {
 	m := &screen{gui: g}
 
 	for _, key := range []tea.KeyMsg{
-		{Type: tea.KeyRunes, Runes: []rune{'c'}},
+		{Type: tea.KeyEnter},
 		{Type: tea.KeyRunes, Runes: []rune{'v'}},
 		{Type: tea.KeyRunes, Runes: []rune{'R'}},
 	} {

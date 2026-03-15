@@ -88,7 +88,7 @@ func TestLazyghE2E_FakeGHViaPTY(t *testing.T) {
 
 func openPRDetailAndWait(t *testing.T, s *e2e.Session, timeout time.Duration) {
 	t.Helper()
-	s.WriteInputAndWaitOutputContains([]byte("\r"), "PR detail", timeout)
+	s.WriteInputAndWaitOutputContains([]byte("r"), "PR detail", timeout)
 }
 
 func openPRDiffAndWait(t *testing.T, s *e2e.Session, timeout time.Duration) {

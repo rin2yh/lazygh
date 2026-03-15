@@ -59,7 +59,7 @@ func TestGuiRun_LoadsPRsAndDetail(t *testing.T) {
 		return g.state.Repo == "owner/repo1" && len(g.state.PRs) == 1
 	}, "prs were not loaded")
 
-	p.Send(tea.KeyMsg{Type: tea.KeyEnter})
+	p.Send(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
 	waitChan(t, client.DetailCalled, "ViewPR was not called")
 	close(releaseDetail)
 	waitUntil(t, func() bool {

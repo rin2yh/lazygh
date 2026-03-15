@@ -21,7 +21,10 @@ func TestDefault(t *testing.T) {
 	if got := cfg.KeyBindings.MoveDown.Keys; len(got) != 2 || got[0] != "j" || got[1] != "down" {
 		t.Fatalf("got %v, want [j down]", got)
 	}
-	if got := cfg.KeyBindings.OpenSelected.Keys; len(got) != 1 || got[0] != "enter" {
+	if got := cfg.KeyBindings.OpenSelected.Keys; len(got) != 1 || got[0] != "r" {
+		t.Fatalf("got %v, want [r]", got)
+	}
+	if got := cfg.KeyBindings.ReviewComment.Keys; len(got) != 1 || got[0] != "enter" {
 		t.Fatalf("got %v, want [enter]", got)
 	}
 }
@@ -68,8 +71,8 @@ func TestKeyBindingsLabels(t *testing.T) {
 	if got := keys.TopBottomLabel(); got != "g/G" {
 		t.Fatalf("got %q, want %q", got, "g/G")
 	}
-	if got := keys.ReviewModeLabel(); got != "c/R" {
-		t.Fatalf("got %q, want %q", got, "c/R")
+	if got := keys.ReviewModeLabel(); got != "enter/R" {
+		t.Fatalf("got %q, want %q", got, "enter/R")
 	}
 }
 
@@ -93,8 +96,8 @@ func TestKeyBindingsLabelsFollowCustomBindings(t *testing.T) {
 	if got := keys.TopBottomLabel(); got != "g/B" {
 		t.Fatalf("got %q, want %q", got, "g/B")
 	}
-	if got := keys.ReviewModeLabel(); got != "c/r" {
-		t.Fatalf("got %q, want %q", got, "c/r")
+	if got := keys.ReviewModeLabel(); got != "enter/r" {
+		t.Fatalf("got %q, want %q", got, "enter/r")
 	}
 }
 
