@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -19,6 +20,7 @@ type Session struct {
 	runCmd   *exec.Cmd
 	ptmx     *os.File
 	output   bytes.Buffer
+	outputMu sync.Mutex
 	copyDone chan struct{}
 }
 
@@ -63,7 +65,18 @@ func NewSession(t *testing.T, processBin string) *Session {
 		copyDone: make(chan struct{}),
 	}
 	go func() {
-		_, _ = s.output.ReadFrom(s.ptmx)
+		buf := make([]byte, 4096)
+		for {
+			n, err := s.ptmx.Read(buf)
+			if n > 0 {
+				s.outputMu.Lock()
+				_, _ = s.output.Write(buf[:n])
+				s.outputMu.Unlock()
+			}
+			if err != nil {
+				break
+			}
+		}
 		close(s.copyDone)
 	}()
 	return s
@@ -87,7 +100,7 @@ func (s *Session) WaitLogContains(want string, timeout time.Duration) {
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	s.t.Fatalf("fake gh log did not contain %q in time. output:\n%s", want, s.output.String())
+	s.t.Fatalf("fake gh log did not contain %q in time. output:\n%s", want, s.Output())
 }
 
 func (s *Session) HasLogEntry(want string) bool {
@@ -103,6 +116,30 @@ func (s *Session) WriteInput(in []byte) {
 	if _, err := s.ptmx.Write(in); err != nil {
 		s.t.Fatalf("write input failed: %v", err)
 	}
+}
+
+func (s *Session) WriteInputAndWaitLogContains(in []byte, want string, timeout time.Duration) {
+	s.t.Helper()
+	s.WriteInput(in)
+	s.WaitLogContains(want, timeout)
+}
+
+func (s *Session) WaitOutputContains(want string, timeout time.Duration) {
+	s.t.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if strings.Contains(s.Output(), want) {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	s.t.Fatalf("screen output did not contain %q in time. output:\n%s", want, s.Output())
+}
+
+func (s *Session) WriteInputAndWaitOutputContains(in []byte, want string, timeout time.Duration) {
+	s.t.Helper()
+	s.WriteInput(in)
+	s.WaitOutputContains(want, timeout)
 }
 
 func (s *Session) CloseAndWait() {
@@ -142,4 +179,10 @@ func (s *Session) AssertLogContainsAll(wants ...string) {
 			s.t.Fatalf("fake gh should be called with %q, got:\n%s", want, logText)
 		}
 	}
+}
+
+func (s *Session) Output() string {
+	s.outputMu.Lock()
+	defer s.outputMu.Unlock()
+	return s.output.String()
 }

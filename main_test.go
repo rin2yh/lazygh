@@ -76,8 +76,7 @@ func TestLazyghE2E_FakeGHViaPTY(t *testing.T) {
 	s := e2e.NewSession(t, os.Args[0])
 	defer s.CloseAndWait()
 
-	s.WaitLogContains("repo view", 3*time.Second)
-	s.WaitLogContains("pr list", 3*time.Second)
+	s.WaitOutputContains("Fix bug", 5*time.Second)
 	s.AssertLogContainsAll("repo view", "pr list")
 
 	openPRDetailAndWait(t, s, 4*time.Second)
@@ -89,28 +88,10 @@ func TestLazyghE2E_FakeGHViaPTY(t *testing.T) {
 
 func openPRDetailAndWait(t *testing.T, s *e2e.Session, timeout time.Duration) {
 	t.Helper()
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		s.WriteInput([]byte("\r"))
-		time.Sleep(80 * time.Millisecond)
-
-		if s.HasLogEntry("pr view") {
-			return
-		}
-	}
-	t.Fatal("opening pr detail did not trigger pr view in time")
+	s.WriteInputAndWaitOutputContains([]byte("\r"), "PR detail", timeout)
 }
 
 func openPRDiffAndWait(t *testing.T, s *e2e.Session, timeout time.Duration) {
 	t.Helper()
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		s.WriteInput([]byte("d"))
-		time.Sleep(80 * time.Millisecond)
-
-		if s.HasLogEntry("pr diff") {
-			return
-		}
-	}
-	t.Fatal("switching to diff did not trigger pr diff in time")
+	s.WriteInputAndWaitOutputContains([]byte("d"), "PR diff", timeout)
 }
