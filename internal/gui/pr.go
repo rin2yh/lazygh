@@ -6,6 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	"github.com/rin2yh/lazygh/internal/gui/diff"
 )
 
 type prsLoadedMsg struct {
@@ -111,7 +112,7 @@ func (gui *Gui) currentDiffContent() string {
 }
 
 func (gui *Gui) updateDiffFiles(content string) {
-	files := gh.ParseUnifiedDiff(content)
+	files, selected, lineSelected := diff.ParseFiles(gui.diffFiles, gui.diffFileSelected, content)
 	if len(files) == 0 {
 		gui.diffFiles = nil
 		gui.diffFileSelected = 0
@@ -122,21 +123,8 @@ func (gui *Gui) updateDiffFiles(content string) {
 		return
 	}
 
-	prevPath := ""
-	if gui.diffFileSelected >= 0 && gui.diffFileSelected < len(gui.diffFiles) {
-		prevPath = gui.diffFiles[gui.diffFileSelected].Path
-	}
-
 	gui.diffFiles = files
-	gui.diffFileSelected = 0
-	gui.diffLineSelected = 0
-	if prevPath != "" {
-		for i, file := range files {
-			if file.Path == prevPath {
-				gui.diffFileSelected = i
-				break
-			}
-		}
-	}
+	gui.diffFileSelected = selected
+	gui.diffLineSelected = lineSelected
 	gui.ensureDiffLineSelection()
 }

@@ -51,7 +51,7 @@ func (gui *Gui) buildRenderInput() draw.Input {
 			HasPR:           len(gui.state.PRs) > 0,
 			Focus:           gui.renderFocus(),
 			HasFiles:        len(gui.diffFiles) > 0,
-			HasReviewDrawer: gui.shouldShowReviewDrawer(),
+			HasReviewDrawer: gui.review.ShouldShowDrawer(),
 			InputMode:       gui.state.Review.InputMode,
 		}.String(),
 		Theme: draw.Theme{
@@ -101,7 +101,7 @@ func (gui *Gui) renderPRItems() []string {
 }
 
 func (gui *Gui) currentDetailLines(content string) []string {
-	dims := layout.New(gui.state.Width, gui.state.Height, gui.state.IsDiffMode(), gui.shouldShowReviewDrawer())
+	dims := layout.New(gui.state.Width, gui.state.Height, gui.state.IsDiffMode(), gui.review.ShouldShowDrawer())
 	innerWidth := dims.RightWidth
 	if gui.state.IsDiffMode() && dims.RightWidth >= 20 {
 		filesWidth := dims.RightWidth * 30 / 100
@@ -133,19 +133,19 @@ func (gui *Gui) renderDiffContentLines() []draw.DiffContentLine {
 			Location: gh.FormatDiffLineLocation(line),
 			Text:     diff.ColorizeContent(line.Text),
 			Selected: idx == gui.diffLineSelected,
-			InRange:  gui.isDiffLineWithinPendingRange(line),
+			InRange:  gui.review.IsLineWithinPendingRange(line),
 		})
 	}
 	return lines
 }
 
 func (gui *Gui) buildReviewDrawerInput() *draw.ReviewDrawerInput {
-	if !gui.shouldShowReviewDrawer() {
+	if !gui.review.ShouldShowDrawer() {
 		return nil
 	}
 	summary := gui.state.Review.Summary
 	if gui.state.Review.InputMode == core.ReviewInputSummary {
-		summary = gui.summaryEditor.Value()
+		summary = gui.review.CurrentSummaryValue()
 	}
 	input := &draw.ReviewDrawerInput{
 		SummaryLines:     splitNonEmptyLines(summary),
@@ -168,10 +168,10 @@ func (gui *Gui) buildReviewDrawerInput() *draw.ReviewDrawerInput {
 		})
 	}
 	if gui.state.Review.InputMode == core.ReviewInputComment {
-		input.CommentInputLines = strings.Split(gui.commentEditor.View(), "\n")
+		input.CommentInputLines = gui.review.CommentInputLines()
 	}
 	if gui.state.Review.InputMode == core.ReviewInputSummary {
-		input.SummaryInputLines = strings.Split(gui.summaryEditor.View(), "\n")
+		input.SummaryInputLines = gui.review.SummaryInputLines()
 	}
 	return input
 }

@@ -3,6 +3,7 @@ package gui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/core"
+	guireview "github.com/rin2yh/lazygh/internal/gui/review"
 )
 
 type screen struct {
@@ -28,14 +29,14 @@ func (s *screen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case detailLoadedMsg:
 		s.gui.applyDetailResult(msg)
 		return s, nil
-	case reviewCommentSavedMsg:
-		s.gui.applyReviewCommentResult(msg)
+	case guireview.CommentSavedMsg:
+		s.gui.review.ApplyCommentResult(msg)
 		return s, nil
-	case reviewSubmittedMsg:
-		s.gui.applyReviewSubmitResult(msg)
+	case guireview.SubmittedMsg:
+		s.gui.review.ApplySubmitResult(msg)
 		return s, nil
-	case reviewDiscardedMsg:
-		s.gui.applyReviewDiscardResult(msg)
+	case guireview.DiscardedMsg:
+		s.gui.review.ApplyDiscardResult(msg)
 		return s, nil
 	case tea.KeyMsg:
 		if s.gui.state.Review.InputMode != core.ReviewInputNone {

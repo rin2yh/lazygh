@@ -1,5 +1,7 @@
 package gui
 
+import guireview "github.com/rin2yh/lazygh/internal/gui/review"
+
 type panelFocus int
 
 const (
@@ -82,8 +84,17 @@ func (gui *Gui) focusOrder() []panelFocus {
 		order = append(order, panelDiffFiles)
 	}
 	order = append(order, panelDiffContent)
-	if gui.shouldShowReviewDrawer() {
+	if gui.review.ShouldShowDrawer() {
 		order = append(order, panelReviewDrawer)
 	}
 	return order
+}
+
+func (gui *Gui) setReviewFocus(target guireview.FocusTarget) {
+	switch target {
+	case guireview.FocusReviewDrawer:
+		gui.focus = panelReviewDrawer
+	default:
+		gui.focus = panelDiffContent
+	}
 }

@@ -1,12 +1,12 @@
 package gui
 
 import (
-	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	guireview "github.com/rin2yh/lazygh/internal/gui/review"
 )
 
 const (
@@ -37,15 +37,12 @@ type Gui struct {
 	detailViewportHeight int
 	detailViewportBody   string
 
-	commentEditor textarea.Model
-	summaryEditor textarea.Model
+	review *guireview.Controller
 }
 
 func NewGui(cfg *config.Config, client gh.ClientInterface) (*Gui, error) {
 	vp := viewport.New(1, 1)
-	commentEditor := newReviewEditor("Add review comment")
-	summaryEditor := newReviewEditor("Review summary")
-	return &Gui{
+	gui := &Gui{
 		config:               cfg,
 		state:                core.NewState(),
 		client:               client,
@@ -53,9 +50,9 @@ func NewGui(cfg *config.Config, client gh.ClientInterface) (*Gui, error) {
 		detailViewport:       vp,
 		detailViewportWidth:  1,
 		detailViewportHeight: 1,
-		commentEditor:        commentEditor,
-		summaryEditor:        summaryEditor,
-	}, nil
+	}
+	gui.review = guireview.NewController(gui.state, client, gui, gui.setReviewFocus)
+	return gui, nil
 }
 
 func (gui *Gui) Run() error {

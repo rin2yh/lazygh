@@ -10,15 +10,15 @@ import (
 func (s *screen) handleReviewInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	switch msg.String() {
 	case "S":
-		return s.handleReviewSubmit(), true
+		return s.gui.review.HandleSubmit(), true
 	case "X":
-		return s.handleReviewDiscard(), true
+		return s.gui.review.HandleDiscard(), true
 	case "ctrl+s":
 		if s.gui.state.Review.InputMode == core.ReviewInputComment {
-			return s.handleReviewCommentSave(), true
+			return s.gui.review.HandleCommentSave(), true
 		}
 	}
-	if s.gui.handleReviewEditorKey(msg) {
+	if s.gui.review.HandleEditorKey(msg) {
 		return nil, true
 	}
 	return nil, false
@@ -61,13 +61,12 @@ func (s *screen) handleKeyInput(msg tea.KeyMsg) tea.Cmd {
 	case "R":
 		return s.startReviewSummary()
 	case "S":
-		return s.handleReviewSubmit()
+		return s.gui.review.HandleSubmit()
 	case "X":
-		return s.handleReviewDiscard()
+		return s.gui.review.HandleDiscard()
 	case "x":
 		if s.gui.state.Review.InputMode == core.ReviewInputComment {
-			s.gui.commentEditor.SetValue("")
-			s.gui.state.SetReviewNotice("Comment input cleared.")
+			s.gui.review.ClearCommentInput()
 		}
 		return nil
 	default:
@@ -83,7 +82,7 @@ func (s *screen) handleCancel() tea.Cmd {
 		return nil
 	}
 	if s.gui.focus == panelReviewDrawer {
-		s.gui.stopReviewInput()
+		s.gui.review.StopInput()
 		s.gui.focus = panelDiffContent
 		return nil
 	}
@@ -167,7 +166,7 @@ func (s *screen) startReviewRange() tea.Cmd {
 		s.gui.state.SetReviewNotice("Review range selection is only available in diff view.")
 		return nil
 	}
-	s.gui.toggleReviewRangeSelection()
+	s.gui.review.ToggleRangeSelection()
 	return nil
 }
 
@@ -176,7 +175,7 @@ func (s *screen) startReviewComment() tea.Cmd {
 		s.gui.state.SetReviewNotice("Review comments are only available in diff view.")
 		return nil
 	}
-	s.gui.beginReviewCommentFlow()
+	s.gui.review.BeginCommentFlow()
 	return nil
 }
 
@@ -185,6 +184,6 @@ func (s *screen) startReviewSummary() tea.Cmd {
 		s.gui.state.SetReviewNotice("Review summary is only available in diff view.")
 		return nil
 	}
-	s.gui.beginReviewSummaryInput()
+	s.gui.review.BeginSummaryInput()
 	return nil
 }

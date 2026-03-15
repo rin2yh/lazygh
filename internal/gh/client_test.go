@@ -9,7 +9,7 @@ import (
 
 	"github.com/rin2yh/lazygh/pkg/test/fake"
 	"github.com/rin2yh/lazygh/pkg/test/fixture"
-	"github.com/rin2yh/lazygh/pkg/test/stub"
+	ghstub "github.com/rin2yh/lazygh/pkg/test/stub/gh"
 )
 
 // TestFakeProcess は実際のテストではなく、fake gh コマンドとして動作する。
@@ -65,7 +65,7 @@ func TestFakeProcess(t *testing.T) {
 
 func newTestClient(t *testing.T) *Client {
 	t.Helper()
-	return &Client{execCommand: stub.NewCommand(t, "TestFakeProcess", "GO_TEST_HELPER_PROCESS")}
+	return &Client{execCommand: ghstub.NewCommand(t, "TestFakeProcess", "GO_TEST_HELPER_PROCESS")}
 }
 
 func TestResolveCurrentRepo(t *testing.T) {

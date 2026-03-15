@@ -1,4 +1,4 @@
-package stub
+package gh
 
 import (
 	"fmt"
