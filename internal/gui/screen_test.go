@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
 	testfactory "github.com/rin2yh/lazygh/pkg/test/factory"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
@@ -20,7 +19,6 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 		wantIndex  int
 		wantCmd    bool
 		wantDetail string
-		client     *testmock.GHClient
 	}{
 		{
 			name:       "j on prs moves selection without reload",
@@ -30,7 +28,6 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 			wantIndex:  1,
 			wantCmd:    false,
 			wantDetail: "PR #2 two\nStatus: OPEN\nAssignee: unassigned",
-			client:     &testmock.GHClient{},
 		},
 		{
 			name:       "j on repo does nothing",
@@ -40,7 +37,6 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 			wantIndex:  0,
 			wantCmd:    false,
 			wantDetail: "PR #1 one\nStatus: \nAssignee: -",
-			client:     &testmock.GHClient{},
 		},
 		{
 			name:       "j on overview does nothing",
@@ -50,17 +46,13 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 			wantIndex:  0,
 			wantCmd:    false,
 			wantDetail: "PR #1 one\nStatus: \nAssignee: -",
-			client:     &testmock.GHClient{},
 		},
 	}
 
 	prs := []core.Item{testfactory.CoreItem(1, "one"), testfactory.CoreItem(2, "two")}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), tt.client, tt.client)
-			if err != nil {
-				t.Fatalf("NewGui failed: %v", err)
-			}
+			g := mustNewGui(t, &testmock.GHClient{})
 			g.state.ApplyPRsResult("owner/repo", prs, nil)
 			g.focus = tt.startFocus
 			g.state.List.PRsSelected = tt.startIndex
@@ -86,10 +78,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 
 	t.Run("j on prs returns reload command", func(t *testing.T) {
 		client := &testmock.GHClient{PRDiff: "diff for two"}
-		g, err := NewGui(config.Default(), client, client)
-		if err != nil {
-			t.Fatalf("NewGui failed: %v", err)
-		}
+		g := mustNewGui(t, client)
 		g.state.ApplyPRsResult("owner/repo", prs, nil)
 		g.switchToDiff()
 		g.focus = panelPRs
@@ -116,10 +105,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 	})
 
 	t.Run("j on repo does nothing", func(t *testing.T) {
-		g, err := NewGui(config.Default(), &testmock.GHClient{PRDiff: "diff for two"}, &testmock.GHClient{PRDiff: "diff for two"})
-		if err != nil {
-			t.Fatalf("NewGui failed: %v", err)
-		}
+		g := mustNewGui(t, &testmock.GHClient{PRDiff: "diff for two"})
 		g.state.ApplyPRsResult("owner/repo", prs, nil)
 		g.switchToDiff()
 		g.focus = panelRepo
@@ -135,10 +121,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 	})
 
 	t.Run("j on diff content scrolls without changing prs", func(t *testing.T) {
-		g, err := NewGui(config.Default(), &testmock.GHClient{PRDiff: "diff for two"}, &testmock.GHClient{PRDiff: "diff for two"})
-		if err != nil {
-			t.Fatalf("NewGui failed: %v", err)
-		}
+		g := mustNewGui(t, &testmock.GHClient{PRDiff: "diff for two"})
 		g.state.ApplyPRsResult("owner/repo", prs, nil)
 		g.switchToDiff()
 		g.updateDiffFiles(strings.Join([]string{
