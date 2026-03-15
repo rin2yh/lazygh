@@ -126,19 +126,35 @@ func (s *screen) showDiff() tea.Cmd {
 	return nil
 }
 
-func (s *screen) moveDown() tea.Cmd {
+func (s *screen) moveDown() tea.Cmd { return s.moveCursor(1) }
+func (s *screen) moveUp() tea.Cmd   { return s.moveCursor(-1) }
+
+// moveCursor moves the cursor in the given direction (1 = down, -1 = up).
+func (s *screen) moveCursor(dir int) tea.Cmd {
 	if s.gui.state.IsDiffMode() {
 		switch s.gui.focus {
 		case panelPRs:
-			if s.gui.navigateDown() {
+			navigate := s.gui.navigateDown
+			if dir < 0 {
+				navigate = s.gui.navigateUp
+			}
+			if navigate() {
 				return s.openSelectedPR()
 			}
 			return nil
 		case panelDiffFiles:
-			s.gui.diff.SelectNextFile()
+			if dir > 0 {
+				s.gui.diff.SelectNextFile()
+			} else {
+				s.gui.diff.SelectPrevFile()
+			}
 			return nil
 		case panelDiffContent:
-			s.scrollDetailDown()
+			if dir > 0 {
+				s.scrollDetailDown()
+			} else {
+				s.scrollDetailUp()
+			}
 			return nil
 		case panelReviewDrawer:
 			return nil
@@ -147,33 +163,11 @@ func (s *screen) moveDown() tea.Cmd {
 	}
 
 	if s.gui.focus == panelPRs {
-		s.gui.navigateDown()
-	}
-	return nil
-}
-
-func (s *screen) moveUp() tea.Cmd {
-	if s.gui.state.IsDiffMode() {
-		switch s.gui.focus {
-		case panelPRs:
-			if s.gui.navigateUp() {
-				return s.openSelectedPR()
-			}
-			return nil
-		case panelDiffFiles:
-			s.gui.diff.SelectPrevFile()
-			return nil
-		case panelDiffContent:
-			s.scrollDetailUp()
-			return nil
-		case panelReviewDrawer:
-			return nil
+		if dir > 0 {
+			s.gui.navigateDown()
+		} else {
+			s.gui.navigateUp()
 		}
-		return nil
-	}
-
-	if s.gui.focus == panelPRs {
-		s.gui.navigateUp()
 	}
 	return nil
 }
