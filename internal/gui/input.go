@@ -22,8 +22,8 @@ func (s *screen) handleReviewInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 			}
 		}
 	}
-	if s.gui.review.HandleEditorKey(msg) {
-		return nil, true
+	if cmd, handled := s.gui.review.HandleEditorKey(msg); handled {
+		return cmd, true
 	}
 	return nil, false
 }
@@ -77,8 +77,7 @@ func (s *screen) handleNavigationAction(action config.Action) (tea.Cmd, bool) {
 	case config.ActionMoveUp:
 		return s.moveUp(), true
 	case config.ActionPageDown, config.ActionPageUp, config.ActionGoTop, config.ActionGoBottom:
-		s.handleDetailScrollAction(action)
-		return nil, true
+		return s.handleDetailScrollAction(action), true
 	default:
 		return nil, false
 	}
@@ -191,9 +190,9 @@ func (s *screen) openSelectedPR() tea.Cmd {
 	}
 }
 
-func (s *screen) handleDetailScrollAction(action config.Action) {
+func (s *screen) handleDetailScrollAction(action config.Action) tea.Cmd {
 	if s.gui.focus != panelDiffContent {
-		return
+		return nil
 	}
 
 	if s.gui.state.IsDiffMode() {
@@ -207,17 +206,19 @@ func (s *screen) handleDetailScrollAction(action config.Action) {
 		case config.ActionGoBottom:
 			s.gui.diff.GotoLastLine()
 		}
-		return
+		return nil
 	}
 
 	switch action {
 	case config.ActionPageDown, config.ActionPageUp:
 		key, ok := primaryKeyMsg(s.gui.config.KeyBindings.Binding(action))
 		if !ok {
-			return
+			return nil
 		}
-		s.gui.detail.Update(key)
+		_, cmd := s.gui.detail.Update(key)
+		return cmd
 	}
+	return nil
 }
 
 func primaryKeyMsg(binding config.KeyBinding) (tea.KeyMsg, bool) {

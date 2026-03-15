@@ -44,10 +44,10 @@ func (s *State) Height() int {
 	return s.height
 }
 
-func (s *State) Update(msg tea.KeyMsg) bool {
-	updated, _ := s.viewport.Update(msg)
+func (s *State) Update(msg tea.KeyMsg) (bool, tea.Cmd) {
+	updated, cmd := s.viewport.Update(msg)
 	s.viewport = updated
-	return true
+	return true, cmd
 }
 
 func (s *State) ScrollDown(lines int) {

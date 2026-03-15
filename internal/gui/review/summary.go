@@ -42,10 +42,10 @@ func (f *summary) StopInput() {
 	f.editor.Blur()
 }
 
-func (f *summary) HandleKey(msg tea.KeyMsg) bool {
-	updated, _ := f.editor.Update(msg)
+func (f *summary) HandleKey(msg tea.KeyMsg) (bool, tea.Cmd) {
+	updated, cmd := f.editor.Update(msg)
 	f.editor = updated
-	return true
+	return true, cmd
 }
 
 func (f *summary) Save() {

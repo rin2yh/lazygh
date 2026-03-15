@@ -21,7 +21,7 @@ func TestHandleEditorKey_EscCancelsCommentAndClearsRange(t *testing.T) {
 	})
 	controller.SetCommentValue("draft")
 
-	handled := controller.HandleEditorKey(tea.KeyMsg{Type: tea.KeyEsc})
+	_, handled := controller.HandleEditorKey(tea.KeyMsg{Type: tea.KeyEsc})
 	if !handled {
 		t.Fatal("expected key handled")
 	}

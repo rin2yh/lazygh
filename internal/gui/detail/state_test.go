@@ -26,7 +26,7 @@ func TestStateUpdateHandlesPageDown(t *testing.T) {
 	state := NewState()
 	state.Sync(20, 4, strings.Repeat("line\n", 30))
 
-	if !state.Update(tea.KeyMsg{Type: tea.KeyPgDown}) {
+	if handled, _ := state.Update(tea.KeyMsg{Type: tea.KeyPgDown}); !handled {
 		t.Fatal("expected update to handle page down")
 	}
 	if state.YOffset() == 0 {

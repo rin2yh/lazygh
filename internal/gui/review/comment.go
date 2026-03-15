@@ -62,20 +62,20 @@ func (f *comment) StopInput() {
 	f.editor.SetValue("")
 }
 
-func (f *comment) HandleKey(msg tea.KeyMsg) bool {
+func (f *comment) HandleKey(msg tea.KeyMsg) (bool, tea.Cmd) {
 	switch msg.Type {
 	case tea.KeyEsc:
-		return false
+		return false, nil
 	}
 
 	switch {
 	case f.keys.Matches(msg, config.ActionReviewSave):
-		return true
+		return true, nil
 	}
 
-	updated, _ := f.editor.Update(msg)
+	updated, cmd := f.editor.Update(msg)
 	f.editor = updated
-	return true
+	return true, cmd
 }
 
 func (f *comment) BuildDraft(body string, start *core.ReviewRange) (gh.ReviewComment, error) {

@@ -80,22 +80,24 @@ func (c *Controller) StopInput() {
 	c.view.StopInput()
 }
 
-func (c *Controller) HandleEditorKey(msg tea.KeyMsg) bool {
+func (c *Controller) HandleEditorKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	switch msg.Type {
 	case tea.KeyEsc:
-		return c.view.HandleEsc()
+		return nil, c.view.HandleEsc()
 	}
 	if c.keys.Matches(msg, config.ActionReviewSave) && c.view.InputMode() == core.ReviewInputSummary {
-		return c.view.HandleSummarySave()
+		return nil, c.view.HandleSummarySave()
 	}
 
 	switch c.view.InputMode() {
 	case core.ReviewInputComment:
-		return c.comment.HandleKey(msg)
+		handled, cmd := c.comment.HandleKey(msg)
+		return cmd, handled
 	case core.ReviewInputSummary:
-		return c.summary.HandleKey(msg)
+		handled, cmd := c.summary.HandleKey(msg)
+		return cmd, handled
 	default:
-		return false
+		return nil, false
 	}
 }
 
