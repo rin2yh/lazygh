@@ -37,32 +37,42 @@ const (
 	ActionReviewClearComment
 )
 
+type ActionSpec struct {
+	Action      Action
+	Name        string
+	DefaultKeys []string
+}
+
+var actionSpecs = []ActionSpec{
+	{Action: ActionQuit, Name: "Quit", DefaultKeys: []string{"q", "ctrl+c"}},
+	{Action: ActionCancel, Name: "Cancel", DefaultKeys: []string{"esc"}},
+	{Action: ActionFocusNext, Name: "Focus Next", DefaultKeys: []string{"tab"}},
+	{Action: ActionMoveDown, Name: "Move Down", DefaultKeys: []string{"j", "down"}},
+	{Action: ActionMoveUp, Name: "Move Up", DefaultKeys: []string{"k", "up"}},
+	{Action: ActionPageDown, Name: "Page Down", DefaultKeys: []string{"pgdown", "f", " "}},
+	{Action: ActionPageUp, Name: "Page Up", DefaultKeys: []string{"pgup", "b"}},
+	{Action: ActionGoTop, Name: "Go Top", DefaultKeys: []string{"home", "g"}},
+	{Action: ActionGoBottom, Name: "Go Bottom", DefaultKeys: []string{"end", "G"}},
+	{Action: ActionPanelPrev, Name: "Panel Prev", DefaultKeys: []string{"h"}},
+	{Action: ActionPanelNext, Name: "Panel Next", DefaultKeys: []string{"l"}},
+	{Action: ActionShowOverview, Name: "Show Overview", DefaultKeys: []string{"o"}},
+	{Action: ActionShowDiff, Name: "Show Diff", DefaultKeys: []string{"d"}},
+	{Action: ActionOpenSelected, Name: "Open Selected", DefaultKeys: []string{"r"}},
+	{Action: ActionReviewRange, Name: "Review Range", DefaultKeys: []string{"v"}},
+	{Action: ActionReviewComment, Name: "Review Comment", DefaultKeys: []string{"enter"}},
+	{Action: ActionReviewSummary, Name: "Review Summary", DefaultKeys: []string{"R"}},
+	{Action: ActionReviewSubmit, Name: "Review Submit", DefaultKeys: []string{"S"}},
+	{Action: ActionReviewDiscard, Name: "Review Discard", DefaultKeys: []string{"X"}},
+	{Action: ActionReviewSave, Name: "Review Save", DefaultKeys: []string{"ctrl+s"}},
+	{Action: ActionReviewClearComment, Name: "Review Clear Comment", DefaultKeys: []string{"x"}},
+}
+
 type KeyBinding struct {
 	Keys []string
 }
 
 type KeyBindings struct {
-	Quit               KeyBinding
-	Cancel             KeyBinding
-	FocusNext          KeyBinding
-	MoveDown           KeyBinding
-	MoveUp             KeyBinding
-	PageDown           KeyBinding
-	PageUp             KeyBinding
-	GoTop              KeyBinding
-	GoBottom           KeyBinding
-	PanelPrev          KeyBinding
-	PanelNext          KeyBinding
-	ShowOverview       KeyBinding
-	ShowDiff           KeyBinding
-	OpenSelected       KeyBinding
-	ReviewRange        KeyBinding
-	ReviewComment      KeyBinding
-	ReviewSummary      KeyBinding
-	ReviewSubmit       KeyBinding
-	ReviewDiscard      KeyBinding
-	ReviewSave         KeyBinding
-	ReviewClearComment KeyBinding
+	bindings map[Action]KeyBinding
 }
 
 type Config struct {
@@ -71,45 +81,55 @@ type Config struct {
 }
 
 func Default() *Config {
+	keys := newKeyBindings()
+	for _, spec := range actionSpecs {
+		keys.SetBinding(spec.Action, KeyBinding{Keys: append([]string(nil), spec.DefaultKeys...)})
+	}
+
 	return &Config{
 		Theme: Theme{
 			ActiveBorderColor:   "green",
 			InactiveBorderColor: "white",
 		},
-		KeyBindings: KeyBindings{
-			Quit:               KeyBinding{Keys: []string{"q", "ctrl+c"}},
-			Cancel:             KeyBinding{Keys: []string{"esc"}},
-			FocusNext:          KeyBinding{Keys: []string{"tab"}},
-			MoveDown:           KeyBinding{Keys: []string{"j", "down"}},
-			MoveUp:             KeyBinding{Keys: []string{"k", "up"}},
-			PageDown:           KeyBinding{Keys: []string{"pgdown", "f", " "}},
-			PageUp:             KeyBinding{Keys: []string{"pgup", "b"}},
-			GoTop:              KeyBinding{Keys: []string{"home", "g"}},
-			GoBottom:           KeyBinding{Keys: []string{"end", "G"}},
-			PanelPrev:          KeyBinding{Keys: []string{"h"}},
-			PanelNext:          KeyBinding{Keys: []string{"l"}},
-			ShowOverview:       KeyBinding{Keys: []string{"o"}},
-			ShowDiff:           KeyBinding{Keys: []string{"d"}},
-			OpenSelected:       KeyBinding{Keys: []string{"r"}},
-			ReviewRange:        KeyBinding{Keys: []string{"v"}},
-			ReviewComment:      KeyBinding{Keys: []string{"enter"}},
-			ReviewSummary:      KeyBinding{Keys: []string{"R"}},
-			ReviewSubmit:       KeyBinding{Keys: []string{"S"}},
-			ReviewDiscard:      KeyBinding{Keys: []string{"X"}},
-			ReviewSave:         KeyBinding{Keys: []string{"ctrl+s"}},
-			ReviewClearComment: KeyBinding{Keys: []string{"x"}},
-		},
+		KeyBindings: keys,
 	}
+}
+
+func newKeyBindings() KeyBindings {
+	return KeyBindings{bindings: make(map[Action]KeyBinding, len(actionSpecs))}
 }
 
 func (k KeyBindings) Matches(msg tea.KeyMsg, action Action) bool {
 	key := msg.String()
-	for _, candidate := range k.binding(action).Keys {
+	for _, candidate := range k.Binding(action).Keys {
 		if candidate == key {
 			return true
 		}
 	}
 	return false
+}
+
+func (k KeyBindings) ActionFor(msg tea.KeyMsg) (Action, bool) {
+	for _, spec := range actionSpecs {
+		if k.Matches(msg, spec.Action) {
+			return spec.Action, true
+		}
+	}
+	return 0, false
+}
+
+func (k KeyBindings) Binding(action Action) KeyBinding {
+	if k.bindings == nil {
+		return KeyBinding{}
+	}
+	return k.bindings[action]
+}
+
+func (k *KeyBindings) SetBinding(action Action, binding KeyBinding) {
+	if k.bindings == nil {
+		k.bindings = make(map[Action]KeyBinding, len(actionSpecs))
+	}
+	k.bindings[action] = binding
 }
 
 func (k KeyBindings) Label(action Action) string {
@@ -122,64 +142,6 @@ func (k KeyBindings) PrimaryLabel(action Action) string {
 		return ""
 	}
 	return labels[0]
-}
-
-func (k KeyBindings) binding(action Action) KeyBinding {
-	switch action {
-	case ActionQuit:
-		return k.Quit
-	case ActionCancel:
-		return k.Cancel
-	case ActionFocusNext:
-		return k.FocusNext
-	case ActionMoveDown:
-		return k.MoveDown
-	case ActionMoveUp:
-		return k.MoveUp
-	case ActionPageDown:
-		return k.PageDown
-	case ActionPageUp:
-		return k.PageUp
-	case ActionGoTop:
-		return k.GoTop
-	case ActionGoBottom:
-		return k.GoBottom
-	case ActionPanelPrev:
-		return k.PanelPrev
-	case ActionPanelNext:
-		return k.PanelNext
-	case ActionShowOverview:
-		return k.ShowOverview
-	case ActionShowDiff:
-		return k.ShowDiff
-	case ActionOpenSelected:
-		return k.OpenSelected
-	case ActionReviewRange:
-		return k.ReviewRange
-	case ActionReviewComment:
-		return k.ReviewComment
-	case ActionReviewSummary:
-		return k.ReviewSummary
-	case ActionReviewSubmit:
-		return k.ReviewSubmit
-	case ActionReviewDiscard:
-		return k.ReviewDiscard
-	case ActionReviewSave:
-		return k.ReviewSave
-	case ActionReviewClearComment:
-		return k.ReviewClearComment
-	default:
-		return KeyBinding{}
-	}
-}
-
-func (k KeyBindings) labels(action Action) []string {
-	keys := k.binding(action).Keys
-	labels := make([]string, 0, len(keys))
-	for _, key := range keys {
-		labels = append(labels, formatKeyLabel(key))
-	}
-	return labels
 }
 
 func (k KeyBindings) QuitLabel() string {
@@ -260,6 +222,15 @@ func (k KeyBindings) SummaryLabel() string {
 	return k.PrimaryLabel(ActionReviewSummary)
 }
 
+func (k KeyBindings) labels(action Action) []string {
+	keys := k.Binding(action).Keys
+	labels := make([]string, 0, len(keys))
+	for _, key := range keys {
+		labels = append(labels, formatKeyLabel(key))
+	}
+	return labels
+}
+
 func formatKeyLabel(key string) string {
 	switch key {
 	case "ctrl+c":
@@ -280,7 +251,7 @@ func formatKeyLabel(key string) string {
 }
 
 func (k KeyBindings) hasKey(action Action, key string) bool {
-	for _, candidate := range k.binding(action).Keys {
+	for _, candidate := range k.Binding(action).Keys {
 		if candidate == key {
 			return true
 		}
@@ -289,7 +260,7 @@ func (k KeyBindings) hasKey(action Action, key string) bool {
 }
 
 func (k KeyBindings) primaryNonArrowLabel(action Action) string {
-	for _, key := range k.binding(action).Keys {
+	for _, key := range k.Binding(action).Keys {
 		if key == "up" || key == "down" {
 			continue
 		}
@@ -308,7 +279,7 @@ func (k KeyBindings) pagePrimaryLabel(action Action) string {
 	}
 	best := ""
 	bestRank := 999
-	for _, key := range k.binding(action).Keys {
+	for _, key := range k.Binding(action).Keys {
 		rank, ok := priority[key]
 		if !ok {
 			return formatKeyLabel(key)
@@ -322,7 +293,7 @@ func (k KeyBindings) pagePrimaryLabel(action Action) string {
 }
 
 func (k KeyBindings) primaryNavigationLabel(action Action) string {
-	for _, key := range k.binding(action).Keys {
+	for _, key := range k.Binding(action).Keys {
 		switch key {
 		case "home", "end":
 			continue

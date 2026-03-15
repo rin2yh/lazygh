@@ -9,15 +9,17 @@ import (
 )
 
 func (s *screen) handleReviewInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
-	keys := s.gui.config.KeyBindings
-	switch {
-	case keys.Matches(msg, config.ActionReviewSubmit):
-		return s.gui.review.HandleSubmit(), true
-	case keys.Matches(msg, config.ActionReviewDiscard):
-		return s.gui.review.HandleDiscard(), true
-	case keys.Matches(msg, config.ActionReviewSave):
-		if s.gui.state.Review.InputMode == core.ReviewInputComment {
-			return s.gui.review.HandleCommentSave(), true
+	action, ok := s.gui.config.KeyBindings.ActionFor(msg)
+	if ok {
+		switch action {
+		case config.ActionReviewSubmit:
+			return s.gui.review.HandleSubmit(), true
+		case config.ActionReviewDiscard:
+			return s.gui.review.HandleDiscard(), true
+		case config.ActionReviewSave:
+			if s.gui.state.Review.InputMode == core.ReviewInputComment {
+				return s.gui.review.HandleCommentSave(), true
+			}
 		}
 	}
 	if s.gui.review.HandleEditorKey(msg) {
@@ -27,56 +29,79 @@ func (s *screen) handleReviewInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 }
 
 func (s *screen) handleKeyInput(msg tea.KeyMsg) tea.Cmd {
-	keys := s.gui.config.KeyBindings
-	switch {
-	case keys.Matches(msg, config.ActionQuit):
-		return tea.Quit
-	case keys.Matches(msg, config.ActionCancel):
-		return s.handleCancel()
-	case keys.Matches(msg, config.ActionFocusNext):
+	action, ok := s.gui.config.KeyBindings.ActionFor(msg)
+	if !ok {
+		return nil
+	}
+
+	if cmd, handled := s.handleGlobalAction(action); handled {
+		return cmd
+	}
+	if cmd, handled := s.handleNavigationAction(action); handled {
+		return cmd
+	}
+	return s.handleReviewAction(action)
+}
+
+func (s *screen) handleGlobalAction(action config.Action) (tea.Cmd, bool) {
+	switch action {
+	case config.ActionQuit:
+		return tea.Quit, true
+	case config.ActionCancel:
+		return s.handleCancel(), true
+	case config.ActionFocusNext:
 		s.gui.cycleFocus()
-		return nil
-	case keys.Matches(msg, config.ActionMoveDown):
-		return s.moveDown()
-	case keys.Matches(msg, config.ActionMoveUp):
-		return s.moveUp()
-	case keys.Matches(msg, config.ActionPageDown),
-		keys.Matches(msg, config.ActionPageUp),
-		keys.Matches(msg, config.ActionGoTop),
-		keys.Matches(msg, config.ActionGoBottom):
-		s.handleDetailScrollKey(msg)
-		return nil
-	case keys.Matches(msg, config.ActionPanelPrev):
+		return nil, true
+	case config.ActionPanelPrev:
 		s.gui.moveFocus(-1)
-		return nil
-	case keys.Matches(msg, config.ActionPanelNext):
+		return nil, true
+	case config.ActionPanelNext:
 		s.gui.moveFocus(1)
-		return nil
-	case keys.Matches(msg, config.ActionShowOverview):
+		return nil, true
+	case config.ActionShowOverview:
 		s.gui.switchToOverview()
-		return nil
-	case keys.Matches(msg, config.ActionShowDiff):
-		return s.showDiff()
-	case keys.Matches(msg, config.ActionOpenSelected):
-		return s.openSelectedPR()
-	case keys.Matches(msg, config.ActionReviewRange):
+		return nil, true
+	case config.ActionShowDiff:
+		return s.showDiff(), true
+	case config.ActionOpenSelected:
+		return s.openSelectedPR(), true
+	default:
+		return nil, false
+	}
+}
+
+func (s *screen) handleNavigationAction(action config.Action) (tea.Cmd, bool) {
+	switch action {
+	case config.ActionMoveDown:
+		return s.moveDown(), true
+	case config.ActionMoveUp:
+		return s.moveUp(), true
+	case config.ActionPageDown, config.ActionPageUp, config.ActionGoTop, config.ActionGoBottom:
+		s.handleDetailScrollAction(action)
+		return nil, true
+	default:
+		return nil, false
+	}
+}
+
+func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
+	switch action {
+	case config.ActionReviewRange:
 		return s.startReviewRange()
-	case keys.Matches(msg, config.ActionReviewComment):
+	case config.ActionReviewComment:
 		return s.startReviewComment()
-	case keys.Matches(msg, config.ActionReviewSummary):
+	case config.ActionReviewSummary:
 		return s.startReviewSummary()
-	case keys.Matches(msg, config.ActionReviewSubmit):
+	case config.ActionReviewSubmit:
 		return s.gui.review.HandleSubmit()
-	case keys.Matches(msg, config.ActionReviewDiscard):
+	case config.ActionReviewDiscard:
 		return s.gui.review.HandleDiscard()
-	case keys.Matches(msg, config.ActionReviewClearComment):
+	case config.ActionReviewClearComment:
 		if s.gui.state.Review.InputMode == core.ReviewInputComment {
 			s.gui.review.ClearCommentInput()
 		}
-		return nil
-	default:
-		return nil
 	}
+	return nil
 }
 
 func (s *screen) handleCancel() tea.Cmd {
@@ -166,30 +191,52 @@ func (s *screen) openSelectedPR() tea.Cmd {
 	}
 }
 
-func (s *screen) handleDetailScrollKey(msg tea.KeyMsg) {
+func (s *screen) handleDetailScrollAction(action config.Action) {
 	if s.gui.focus != panelDiffContent {
 		return
 	}
 
-	keys := s.gui.config.KeyBindings
 	if s.gui.state.IsDiffMode() {
-		switch {
-		case keys.Matches(msg, config.ActionPageUp):
+		switch action {
+		case config.ActionPageUp:
 			s.gui.diff.SelectPrevLine(s.gui.detail.Height())
-		case keys.Matches(msg, config.ActionPageDown):
+		case config.ActionPageDown:
 			s.gui.diff.SelectNextLine(s.gui.detail.Height())
-		case keys.Matches(msg, config.ActionGoTop):
+		case config.ActionGoTop:
 			s.gui.diff.GotoFirstLine()
-		case keys.Matches(msg, config.ActionGoBottom):
+		case config.ActionGoBottom:
 			s.gui.diff.GotoLastLine()
 		}
 		return
 	}
 
-	switch {
-	case keys.Matches(msg, config.ActionPageDown),
-		keys.Matches(msg, config.ActionPageUp):
-		s.gui.detail.Update(msg)
+	switch action {
+	case config.ActionPageDown, config.ActionPageUp:
+		key, ok := primaryKeyMsg(s.gui.config.KeyBindings.Binding(action))
+		if !ok {
+			return
+		}
+		s.gui.detail.Update(key)
+	}
+}
+
+func primaryKeyMsg(binding config.KeyBinding) (tea.KeyMsg, bool) {
+	if len(binding.Keys) == 0 {
+		return tea.KeyMsg{}, false
+	}
+	switch binding.Keys[0] {
+	case "pgdown":
+		return tea.KeyMsg{Type: tea.KeyPgDown}, true
+	case "pgup":
+		return tea.KeyMsg{Type: tea.KeyPgUp}, true
+	case " ":
+		return tea.KeyMsg{Type: tea.KeySpace}, true
+	case "b":
+		return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'b'}}, true
+	case "f":
+		return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'f'}}, true
+	default:
+		return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(binding.Keys[0])}, true
 	}
 }
 

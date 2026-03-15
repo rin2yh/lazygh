@@ -15,16 +15,16 @@ func TestDefault(t *testing.T) {
 	if cfg.Theme.InactiveBorderColor != "white" {
 		t.Fatalf("got %q, want %q", cfg.Theme.InactiveBorderColor, "white")
 	}
-	if got := cfg.KeyBindings.Quit.Keys; len(got) != 2 || got[0] != "q" || got[1] != "ctrl+c" {
+	if got := cfg.KeyBindings.Binding(ActionQuit).Keys; len(got) != 2 || got[0] != "q" || got[1] != "ctrl+c" {
 		t.Fatalf("got %v, want [q ctrl+c]", got)
 	}
-	if got := cfg.KeyBindings.MoveDown.Keys; len(got) != 2 || got[0] != "j" || got[1] != "down" {
+	if got := cfg.KeyBindings.Binding(ActionMoveDown).Keys; len(got) != 2 || got[0] != "j" || got[1] != "down" {
 		t.Fatalf("got %v, want [j down]", got)
 	}
-	if got := cfg.KeyBindings.OpenSelected.Keys; len(got) != 1 || got[0] != "r" {
+	if got := cfg.KeyBindings.Binding(ActionOpenSelected).Keys; len(got) != 1 || got[0] != "r" {
 		t.Fatalf("got %v, want [r]", got)
 	}
-	if got := cfg.KeyBindings.ReviewComment.Keys; len(got) != 1 || got[0] != "enter" {
+	if got := cfg.KeyBindings.Binding(ActionReviewComment).Keys; len(got) != 1 || got[0] != "enter" {
 		t.Fatalf("got %v, want [enter]", got)
 	}
 }
@@ -78,11 +78,11 @@ func TestKeyBindingsLabels(t *testing.T) {
 
 func TestKeyBindingsLabelsFollowCustomBindings(t *testing.T) {
 	keys := Default().KeyBindings
-	keys.MoveUp = KeyBinding{Keys: []string{"p", "up"}}
-	keys.PanelNext = KeyBinding{Keys: []string{"n"}}
-	keys.PageUp = KeyBinding{Keys: []string{"u"}}
-	keys.GoBottom = KeyBinding{Keys: []string{"B"}}
-	keys.ReviewSummary = KeyBinding{Keys: []string{"r"}}
+	keys.SetBinding(ActionMoveUp, KeyBinding{Keys: []string{"p", "up"}})
+	keys.SetBinding(ActionPanelNext, KeyBinding{Keys: []string{"n"}})
+	keys.SetBinding(ActionPageUp, KeyBinding{Keys: []string{"u"}})
+	keys.SetBinding(ActionGoBottom, KeyBinding{Keys: []string{"B"}})
+	keys.SetBinding(ActionReviewSummary, KeyBinding{Keys: []string{"r"}})
 
 	if got := keys.MoveLabel(); got != "j/p/↑/↓" {
 		t.Fatalf("got %q, want %q", got, "j/p/↑/↓")
@@ -103,10 +103,22 @@ func TestKeyBindingsLabelsFollowCustomBindings(t *testing.T) {
 
 func TestKeyBindingsLabelsDeduplicate(t *testing.T) {
 	keys := Default().KeyBindings
-	keys.MoveDown = KeyBinding{Keys: []string{"j", "down"}}
-	keys.MoveUp = KeyBinding{Keys: []string{"j", "up"}}
+	keys.SetBinding(ActionMoveDown, KeyBinding{Keys: []string{"j", "down"}})
+	keys.SetBinding(ActionMoveUp, KeyBinding{Keys: []string{"j", "up"}})
 
 	if got := keys.MoveLabel(); got != "j/↑/↓" {
 		t.Fatalf("got %q, want %q", got, "j/↑/↓")
+	}
+}
+
+func TestKeyBindingsActionFor(t *testing.T) {
+	keys := Default().KeyBindings
+
+	action, ok := keys.ActionFor(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
+	if !ok {
+		t.Fatal("expected action")
+	}
+	if action != ActionShowDiff {
+		t.Fatalf("got %v, want %v", action, ActionShowDiff)
 	}
 }

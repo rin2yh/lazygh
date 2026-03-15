@@ -60,9 +60,9 @@ func TestFormatStatusLine(t *testing.T) {
 
 func TestFormatStatusLine_UsesCustomBindings(t *testing.T) {
 	keys := config.Default().KeyBindings
-	keys.MoveUp = config.KeyBinding{Keys: []string{"p", "up"}}
-	keys.PanelNext = config.KeyBinding{Keys: []string{"n"}}
-	keys.ReviewSummary = config.KeyBinding{Keys: []string{"r"}}
+	keys.SetBinding(config.ActionMoveUp, config.KeyBinding{Keys: []string{"p", "up"}})
+	keys.SetBinding(config.ActionPanelNext, config.KeyBinding{Keys: []string{"n"}})
+	keys.SetBinding(config.ActionReviewSummary, config.KeyBinding{Keys: []string{"r"}})
 
 	got := Status{
 		DiffMode:  true,
