@@ -30,31 +30,7 @@ go build -o lazygh .
 lazygh
 ```
 
-## 現在の実装範囲
+## タスク管理
+GitHub Milestones で管理する。
+詳細はマイルストーン内のIssueに記載する。
 
-- 起動時に現在レポジトリを解決
-- PR一覧（Open状態）を表示
-- PR概要（タイトル・ステータス・アサイン）を表示
-- PR差分（Unified diff）を表示
-- Diffの変更ファイルツリー（変更種別・`+/-` 行数）を表示
-- Diff行ごとのコメントと複数行範囲コメントを pending review に追加
-- レビュー送信前の概要入力と下部レビュー下書きドロワー
-
-今後の拡張は GitHub Milestones で管理する。
-
-## ローカル実ghスモーク
-
-実gh（モックなし）での最小確認:
-
-```sh
-gh auth status
-go build -o lazygh .
-./lazygh
-```
-
-確認観点:
-
-- 起動時に現在レポジトリのPR一覧が表示される
-- `o/d` で Overview / Diff を切り替えできる
-- `Enter` で現在モードの詳細を再取得できる
-- `q` で終了できる
