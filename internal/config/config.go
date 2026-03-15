@@ -228,11 +228,6 @@ func (k KeyBindings) HelpLabel() string {
 	return k.PrimaryLabel(ActionShowHelp)
 }
 
-// AllSpecs returns the full list of action specs for display purposes.
-func AllSpecs() []ActionSpec {
-	return actionSpecs
-}
-
 func (k KeyBindings) labels(action Action) []string {
 	keys := k.Binding(action).Keys
 	labels := make([]string, 0, len(keys))

@@ -60,36 +60,25 @@ func (gui *Gui) render() string {
 	)
 	rightPanelLines := gui.renderRight(rightInput, screen, focus)
 
-	var b strings.Builder
-	for _, line := range widget.JoinColumns(leftLines, screen.LeftWidth, rightPanelLines, screen.RightWidth, screen.MainHeight) {
-		b.WriteString(line)
-		b.WriteByte('\n')
-	}
+	lines := widget.JoinColumns(leftLines, screen.LeftWidth, rightPanelLines, screen.RightWidth, screen.MainHeight)
 	drawerInput := gui.buildReviewDrawerInput(showDrawer)
 	if drawerInput != nil && screen.DrawerHeight > 0 {
 		drawerActive := focus == layout.FocusReviewDrawer
 		for _, line := range guireview.RenderDrawer(*drawerInput, gui.style(drawerActive), screen.Width, screen.DrawerHeight) {
-			b.WriteString(widget.PadOrTrim(line, screen.Width))
-			b.WriteByte('\n')
+			lines = append(lines, widget.PadOrTrim(line, screen.Width))
 		}
 	}
-	b.WriteString(widget.PadOrTrim(statusLine, screen.Width))
+	lines = append(lines, widget.PadOrTrim(statusLine, screen.Width))
 
 	if gui.showHelp {
-		lines := strings.Split(b.String(), "\n")
-		// Remove trailing empty entry from final newline split
-		if len(lines) > 0 && lines[len(lines)-1] == "" {
-			lines = lines[:len(lines)-1]
-		}
 		lines = help.RenderOverlay(lines, gui.config.KeyBindings, screen.Width)
-		var hb strings.Builder
-		for _, line := range lines {
-			hb.WriteString(line)
-			hb.WriteByte('\n')
-		}
-		return hb.String()
 	}
 
+	var b strings.Builder
+	for _, line := range lines {
+		b.WriteString(line)
+		b.WriteByte('\n')
+	}
 	return b.String()
 }
 

@@ -73,7 +73,7 @@ func RenderOverlay(background []string, keys config.KeyBindings, screenWidth int
 			innerW = w
 		}
 	}
-	panelW := innerW + 4 // 2 border + 2 padding
+	panelW := innerW + 2 // FramePanel subtracts 2 for borders; content already has 2-space indent
 	if panelW > screenWidth-2 {
 		panelW = screenWidth - 2
 	}
