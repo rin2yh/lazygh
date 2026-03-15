@@ -107,5 +107,3 @@ func startIndex(sel, visible int) int {
 	}
 	return sel - visible + 1
 }
-
-

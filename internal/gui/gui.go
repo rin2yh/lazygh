@@ -17,7 +17,6 @@ type PRClient interface {
 	DiffPR(repo string, number int) (string, error)
 }
 
-
 type Gui struct {
 	config *config.Config
 	state  *core.State

@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	commentSummaryMaxLen     = 48
-	CommentModeSingleLine    = "single-line"
+	commentSummaryMaxLen      = 48
+	CommentModeSingleLine     = "single-line"
 	CommentModeRangeSelecting = "range-selecting"
 )
 
@@ -102,4 +102,3 @@ func RenderDrawer(input DrawerInput, style widget.PanelStyle, width, height int)
 	}
 	return widget.FramePanel("Review", lines, width, height, style)
 }
-

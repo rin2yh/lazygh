@@ -5,7 +5,6 @@ import (
 	"github.com/rin2yh/lazygh/internal/gui/widget"
 )
 
-
 type Input struct {
 	Repo       string
 	PRsLoading bool
@@ -41,5 +40,3 @@ func renderPRs(input Input) []string {
 	}
 	return lines
 }
-
-

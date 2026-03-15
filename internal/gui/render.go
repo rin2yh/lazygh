@@ -104,7 +104,6 @@ func (gui *Gui) style(active bool) widget.PanelStyle {
 	return widget.PanelStyle{BorderColor: borderColor}
 }
 
-
 func (gui *Gui) syncDetailViewport(width int, height int, content string) {
 	if width < 1 {
 		width = 1
