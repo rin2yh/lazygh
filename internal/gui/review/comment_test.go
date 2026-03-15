@@ -77,8 +77,8 @@ func TestBuildDraft(t *testing.T) {
 			wantLine: 10,
 		},
 		{
-			name: "range across different files fails",
-			body: "cross-file",
+			name:      "range across different files fails",
+			body:      "cross-file",
 			selection: reviewstub.Selection{Line: commentableLine, LineIndex: 5},
 			rangePtr:  &core.ReviewRange{Path: "other.go", Index: 2, Line: 10},
 			wantErr:   "range must stay within one file",
@@ -92,8 +92,8 @@ func TestBuildDraft(t *testing.T) {
 			wantStart: 30,
 		},
 		{
-			name: "range with reversed indices swaps lines",
-			body: "reversed range",
+			name:      "range with reversed indices swaps lines",
+			body:      "reversed range",
 			selection: reviewstub.Selection{Line: commentableLine, LineIndex: 2},
 			rangePtr:  &core.ReviewRange{Path: "main.go", Index: 5, Line: 50, Side: "RIGHT"},
 			wantLine:  50,
