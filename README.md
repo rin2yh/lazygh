@@ -30,6 +30,10 @@ go build -o lazygh .
 lazygh
 ```
 
+## CI
+
+PRおよびpushのたびにGitHub Actionsが `go fmt`・`go vet`・`go test` を自動実行し、品質ゲートとして機能する。
+
 ## タスク管理
 GitHub Milestones で管理する。
 詳細はマイルストーン内のIssueに記載する。
