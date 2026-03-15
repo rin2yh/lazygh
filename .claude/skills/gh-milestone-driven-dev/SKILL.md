@@ -1,6 +1,6 @@
 ---
 name: gh-milestone-driven-dev
-description: Execute milestone-driven development with GitHub Issues and PR-adjacent workflows. Use when Codex needs to pick issues from a GitHub milestone, inspect local code, implement fixes or refactors, run project verification commands, commit the result, post the commit ID back to the issue, and close the issue.
+description: Execute milestone-driven development with GitHub Issues and PR-adjacent workflows. Use when user needs to pick issues from a GitHub milestone, inspect local code, implement fixes or refactors, run project verification commands, commit the result, post the commit ID back to the issue, and close the issue.
 ---
 
 # Gh Milestone Driven Dev
