@@ -14,6 +14,9 @@ const (
 	ansiReset   = "\x1b[0m"
 	ansiReverse = "\x1b[7m"
 	ansiCyan    = "\x1b[36m"
+
+	commentSummaryMaxLen = 48
+	diffLocationColWidth = 7
 )
 
 type Theme struct {
@@ -80,8 +83,8 @@ func (c Comment) Summary() string {
 		location = c.Path + ":" + strconv.Itoa(c.StartLine) + "-" + strconv.Itoa(c.Line)
 	}
 	body := c.sanitize()
-	if len(body) > 48 {
-		body = body[:48] + "..."
+	if len(body) > commentSummaryMaxLen {
+		body = body[:commentSummaryMaxLen] + "..."
 	}
 	return location + " " + body
 }
@@ -167,24 +170,13 @@ func (v View) right(width int, height int) []string {
 	if !v.input.Right.DiffMode {
 		return v.detail(v.input.Right.OverviewTitle, v.input.Focus == layout.FocusDiffContent, width, height, v.input.Right.OverviewLines)
 	}
-	if width < 20 {
+	filesWidth, diffWidth := layout.DiffSplitWidths(width)
+	if filesWidth == 0 {
 		lines := v.diffContentLines(height)
 		if len(v.input.Right.DiffContentLines) == 0 {
 			lines = v.input.Right.OverviewLines
 		}
 		return v.detail("Diff", v.input.Focus == layout.FocusDiffContent, width, height, lines)
-	}
-
-	filesWidth := width * 30 / 100
-	if filesWidth < 16 {
-		filesWidth = 16
-	}
-	if filesWidth > width-10 {
-		filesWidth = width - 10
-	}
-	diffWidth := width - filesWidth - 1
-	if diffWidth < 1 {
-		diffWidth = 1
 	}
 
 	filesLines := v.files(filesWidth, height)
@@ -406,7 +398,7 @@ func (v View) diffContentLines(height int) []string {
 func (v View) diffLine(line DiffContentLine) string {
 	prefix := "  "
 	if line.Location != "" {
-		prefix = widget.PadOrTrim(line.Location, 7) + " "
+		prefix = widget.PadOrTrim(line.Location, diffLocationColWidth) + " "
 	}
 	renderedPrefix := prefix
 	if line.InRange {

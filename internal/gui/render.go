@@ -93,15 +93,11 @@ func (gui *Gui) renderPRItems() []string {
 func (gui *Gui) currentDetailLines(content string) []string {
 	dims := layout.New(gui.state.Width, gui.state.Height, gui.state.IsDiffMode(), gui.review.ShouldShowDrawer())
 	innerWidth := dims.RightWidth
-	if gui.state.IsDiffMode() && dims.RightWidth >= 20 {
-		filesWidth := dims.RightWidth * 30 / 100
-		if filesWidth < 16 {
-			filesWidth = 16
+	if gui.state.IsDiffMode() {
+		filesWidth, diffWidth := layout.DiffSplitWidths(dims.RightWidth)
+		if filesWidth > 0 {
+			innerWidth = diffWidth
 		}
-		if filesWidth > dims.RightWidth-10 {
-			filesWidth = dims.RightWidth - 10
-		}
-		innerWidth = dims.RightWidth - filesWidth - 1
 	}
 	innerWidth = dims.InnerWidth(innerWidth)
 	bodyHeight := dims.InnerHeight(dims.MainHeight)

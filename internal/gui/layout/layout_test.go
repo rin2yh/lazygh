@@ -18,6 +18,33 @@ func TestComputeScreen(t *testing.T) {
 	}
 }
 
+func TestDiffSplitWidths(t *testing.T) {
+	tests := []struct {
+		name       string
+		totalWidth int
+		wantFiles  int
+		wantDiff   int
+	}{
+		{"too narrow to split", 19, 0, 19},
+		{"zero width", 0, 0, 0},
+		{"minimum split width", 20, 10, 9},
+		{"normal width", 100, 30, 69},
+		{"wide", 200, 60, 139},
+		{"small split clamps to min files", 40, 16, 23},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f, d := DiffSplitWidths(tt.totalWidth)
+			if f != tt.wantFiles {
+				t.Errorf("filesWidth = %d, want %d", f, tt.wantFiles)
+			}
+			if d != tt.wantDiff {
+				t.Errorf("diffWidth = %d, want %d", d, tt.wantDiff)
+			}
+		})
+	}
+}
+
 func TestComputeLeftPanels(t *testing.T) {
 	got := New(120, 11, false, false)
 	if got.RepoHeight != 4 {

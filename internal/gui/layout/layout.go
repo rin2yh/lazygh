@@ -1,5 +1,44 @@
 package layout
 
+const (
+	defaultWidth  = 120
+	defaultHeight = 40
+
+	leftPanelRatioNormal = 26
+	leftPanelRatioDiff   = 22
+	percentDenom         = 100
+
+	statusLineHeight      = 1
+	reviewDrawerDivisor   = 3
+	reviewDrawerMinHeight = 8
+	repoPanelHeight       = 4
+
+	diffSplitMinWidth = 20
+	diffFilesRatio    = 30
+	diffFilesMinWidth = 16
+	diffMinDiffWidth  = 10
+)
+
+// DiffSplitWidths calculates the file list and diff content widths for split view.
+// Returns filesWidth=0 when totalWidth is too narrow to split.
+func DiffSplitWidths(totalWidth int) (filesWidth, diffWidth int) {
+	if totalWidth < diffSplitMinWidth {
+		return 0, totalWidth
+	}
+	filesWidth = totalWidth * diffFilesRatio / percentDenom
+	if filesWidth < diffFilesMinWidth {
+		filesWidth = diffFilesMinWidth
+	}
+	if filesWidth > totalWidth-diffMinDiffWidth {
+		filesWidth = totalWidth - diffMinDiffWidth
+	}
+	diffWidth = totalWidth - filesWidth - 1
+	if diffWidth < 1 {
+		diffWidth = 1
+	}
+	return filesWidth, diffWidth
+}
+
 type Screen struct {
 	Width         int
 	Height        int
@@ -16,17 +55,17 @@ func New(width int, height int, diffMode bool, hasReviewDrawer bool) Screen {
 	w := width
 	h := height
 	if w <= 0 {
-		w = 120
+		w = defaultWidth
 	}
 	if h <= 0 {
-		h = 40
+		h = defaultHeight
 	}
 
-	leftRatio := 26
+	leftRatio := leftPanelRatioNormal
 	if diffMode {
-		leftRatio = 22
+		leftRatio = leftPanelRatioDiff
 	}
-	leftWidth := w * leftRatio / 100
+	leftWidth := w * leftRatio / percentDenom
 	if leftWidth < 1 {
 		leftWidth = 1
 	}
@@ -38,7 +77,7 @@ func New(width int, height int, diffMode bool, hasReviewDrawer bool) Screen {
 		rightWidth = 1
 	}
 
-	contentHeight := h - 1
+	contentHeight := h - statusLineHeight
 	if contentHeight < 1 {
 		contentHeight = 1
 	}
@@ -46,9 +85,9 @@ func New(width int, height int, diffMode bool, hasReviewDrawer bool) Screen {
 	mainHeight := contentHeight
 	drawerHeight := 0
 	if hasReviewDrawer {
-		drawerHeight = contentHeight / 3
-		if drawerHeight < 8 {
-			drawerHeight = 8
+		drawerHeight = contentHeight / reviewDrawerDivisor
+		if drawerHeight < reviewDrawerMinHeight {
+			drawerHeight = reviewDrawerMinHeight
 		}
 		if drawerHeight >= contentHeight {
 			drawerHeight = contentHeight - 1
@@ -62,7 +101,7 @@ func New(width int, height int, diffMode bool, hasReviewDrawer bool) Screen {
 		mainHeight = 1
 	}
 
-	repoHeight := 4
+	repoHeight := repoPanelHeight
 	if mainHeight < repoHeight+1 {
 		repoHeight = mainHeight / 2
 	}
