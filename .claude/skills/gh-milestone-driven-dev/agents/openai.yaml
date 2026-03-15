@@ -1,0 +1,4 @@
+interface:
+  display_name: "Milestone Dev"
+  short_description: "GitHub milestone駆動の実装・検証・完了手順"
+  default_prompt: "Use $gh-milestone-driven-dev to execute and close issues from a GitHub milestone end-to-end."
