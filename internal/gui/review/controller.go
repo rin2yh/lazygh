@@ -2,6 +2,7 @@ package review
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
 )
@@ -20,6 +21,7 @@ type Selection interface {
 }
 
 type Controller struct {
+	keys    config.KeyBindings
 	comment *comment
 	summary *summary
 	rng     *rangeState
@@ -27,12 +29,13 @@ type Controller struct {
 	view    *view
 }
 
-func NewController(state *core.State, client PendingReviewClient, selection Selection, setFocus func(FocusTarget)) *Controller {
-	comment := newComment(state, setFocus)
+func NewController(cfg *config.Config, state *core.State, client PendingReviewClient, selection Selection, setFocus func(FocusTarget)) *Controller {
+	comment := newComment(cfg, state, setFocus)
 	summary := newSummary(state, setFocus)
 	rng := newRange(state, selection, setFocus)
 	view := newView(state, setFocus, comment, summary)
 	return &Controller{
+		keys:    cfg.KeyBindings,
 		comment: comment,
 		summary: summary,
 		rng:     rng,
@@ -82,7 +85,7 @@ func (c *Controller) HandleEditorKey(msg tea.KeyMsg) bool {
 	case tea.KeyEsc:
 		return c.view.HandleEsc()
 	}
-	if msg.String() == "ctrl+s" && c.view.InputMode() == core.ReviewInputSummary {
+	if c.keys.Matches(msg, config.ActionReviewSave) && c.view.InputMode() == core.ReviewInputSummary {
 		return c.view.HandleSummarySave()
 	}
 

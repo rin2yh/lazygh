@@ -4,16 +4,18 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
 )
 
 func (s *screen) handleReviewInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
-	switch msg.String() {
-	case "S":
+	keys := s.gui.config.KeyBindings
+	switch {
+	case keys.Matches(msg, config.ActionReviewSubmit):
 		return s.gui.review.HandleSubmit(), true
-	case "X":
+	case keys.Matches(msg, config.ActionReviewDiscard):
 		return s.gui.review.HandleDiscard(), true
-	case "ctrl+s":
+	case keys.Matches(msg, config.ActionReviewSave):
 		if s.gui.state.Review.InputMode == core.ReviewInputComment {
 			return s.gui.review.HandleCommentSave(), true
 		}
@@ -25,46 +27,50 @@ func (s *screen) handleReviewInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 }
 
 func (s *screen) handleKeyInput(msg tea.KeyMsg) tea.Cmd {
-	switch msg.String() {
-	case "ctrl+c", "q":
+	keys := s.gui.config.KeyBindings
+	switch {
+	case keys.Matches(msg, config.ActionQuit):
 		return tea.Quit
-	case "esc":
+	case keys.Matches(msg, config.ActionCancel):
 		return s.handleCancel()
-	case "tab":
+	case keys.Matches(msg, config.ActionFocusNext):
 		s.gui.cycleFocus()
 		return nil
-	case "j", "down":
+	case keys.Matches(msg, config.ActionMoveDown):
 		return s.moveDown()
-	case "k", "up":
+	case keys.Matches(msg, config.ActionMoveUp):
 		return s.moveUp()
-	case "pgdown", "f", " ", "pgup", "b", "home", "g", "end", "G":
+	case keys.Matches(msg, config.ActionPageDown),
+		keys.Matches(msg, config.ActionPageUp),
+		keys.Matches(msg, config.ActionGoTop),
+		keys.Matches(msg, config.ActionGoBottom):
 		s.gui.scrollDetailByKey(msg)
 		s.gui.scrollOverviewByKey(msg)
 		return nil
-	case "h":
+	case keys.Matches(msg, config.ActionPanelPrev):
 		s.gui.moveFocus(-1)
 		return nil
-	case "l":
+	case keys.Matches(msg, config.ActionPanelNext):
 		s.gui.moveFocus(1)
 		return nil
-	case "o":
+	case keys.Matches(msg, config.ActionShowOverview):
 		s.gui.switchToOverview()
 		return nil
-	case "d":
+	case keys.Matches(msg, config.ActionShowDiff):
 		return s.showDiff()
-	case "enter":
+	case keys.Matches(msg, config.ActionOpenSelected):
 		return s.openSelectedPR()
-	case "v":
+	case keys.Matches(msg, config.ActionReviewRange):
 		return s.startReviewRange()
-	case "c":
+	case keys.Matches(msg, config.ActionReviewComment):
 		return s.startReviewComment()
-	case "R":
+	case keys.Matches(msg, config.ActionReviewSummary):
 		return s.startReviewSummary()
-	case "S":
+	case keys.Matches(msg, config.ActionReviewSubmit):
 		return s.gui.review.HandleSubmit()
-	case "X":
+	case keys.Matches(msg, config.ActionReviewDiscard):
 		return s.gui.review.HandleDiscard()
-	case "x":
+	case keys.Matches(msg, config.ActionReviewClearComment):
 		if s.gui.state.Review.InputMode == core.ReviewInputComment {
 			s.gui.review.ClearCommentInput()
 		}

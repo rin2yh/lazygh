@@ -6,19 +6,22 @@ import (
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
 )
 
 type comment struct {
+	keys      config.KeyBindings
 	state     *core.State
 	selection Selection
 	setFocus  func(FocusTarget)
 	editor    textarea.Model
 }
 
-func newComment(state *core.State, setFocus func(FocusTarget)) *comment {
+func newComment(cfg *config.Config, state *core.State, setFocus func(FocusTarget)) *comment {
 	return &comment{
+		keys:     cfg.KeyBindings,
 		state:    state,
 		setFocus: setFocus,
 		editor:   newEditor("Add review comment"),
@@ -65,8 +68,8 @@ func (f *comment) HandleKey(msg tea.KeyMsg) bool {
 		return false
 	}
 
-	switch msg.String() {
-	case "ctrl+s":
+	switch {
+	case f.keys.Matches(msg, config.ActionReviewSave):
 		return true
 	}
 

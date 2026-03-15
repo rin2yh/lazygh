@@ -58,7 +58,7 @@ func NewGui(cfg *config.Config, prClient PRClient, reviewClient guireview.Pendin
 		detailViewportWidth:  1,
 		detailViewportHeight: 1,
 	}
-	gui.review = guireview.NewController(gui.state, reviewClient, gui, gui.setReviewFocus)
+	gui.review = guireview.NewController(cfg, gui.state, reviewClient, gui, gui.setReviewFocus)
 	return gui, nil
 }
 

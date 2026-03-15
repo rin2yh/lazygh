@@ -3,6 +3,7 @@ package layout
 import (
 	"fmt"
 
+	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
 )
 
@@ -24,46 +25,43 @@ type Status struct {
 	HasFiles        bool
 	HasReviewDrawer bool
 	InputMode       core.ReviewInputMode
+	Keys            config.KeyBindings
 }
 
 func (s Status) String() string {
-	base := "[q]Quit"
+	base := fmt.Sprintf("[%s]Quit", s.Keys.QuitLabel())
 	if s.HasPR {
-		base = fmt.Sprintf("%s [enter]Reload", base)
+		base = fmt.Sprintf("%s [%s]Reload", base, s.Keys.ReloadLabel())
 	}
 
 	var modeSpecific string
 	switch {
-	case !s.DiffMode && s.Focus == FocusRepo && s.HasPR:
-		modeSpecific = "[Repo] [l]Next Panel [d]Diff"
 	case !s.DiffMode && s.Focus == FocusRepo:
-		modeSpecific = "[Repo] [l]Next Panel [d]Diff"
+		modeSpecific = fmt.Sprintf("[Repo] [%s]Next Panel [%s]Diff", s.Keys.Label(config.ActionPanelNext), s.Keys.DiffLabel())
 	case !s.DiffMode && s.Focus == FocusPRs && s.HasPR:
-		modeSpecific = "[PRs] [h/l]Prev/Next Panel [j/k/↑/↓]Move [d]Diff"
+		modeSpecific = fmt.Sprintf("[PRs] [%s]Prev/Next Panel [%s]Move [%s]Diff", s.Keys.PanelLabel(), s.Keys.MoveLabel(), s.Keys.DiffLabel())
 	case !s.DiffMode && s.Focus == FocusDiffContent && s.HasPR:
-		modeSpecific = "[Overview] [h]Prev Panel [space/b]Page [enter]Reload [d]Diff"
+		modeSpecific = fmt.Sprintf("[Overview] [%s]Prev Panel [%s]Page [%s]Reload [%s]Diff", s.Keys.Label(config.ActionPanelPrev), s.Keys.PageLabel(), s.Keys.ReloadLabel(), s.Keys.DiffLabel())
 	case !s.DiffMode && s.Focus == FocusDiffContent:
-		modeSpecific = "[Overview] [h]Prev Panel [d]Diff"
+		modeSpecific = fmt.Sprintf("[Overview] [%s]Prev Panel [%s]Diff", s.Keys.Label(config.ActionPanelPrev), s.Keys.DiffLabel())
 	case !s.DiffMode:
-		modeSpecific = "[l]Next Panel [d]Diff"
-	case s.Focus == FocusRepo && s.HasPR:
-		modeSpecific = "[tab]Focus [Repo] [l]Next Panel [d]Diff"
+		modeSpecific = fmt.Sprintf("[%s]Next Panel [%s]Diff", s.Keys.Label(config.ActionPanelNext), s.Keys.DiffLabel())
 	case s.Focus == FocusRepo:
-		modeSpecific = "[tab]Focus [Repo] [l]Next Panel [d]Diff"
+		modeSpecific = fmt.Sprintf("[%s]Focus [Repo] [%s]Next Panel [%s]Diff", s.Keys.FocusLabel(), s.Keys.Label(config.ActionPanelNext), s.Keys.DiffLabel())
 	case s.Focus == FocusPRs && s.HasPR:
-		modeSpecific = "[tab]Focus [PRs] [h/l]Prev/Next Panel [j/k/↑/↓]Move [c/R]Review"
+		modeSpecific = fmt.Sprintf("[%s]Focus [PRs] [%s]Prev/Next Panel [%s]Move [%s]Review", s.Keys.FocusLabel(), s.Keys.PanelLabel(), s.Keys.MoveLabel(), s.Keys.ReviewModeLabel())
 	case s.Focus == FocusDiffFiles && s.HasFiles:
-		modeSpecific = "[tab]Focus [Files] [j/k/↑/↓]Move [h/l]Prev/Next Panel [o]Overview [v]Range [c]Comment"
+		modeSpecific = fmt.Sprintf("[%s]Focus [Files] [%s]Move [%s]Prev/Next Panel [%s]Overview [%s]Range [%s]Comment", s.Keys.FocusLabel(), s.Keys.MoveLabel(), s.Keys.PanelLabel(), s.Keys.OverviewLabel(), s.Keys.RangeLabel(), s.Keys.CommentLabel())
 	case s.Focus == FocusReviewDrawer && s.InputMode == core.ReviewInputComment:
-		modeSpecific = "[Ctrl+S]Save Comment [Esc]Cancel [S]Submit [X]Discard"
+		modeSpecific = fmt.Sprintf("[%s]Save Comment [%s]Cancel [%s]Submit [%s]Discard", s.Keys.SaveLabel(), s.Keys.CancelLabel(), s.Keys.SubmitLabel(), s.Keys.DiscardLabel())
 	case s.Focus == FocusReviewDrawer && s.InputMode == core.ReviewInputSummary:
-		modeSpecific = "[Ctrl+S]Save Summary [Esc]Cancel [S]Submit [X]Discard"
+		modeSpecific = fmt.Sprintf("[%s]Save Summary [%s]Cancel [%s]Submit [%s]Discard", s.Keys.SaveLabel(), s.Keys.CancelLabel(), s.Keys.SubmitLabel(), s.Keys.DiscardLabel())
 	case s.Focus == FocusReviewDrawer:
-		modeSpecific = "[h]Prev Panel [c]Comment [R]Summary [S]Submit [X]Discard [Esc]Diff"
+		modeSpecific = fmt.Sprintf("[%s]Prev Panel [%s]Comment [%s]Summary [%s]Submit [%s]Discard [%s]Diff", s.Keys.Label(config.ActionPanelPrev), s.Keys.CommentLabel(), s.Keys.SummaryLabel(), s.Keys.SubmitLabel(), s.Keys.DiscardLabel(), s.Keys.CancelLabel())
 	case s.HasPR || s.HasFiles || s.HasReviewDrawer:
-		modeSpecific = "[tab]Focus [Diff] [j/k/↑/↓]Line [space/b]Page [g/G]Top/Bottom [h/l]Prev/Next Panel [v]Range [c]Comment [R]Summary [S]Submit [X]Discard [o]Overview"
+		modeSpecific = fmt.Sprintf("[%s]Focus [Diff] [%s]Line [%s]Page [%s]Top/Bottom [%s]Prev/Next Panel [%s]Range [%s]Comment [%s]Summary [%s]Submit [%s]Discard [%s]Overview", s.Keys.FocusLabel(), s.Keys.MoveLabel(), s.Keys.PageLabel(), s.Keys.TopBottomLabel(), s.Keys.PanelLabel(), s.Keys.RangeLabel(), s.Keys.CommentLabel(), s.Keys.SummaryLabel(), s.Keys.SubmitLabel(), s.Keys.DiscardLabel(), s.Keys.OverviewLabel())
 	default:
-		modeSpecific = "[o]Overview"
+		modeSpecific = fmt.Sprintf("[%s]Overview", s.Keys.OverviewLabel())
 	}
 
 	line := base

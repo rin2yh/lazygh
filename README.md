@@ -30,36 +30,6 @@ go build -o lazygh .
 lazygh
 ```
 
-## 操作
-
-### 全体
-
-| Key | Action |
-|-----|--------|
-| `q` / `Ctrl+C` | 終了 |
-| `h` / `l` | 前/次のパネルへ移動 |
-| `d` | Diff表示へ切替（選択PRのdiffを取得） |
-| `o` | Overview表示へ切替 |
-| `Enter` | 現在フォーカス中PRの内容を再取得 |
-| `Esc` | 入力中なら入力を抜ける。そうでなければPR一覧へ戻す |
-| `Tab` | Diff時にフォーカスを `Repo → PRs → Files → Diff → Review` で循環 |
-
-### パネル別（Diff時）
-
-| Panel | Key | Action |
-|-------|-----|--------|
-| `PRs` | `j` / `k` / `↑` / `↓` | PR選択を移動 |
-| `Files` | `j` / `k` / `↑` / `↓` | 変更ファイル選択を移動 |
-| `Diff` | `j` / `k` / `↑` / `↓` | 1行スクロール |
-| `Diff` | `Space` / `b` | 1ページ下/上へスクロール |
-| `Diff` | `g` / `G` | 先頭/末尾へ移動 |
-| `Diff` | `v` | 範囲コメントの開始位置を記録 / 解除 |
-| `Diff` | `c` | 範囲選択中ならその範囲、未選択なら現在行のコメント入力を開始 |
-| `Diff` | `R` | レビュー概要入力を開始 |
-| `Review` | `Ctrl+S` | コメント / 概要入力を保存 |
-| `Review` | `S` | pending review を `Comment` として送信 |
-| `Review` | `X` | pending review を破棄 |
-
 ## 現在の実装範囲
 
 - 起動時に現在レポジトリを解決

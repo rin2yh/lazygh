@@ -3,6 +3,7 @@ package review
 import (
 	"testing"
 
+	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
@@ -22,7 +23,7 @@ func TestToggleRangeSelection_StartsAndClearsRange(t *testing.T) {
 		LineIndex: 5,
 	}
 	focus := FocusReviewDrawer
-	controller := NewController(state, &testmock.GHClient{}, selection, func(target FocusTarget) {
+	controller := NewController(config.Default(), state, &testmock.GHClient{}, selection, func(target FocusTarget) {
 		focus = target
 	})
 

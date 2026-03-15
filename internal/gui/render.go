@@ -53,6 +53,7 @@ func (gui *Gui) buildRenderInput() draw.Input {
 			HasFiles:        len(gui.diffFiles) > 0,
 			HasReviewDrawer: gui.review.ShouldShowDrawer(),
 			InputMode:       gui.state.Review.InputMode,
+			Keys:            gui.config.KeyBindings,
 		}.String(),
 		Theme: draw.Theme{
 			ActiveBorderColor:   gui.config.Theme.ActiveBorderColor,

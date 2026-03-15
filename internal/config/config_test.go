@@ -1,20 +1,109 @@
 package config
 
-import "testing"
+import (
+	"testing"
+
+	tea "github.com/charmbracelet/bubbletea"
+)
 
 func TestDefault(t *testing.T) {
 	cfg := Default()
-	tests := []struct{ name, got, want string }{
-		{"ActiveBorderColor", cfg.Theme.ActiveBorderColor, "green"},
-		{"InactiveBorderColor", cfg.Theme.InactiveBorderColor, "white"},
-		{"Quit", cfg.KeyBindings.Quit, "q"},
-		{"NavigateDown", cfg.KeyBindings.NavigateDown, "j"},
-		{"NavigateUp", cfg.KeyBindings.NavigateUp, "k"},
-		{"Select", cfg.KeyBindings.Select, "Enter"},
+
+	if cfg.Theme.ActiveBorderColor != "green" {
+		t.Fatalf("got %q, want %q", cfg.Theme.ActiveBorderColor, "green")
 	}
+	if cfg.Theme.InactiveBorderColor != "white" {
+		t.Fatalf("got %q, want %q", cfg.Theme.InactiveBorderColor, "white")
+	}
+	if got := cfg.KeyBindings.Quit.Keys; len(got) != 2 || got[0] != "q" || got[1] != "ctrl+c" {
+		t.Fatalf("got %v, want [q ctrl+c]", got)
+	}
+	if got := cfg.KeyBindings.MoveDown.Keys; len(got) != 2 || got[0] != "j" || got[1] != "down" {
+		t.Fatalf("got %v, want [j down]", got)
+	}
+	if got := cfg.KeyBindings.OpenSelected.Keys; len(got) != 1 || got[0] != "enter" {
+		t.Fatalf("got %v, want [enter]", got)
+	}
+}
+
+func TestKeyBindingsMatches(t *testing.T) {
+	keys := Default().KeyBindings
+
+	tests := []struct {
+		name   string
+		msg    tea.KeyMsg
+		action Action
+		want   bool
+	}{
+		{name: "quit rune", msg: tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}, action: ActionQuit, want: true},
+		{name: "quit ctrl", msg: tea.KeyMsg{Type: tea.KeyCtrlC}, action: ActionQuit, want: true},
+		{name: "move down rune", msg: tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}}, action: ActionMoveDown, want: true},
+		{name: "move down arrow", msg: tea.KeyMsg{Type: tea.KeyDown}, action: ActionMoveDown, want: true},
+		{name: "save review", msg: tea.KeyMsg{Type: tea.KeyCtrlS}, action: ActionReviewSave, want: true},
+		{name: "submit review uppercase only", msg: tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}}, action: ActionReviewSubmit, want: false},
+		{name: "go bottom uppercase only", msg: tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'g'}}, action: ActionGoBottom, want: false},
+	}
+
 	for _, tt := range tests {
-		if tt.got != tt.want {
-			t.Errorf("%s: got %q, want %q", tt.name, tt.got, tt.want)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			if got := keys.Matches(tt.msg, tt.action); got != tt.want {
+				t.Fatalf("got %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestKeyBindingsLabels(t *testing.T) {
+	keys := Default().KeyBindings
+
+	if got := keys.QuitLabel(); got != "q" {
+		t.Fatalf("got %q, want %q", got, "q")
+	}
+	if got := keys.MoveLabel(); got != "j/k/↑/↓" {
+		t.Fatalf("got %q, want %q", got, "j/k/↑/↓")
+	}
+	if got := keys.PageLabel(); got != "space/b" {
+		t.Fatalf("got %q, want %q", got, "space/b")
+	}
+	if got := keys.TopBottomLabel(); got != "g/G" {
+		t.Fatalf("got %q, want %q", got, "g/G")
+	}
+	if got := keys.ReviewModeLabel(); got != "c/R" {
+		t.Fatalf("got %q, want %q", got, "c/R")
+	}
+}
+
+func TestKeyBindingsLabelsFollowCustomBindings(t *testing.T) {
+	keys := Default().KeyBindings
+	keys.MoveUp = KeyBinding{Keys: []string{"p", "up"}}
+	keys.PanelNext = KeyBinding{Keys: []string{"n"}}
+	keys.PageUp = KeyBinding{Keys: []string{"u"}}
+	keys.GoBottom = KeyBinding{Keys: []string{"B"}}
+	keys.ReviewSummary = KeyBinding{Keys: []string{"r"}}
+
+	if got := keys.MoveLabel(); got != "j/p/↑/↓" {
+		t.Fatalf("got %q, want %q", got, "j/p/↑/↓")
+	}
+	if got := keys.PanelLabel(); got != "h/n" {
+		t.Fatalf("got %q, want %q", got, "h/n")
+	}
+	if got := keys.PageLabel(); got != "space/u" {
+		t.Fatalf("got %q, want %q", got, "space/u")
+	}
+	if got := keys.TopBottomLabel(); got != "g/B" {
+		t.Fatalf("got %q, want %q", got, "g/B")
+	}
+	if got := keys.ReviewModeLabel(); got != "c/r" {
+		t.Fatalf("got %q, want %q", got, "c/r")
+	}
+}
+
+func TestKeyBindingsLabelsDeduplicate(t *testing.T) {
+	keys := Default().KeyBindings
+	keys.MoveDown = KeyBinding{Keys: []string{"j", "down"}}
+	keys.MoveUp = KeyBinding{Keys: []string{"j", "up"}}
+
+	if got := keys.MoveLabel(); got != "j/↑/↓" {
+		t.Fatalf("got %q, want %q", got, "j/↑/↓")
 	}
 }

@@ -3,6 +3,7 @@ package layout
 import (
 	"testing"
 
+	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
 )
 
@@ -48,10 +49,31 @@ func TestFormatStatusLine(t *testing.T) {
 				Focus:     tt.focus,
 				HasFiles:  tt.hasFiles,
 				InputMode: core.ReviewInputNone,
+				Keys:      config.Default().KeyBindings,
 			}.String()
 			if got != tt.want {
 				t.Fatalf("got %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestFormatStatusLine_UsesCustomBindings(t *testing.T) {
+	keys := config.Default().KeyBindings
+	keys.MoveUp = config.KeyBinding{Keys: []string{"p", "up"}}
+	keys.PanelNext = config.KeyBinding{Keys: []string{"n"}}
+	keys.ReviewSummary = config.KeyBinding{Keys: []string{"r"}}
+
+	got := Status{
+		DiffMode:  true,
+		HasPR:     true,
+		Focus:     FocusPRs,
+		InputMode: core.ReviewInputNone,
+		Keys:      keys,
+	}.String()
+
+	want := "[q]Quit [enter]Reload | [tab]Focus [PRs] [h/n]Prev/Next Panel [j/p/↑/↓]Move [c/r]Review"
+	if got != want {
+		t.Fatalf("got %q, want %q", got, want)
 	}
 }

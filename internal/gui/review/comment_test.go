@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 	reviewstub "github.com/rin2yh/lazygh/pkg/test/stub/review"
@@ -15,7 +16,7 @@ func TestHandleEditorKey_EscCancelsCommentAndClearsRange(t *testing.T) {
 	state.BeginReviewCommentInput()
 	state.MarkReviewRangeStart(core.ReviewRange{Path: "a.txt", Index: 3, Line: 10})
 	focus := FocusReviewDrawer
-	controller := NewController(state, &testmock.GHClient{}, reviewstub.Selection{}, func(target FocusTarget) {
+	controller := NewController(config.Default(), state, &testmock.GHClient{}, reviewstub.Selection{}, func(target FocusTarget) {
 		focus = target
 	})
 	controller.SetCommentValue("draft")

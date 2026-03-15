@@ -2,6 +2,7 @@ package gui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/gui/diff"
 )
@@ -120,15 +121,15 @@ func (gui *Gui) scrollDetailByKey(msg tea.KeyMsg) bool {
 		return false
 	}
 
-	switch msg.String() {
-	case "pgdown", "f", " ", "pgup", "b":
-		if msg.String() == "pgup" || msg.String() == "b" {
-			return gui.selectPrevDiffLine(gui.detailViewportHeight)
-		}
+	keys := gui.config.KeyBindings
+	switch {
+	case keys.Matches(msg, config.ActionPageUp):
+		return gui.selectPrevDiffLine(gui.detailViewportHeight)
+	case keys.Matches(msg, config.ActionPageDown):
 		return gui.selectNextDiffLine(gui.detailViewportHeight)
-	case "home", "g":
+	case keys.Matches(msg, config.ActionGoTop):
 		return gui.gotoFirstDiffLine()
-	case "end", "G":
+	case keys.Matches(msg, config.ActionGoBottom):
 		return gui.gotoLastDiffLine()
 	default:
 		return false
@@ -139,8 +140,9 @@ func (gui *Gui) scrollOverviewByKey(msg tea.KeyMsg) bool {
 	if gui.state.IsDiffMode() || gui.focus != panelDiffContent {
 		return false
 	}
-	switch msg.String() {
-	case "pgdown", "f", " ", "pgup", "b":
+	switch {
+	case gui.config.KeyBindings.Matches(msg, config.ActionPageDown),
+		gui.config.KeyBindings.Matches(msg, config.ActionPageUp):
 		updated, _ := gui.detailViewport.Update(msg)
 		gui.detailViewport = updated
 		return true
