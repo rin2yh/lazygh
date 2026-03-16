@@ -19,14 +19,11 @@ func (gui *Gui) render() string {
 	screen := layout.New(gui.state.Width, gui.state.Height, isDiff, showDrawer)
 	focus := gui.renderFocus()
 	statusLine := layout.Status{
-		Loading:         gui.state.Detail.Loading != core.LoadingNone,
-		DiffMode:        isDiff,
-		HasPR:           len(gui.state.List.PRs) > 0,
-		Focus:           focus,
-		HasFiles:        len(gui.diff.Files()) > 0,
-		HasReviewDrawer: showDrawer,
-		InputMode:       gui.state.Review.InputMode,
-		Keys:            gui.config.KeyBindings,
+		Loading:   gui.state.Detail.Loading != core.LoadingNone,
+		DiffMode:  isDiff,
+		Focus:     focus,
+		InputMode: gui.state.Review.InputMode,
+		Keys:      gui.config.KeyBindings,
 	}.String()
 
 	leftInput := prs.Input{

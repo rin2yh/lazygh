@@ -12,24 +12,19 @@ func TestFormatStatusLine(t *testing.T) {
 		name      string
 		loading   bool
 		diffMode  bool
-		hasPR     bool
 		focus     Focus
-		hasFiles  bool
 		inputMode core.ReviewInputMode
 		want      string
 	}{
 		{
-			name:  "overview repo focus with pr",
-			hasPR: true,
+			name:  "overview repo focus",
 			focus: FocusRepo,
 			want:  "[q]Quit [?]Help | [h/l]Panels [d]Diff",
 		},
 		{
 			name:     "diff focus files",
 			diffMode: true,
-			hasPR:    true,
 			focus:    FocusDiffFiles,
-			hasFiles: true,
 			want:     "[q]Quit [?]Help | [h/l]Panels [o]Overview",
 		},
 		{
@@ -66,9 +61,7 @@ func TestFormatStatusLine(t *testing.T) {
 			got := Status{
 				Loading:   tt.loading,
 				DiffMode:  tt.diffMode,
-				HasPR:     tt.hasPR,
 				Focus:     tt.focus,
-				HasFiles:  tt.hasFiles,
 				InputMode: tt.inputMode,
 				Keys:      config.Default().KeyBindings,
 			}.String()
@@ -87,7 +80,6 @@ func TestFormatStatusLine_UsesCustomBindings(t *testing.T) {
 
 	got := Status{
 		DiffMode:  true,
-		HasPR:     true,
 		Focus:     FocusPRs,
 		InputMode: core.ReviewInputNone,
 		Keys:      keys,

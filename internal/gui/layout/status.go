@@ -18,14 +18,11 @@ const (
 )
 
 type Status struct {
-	Loading         bool
-	DiffMode        bool
-	HasPR           bool
-	Focus           Focus
-	HasFiles        bool
-	HasReviewDrawer bool
-	InputMode       core.ReviewInputMode
-	Keys            config.KeyBindings
+	Loading   bool
+	DiffMode  bool
+	Focus     Focus
+	InputMode core.ReviewInputMode
+	Keys      config.KeyBindings
 }
 
 func (s Status) String() string {
