@@ -101,17 +101,24 @@ func RenderOverlay(background []string, keys config.KeyBindings, screenWidth int
 		if y < 0 || y >= len(result) {
 			continue
 		}
-		bg := result[y]
-		left := widget.PadOrTrim(xansi.Truncate(bg, startX, ""), startX)
-		middle := widget.PadOrTrim(line, panelW)
-		right := ""
-		rightStart := startX + panelW
-		if rightStart < screenWidth {
-			right = strings.Repeat(" ", screenWidth-rightStart)
-		}
-		result[y] = left + middle + right
+		result[y] = overlayLine(result[y], line, startX, panelW, screenWidth)
 	}
 	return result
+}
+
+func bgLeft(bg string, x int) string {
+	return widget.PadOrTrim(xansi.Truncate(bg, x, ""), x)
+}
+
+func overlayLine(bg, panel string, startX, panelW, screenW int) string {
+	return bgLeft(bg, startX) + widget.PadOrTrim(panel, panelW) + bgRight(startX+panelW, screenW)
+}
+
+func bgRight(endX, screenW int) string {
+	if endX >= screenW {
+		return ""
+	}
+	return strings.Repeat(" ", screenW-endX)
 }
 
 func buildContent(sections []section) []string {

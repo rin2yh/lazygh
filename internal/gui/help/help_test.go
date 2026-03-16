@@ -15,6 +15,60 @@ func makeBackground(lines, width int) []string {
 	return bg
 }
 
+func TestBgLeft(t *testing.T) {
+	tests := []struct {
+		name string
+		bg   string
+		x    int
+		want string
+	}{
+		{"truncates when bg longer", "abcde", 3, "abc"},
+		{"pads when bg shorter", "ab", 5, "ab   "},
+		{"x=0 returns empty", "abc", 0, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := bgLeft(tt.bg, tt.x)
+			if got != tt.want {
+				t.Fatalf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestBgRight(t *testing.T) {
+	tests := []struct {
+		name    string
+		endX    int
+		screenW int
+		want    string
+	}{
+		{"fills remaining space", 10, 15, "     "},
+		{"endX equals screenW returns empty", 15, 15, ""},
+		{"endX exceeds screenW returns empty", 20, 15, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := bgRight(tt.endX, tt.screenW)
+			if got != tt.want {
+				t.Fatalf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestOverlayLine(t *testing.T) {
+	// bg="abcde"(5), panel="XY"(2), startX=3, panelW=2, screenW=10
+	// left  = bgLeft("abcde", 3)   = "abc"
+	// middle = PadOrTrim("XY", 2)  = "XY"
+	// right  = bgRight(3+2, 10)    = "     " (5 spaces)
+	got := overlayLine("abcde", "XY", 3, 2, 10)
+	want := "abcXY     "
+	if got != want {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+}
+
 func TestRenderOverlay_LineCountPreserved(t *testing.T) {
 	tests := []struct {
 		name    string
