@@ -30,7 +30,7 @@ func toCorePRs(prs []gh.PRItem, filter core.PRFilterMask) []core.Item {
 		}
 		status := pr.State
 		if pr.IsDraft {
-			status = "DRAFT"
+			status = core.PRStatusDraft
 		}
 		assignees := make([]string, 0, len(pr.Assignees))
 		for _, user := range pr.Assignees {

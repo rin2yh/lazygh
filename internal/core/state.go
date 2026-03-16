@@ -95,6 +95,13 @@ type ReviewState struct {
 	Notice        string
 }
 
+const (
+	PRStatusOpen   = "OPEN"
+	PRStatusClosed = "CLOSED"
+	PRStatusMerged = "MERGED"
+	PRStatusDraft  = "DRAFT"
+)
+
 type PRFilterMask uint8
 
 const (
@@ -147,11 +154,11 @@ func (m PRFilterMask) StateArg() string {
 // Matches returns true if the gh state string matches this filter mask.
 func (m PRFilterMask) Matches(state string) bool {
 	switch state {
-	case "OPEN":
+	case PRStatusOpen:
 		return m.Has(PRFilterOpen)
-	case "CLOSED":
+	case PRStatusClosed:
 		return m.Has(PRFilterClosed)
-	case "MERGED":
+	case PRStatusMerged:
 		return m.Has(PRFilterMerged)
 	default:
 		return false
@@ -521,13 +528,13 @@ func (s *State) resetReview() {
 }
 
 func FormatPRItem(item Item) string {
-	return fmt.Sprintf("PR #%d %s", item.Number, sanitizeSingleLine(item.Title))
+	return fmt.Sprintf("#%d %s", item.Number, sanitizeSingleLine(item.Title))
 }
 
 func FormatPROverview(item Item) string {
 	status := sanitizeSingleLine(item.Status)
 	if status == "" {
-		status = "OPEN"
+		status = PRStatusOpen
 	}
 
 	assignee := "unassigned"

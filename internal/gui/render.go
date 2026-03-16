@@ -140,9 +140,29 @@ func (gui *Gui) renderFocus() layout.Focus {
 func (gui *Gui) renderPRItems() []string {
 	items := make([]string, 0, len(gui.state.List.PRs))
 	for _, pr := range gui.state.List.PRs {
-		items = append(items, core.FormatPRItem(pr))
+		items = append(items, prStatusPrefix(pr.Status)+" "+core.FormatPRItem(pr))
 	}
 	return items
+}
+
+var (
+	prPrefixOpen   = widget.Colorize("O", "green")
+	prPrefixDraft  = widget.Colorize("D", "gray")
+	prPrefixClosed = widget.Colorize("C", "red")
+	prPrefixMerged = widget.Colorize("M", "purple")
+)
+
+func prStatusPrefix(status string) string {
+	switch status {
+	case core.PRStatusDraft:
+		return prPrefixDraft
+	case core.PRStatusClosed:
+		return prPrefixClosed
+	case core.PRStatusMerged:
+		return prPrefixMerged
+	default:
+		return prPrefixOpen
+	}
 }
 
 func (gui *Gui) currentDetailLines(dims layout.Screen, content string) []string {
