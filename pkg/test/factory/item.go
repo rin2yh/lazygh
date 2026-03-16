@@ -12,7 +12,7 @@ func NewItem(number int, title string) model.Item {
 	}
 }
 
-func GHPRItem(number int, title string) gh.PRItem {
+func NewGHPRItem(number int, title string) gh.PRItem {
 	return gh.PRItem{
 		Number: number,
 		Title:  title,

@@ -15,7 +15,7 @@ import (
 )
 
 func TestModelInitLoadsPRs(t *testing.T) {
-	mc := &testmock.GHClient{Repo: "owner/repo", PRs: []gh.PRItem{testfactory.GHPRItem(2, "p")}}
+	mc := &testmock.GHClient{Repo: "owner/repo", PRs: []gh.PRItem{testfactory.NewGHPRItem(2, "p")}}
 	g, err := NewGui(config.Default(), mc, mc)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
