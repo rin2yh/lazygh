@@ -442,7 +442,6 @@ func (s *State) blocksPRSelectionChange() bool {
 
 func (s *State) resetReview() {
 	s.Review = ReviewState{
-		Comments:          []core.ReviewComment{},
 		Notice:            s.Review.Notice,
 		EditingCommentIdx: core.NoEditingComment,
 	}

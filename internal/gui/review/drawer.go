@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gui/widget"
 )
 
@@ -45,7 +46,7 @@ func (c DrawerComment) Summary() string {
 }
 
 func (c DrawerComment) sanitize() string {
-	return strings.TrimSpace(strings.ReplaceAll(c.Body, "\n", " "))
+	return strings.TrimSpace(core.SanitizeSingleLine(c.Body))
 }
 
 type DrawerInput struct {

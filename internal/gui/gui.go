@@ -7,7 +7,7 @@ import (
 	"github.com/rin2yh/lazygh/internal/gui/detail"
 	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
 	guireview "github.com/rin2yh/lazygh/internal/gui/review"
-	"github.com/rin2yh/lazygh/internal/state"
+	appstate "github.com/rin2yh/lazygh/internal/state"
 )
 
 type PRClient interface {
@@ -19,7 +19,7 @@ type PRClient interface {
 
 type Gui struct {
 	config *config.Config
-	state  *state.State
+	state  *appstate.State
 	client PRClient
 
 	focus    panelFocus
@@ -34,7 +34,7 @@ type Gui struct {
 func NewGui(cfg *config.Config, prClient PRClient, reviewClient guireview.PendingReviewClient) (*Gui, error) {
 	gui := &Gui{
 		config: cfg,
-		state:  state.NewState(),
+		state:  appstate.NewState(),
 		client: prClient,
 		focus:  panelPRs,
 		detail: detail.NewState(),
