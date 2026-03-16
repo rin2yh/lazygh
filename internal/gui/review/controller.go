@@ -138,3 +138,7 @@ func (c *Controller) ApplyDiscardResult(msg DiscardedMsg) {
 func (c *Controller) IsIndexWithinPendingRange(path string, commentable bool, idx int) bool {
 	return c.rng.IsIndexWithinPendingRange(path, commentable, idx)
 }
+
+func (c *Controller) CycleReviewEvent() {
+	c.pending.state.CycleReviewEvent()
+}

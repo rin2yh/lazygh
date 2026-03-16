@@ -41,6 +41,25 @@ const (
 	ReviewInputSummary
 )
 
+type ReviewEvent int
+
+const (
+	ReviewEventComment ReviewEvent = iota
+	ReviewEventApprove
+	ReviewEventRequestChanges
+)
+
+func (e ReviewEvent) Label() string {
+	switch e {
+	case ReviewEventApprove:
+		return "APPROVE"
+	case ReviewEventRequestChanges:
+		return "REQUEST CHANGES"
+	default:
+		return "COMMENT"
+	}
+}
+
 type ReviewComment struct {
 	Path      string
 	Body      string
@@ -66,6 +85,7 @@ type ReviewState struct {
 	ReviewID      string
 	DrawerOpen    bool
 	InputMode     ReviewInputMode
+	Event         ReviewEvent
 	Summary       string
 	Comments      []ReviewComment
 	RangeStart    *ReviewRange
@@ -360,6 +380,17 @@ func (s *State) MarkReviewRangeStart(anchor ReviewRange) {
 	s.Review.RangeStart = &copied
 	s.Review.DrawerOpen = true
 	s.Review.Notice = "Range start selected."
+}
+
+func (s *State) CycleReviewEvent() {
+	switch s.Review.Event {
+	case ReviewEventComment:
+		s.Review.Event = ReviewEventApprove
+	case ReviewEventApprove:
+		s.Review.Event = ReviewEventRequestChanges
+	default:
+		s.Review.Event = ReviewEventComment
+	}
 }
 
 func (s *State) ClearReviewRangeStart() {

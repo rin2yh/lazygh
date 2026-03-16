@@ -58,10 +58,16 @@ func TestFramePanel_ActiveUsesConfiguredColors(t *testing.T) {
 }
 
 func TestResolveColorName_InvalidFallsBack(t *testing.T) {
-	if got := ResolveColorName("unknown-color", "green"); got != "green" {
-		t.Fatalf("got %q, want %q", got, "green")
+	tests := []struct {
+		color    string
+		fallback string
+	}{
+		{"unknown-color", "green"},
+		{"invalid", "white"},
 	}
-	if got := ResolveColorName("invalid", "white"); got != "white" {
-		t.Fatalf("got %q, want %q", got, "white")
+	for _, tt := range tests {
+		if got := ResolveColorName(tt.color, tt.fallback); got != tt.fallback {
+			t.Errorf("ResolveColorName(%q, %q) = %q, want %q", tt.color, tt.fallback, got, tt.fallback)
+		}
 	}
 }

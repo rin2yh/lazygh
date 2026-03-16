@@ -36,7 +36,7 @@ func TestFakeProcess(t *testing.T) {
 			Stdout:   "PR diff content",
 			ExitCode: 0,
 		},
-		"api graphql": {
+		"api graphql headRefOid": {
 			Stdout:   `{"data":{"repository":{"pullRequest":{"id":"PR_kwDOAA","headRefOid":"deadbeef"}}}}`,
 			ExitCode: 0,
 		},

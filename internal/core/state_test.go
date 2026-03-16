@@ -317,3 +317,38 @@ func TestShouldApplyDetailResult(t *testing.T) {
 		t.Fatal("expected different PR detail not to apply")
 	}
 }
+
+func TestCycleReviewEvent(t *testing.T) {
+	tests := []struct {
+		start ReviewEvent
+		want  ReviewEvent
+	}{
+		{ReviewEventComment, ReviewEventApprove},
+		{ReviewEventApprove, ReviewEventRequestChanges},
+		{ReviewEventRequestChanges, ReviewEventComment},
+	}
+	for _, tt := range tests {
+		s := NewState()
+		s.Review.Event = tt.start
+		s.CycleReviewEvent()
+		if s.Review.Event != tt.want {
+			t.Errorf("start=%v: got %v, want %v", tt.start, s.Review.Event, tt.want)
+		}
+	}
+}
+
+func TestReviewEventLabel(t *testing.T) {
+	tests := []struct {
+		event ReviewEvent
+		label string
+	}{
+		{ReviewEventComment, "COMMENT"},
+		{ReviewEventApprove, "APPROVE"},
+		{ReviewEventRequestChanges, "REQUEST CHANGES"},
+	}
+	for _, tt := range tests {
+		if got := tt.event.Label(); got != tt.label {
+			t.Errorf("event=%v: got %q, want %q", tt.event, got, tt.label)
+		}
+	}
+}

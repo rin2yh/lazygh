@@ -7,15 +7,42 @@ description: Execute milestone-driven development with GitHub Issues and PR-adja
 
 Execute milestone work as a repeatable issue lifecycle, not as isolated edits.
 
+## GitHub CLI Commands
+
+`gh milestone list` は存在しない。マイルストーン操作には以下のコマンドのみ使用すること。
+
+```sh
+# マイルストーン一覧（owner/repo は実際の値に置換すること）
+gh api repos/OWNER/REPO/milestones
+
+# マイルストーン名でIssue一覧（ラベル・本文付き）
+gh issue list --milestone "<milestone-name>" --json number,title,labels,body
+
+# Issue にコメント
+gh issue comment <number> --body "<message>"
+
+# Issue をクローズ
+gh issue close <number>
+
+# Issue を作成（マイルストーン・ラベル付き）
+gh issue create --title "<title>" --body "<body>" --milestone "<name>" --label "<label1>,<label2>"
+
+# Issue にラベルを追加
+gh issue edit <number> --add-label "<label1>,<label2>"
+```
+
+**禁止コマンド:**
+- `gh milestone list` — 存在しない、使用禁止
+
 ## Workflow
 
-1. Identify the target milestone and list its open issues with title, priority, area, and size.
-2. Pick the issue that is most urgent, riskiest, or explicitly described as broken before taking lower-value work.
-3. Read the issue body and the affected local code before proposing structure changes.
-4. Implement the smallest change that fully resolves the issue, preserving existing design constraints in the repo.
-5. Run the repository's required verification commands before finishing.
-6. Commit with a focused message.
-7. Comment on the issue with the commit ID and then close the issue.
+1. `gh issue list --milestone "<name>"` でマイルストーンのオープン Issue を取得し、title・priority・area・size を確認する。
+2. 最も緊急・リスクが高い、または壊れていると明示された Issue を選ぶ。
+3. Issue 本文と関連コードを読んでから変更を始める。
+4. Issue を解決する最小限の変更を実装する。
+5. リポジトリの必須検証コマンドを実行する。
+6. 集中したメッセージでコミットする。
+7. Issue にコミット ID をコメントしてからクローズする。
 
 ## Operating Rules
 

@@ -27,6 +27,14 @@ type ReviewContext struct {
 	CommitOID     string
 }
 
+type ReviewEvent string
+
+const (
+	ReviewEventComment        ReviewEvent = "COMMENT"
+	ReviewEventApprove        ReviewEvent = "APPROVE"
+	ReviewEventRequestChanges ReviewEvent = "REQUEST_CHANGES"
+)
+
 type ReviewComment struct {
 	Path      string
 	Body      string
@@ -282,7 +290,7 @@ func (c *Client) AddReviewComment(_ string, reviewID string, comment ReviewComme
 	return c.api.RunGraphQL(&resp, query, args...)
 }
 
-func (c *Client) SubmitReview(_ string, reviewID string, body string) error {
+func (c *Client) SubmitReview(_ string, reviewID string, event ReviewEvent, body string) error {
 	var resp struct {
 		Data struct {
 			SubmitPullRequestReview struct {
@@ -292,11 +300,12 @@ func (c *Client) SubmitReview(_ string, reviewID string, body string) error {
 			} `json:"submitPullRequestReview"`
 		} `json:"data"`
 	}
-	query := `mutation($pullRequestReviewId:ID!,$body:String!){submitPullRequestReview(input:{pullRequestReviewId:$pullRequestReviewId,event:COMMENT,body:$body}){pullRequestReview{id}}}`
+	query := `mutation($pullRequestReviewId:ID!,$event:PullRequestReviewEvent!,$body:String!){submitPullRequestReview(input:{pullRequestReviewId:$pullRequestReviewId,event:$event,body:$body}){pullRequestReview{id}}}`
 	return c.api.RunGraphQL(
 		&resp,
 		query,
 		"-f", "pullRequestReviewId="+reviewID,
+		"-f", "event="+string(event),
 		"-f", "body="+body,
 	)
 }
