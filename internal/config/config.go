@@ -242,11 +242,11 @@ func (k KeyBindings) labels(action Action) []string {
 func formatKeyLabel(key string) string {
 	switch key {
 	case "ctrl+c":
-		return "Ctrl+C"
+		return "ctrl+c"
 	case "ctrl+r":
-		return "Ctrl+R"
+		return "ctrl+r"
 	case "ctrl+s":
-		return "Ctrl+S"
+		return "ctrl+s"
 	case "esc":
 		return "Esc"
 	case "up":
