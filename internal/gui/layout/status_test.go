@@ -39,20 +39,20 @@ func TestFormatStatusLine(t *testing.T) {
 			diffMode:  true,
 			focus:     FocusReviewDrawer,
 			inputMode: model.ReviewInputComment,
-			want:      "[q]Quit [?]Help | [ctrl+s]Save Comment [Esc]Cancel",
+			want:      "[q]Quit [?]Help | [ctrl+s]Save Comment [esc]Cancel",
 		},
 		{
 			name:      "review input summary",
 			diffMode:  true,
 			focus:     FocusReviewDrawer,
 			inputMode: model.ReviewInputSummary,
-			want:      "[q]Quit [?]Help | [ctrl+s]Save Summary [Esc]Cancel",
+			want:      "[q]Quit [?]Help | [ctrl+s]Save Summary [esc]Cancel",
 		},
 		{
 			name:     "review drawer focus",
 			diffMode: true,
 			focus:    FocusReviewDrawer,
-			want:     "[q]Quit [?]Help | [Review] [ctrl+r]Submit [X]Discard [Esc]Cancel",
+			want:     "[q]Quit [?]Help | [Review] [ctrl+r]Submit [X]Discard [esc]Cancel",
 		},
 	}
 

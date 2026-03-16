@@ -247,8 +247,6 @@ func (k KeyBindings) labels(action Action) []string {
 
 func formatKeyLabel(key string) string {
 	switch key {
-	case "esc":
-		return "Esc"
 	case "up":
 		return "↑"
 	case "down":
