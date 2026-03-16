@@ -35,6 +35,7 @@ func (f *view) StopInput() {
 	f.summary.editor.Blur()
 	if f.state.Review.InputMode == core.ReviewInputComment {
 		f.state.ClearReviewRangeStart()
+		f.state.ClearEditingComment()
 		f.comment.editor.SetValue("")
 	}
 	f.state.StopReviewInput()

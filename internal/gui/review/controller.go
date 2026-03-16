@@ -21,12 +21,13 @@ type Selection interface {
 }
 
 type Controller struct {
-	keys    config.KeyBindings
-	comment *comment
-	summary *summary
-	rng     *rangeState
-	pending *pending
-	view    *view
+	keys     config.KeyBindings
+	comment  *comment
+	summary  *summary
+	rng      *rangeState
+	pending  *pending
+	view     *view
+	setFocus func(FocusTarget)
 }
 
 func NewController(cfg *config.Config, state *core.State, client PendingReviewClient, selection Selection, setFocus func(FocusTarget)) *Controller {
@@ -35,12 +36,13 @@ func NewController(cfg *config.Config, state *core.State, client PendingReviewCl
 	rng := newRange(state, selection, setFocus)
 	view := newView(state, setFocus, comment, summary)
 	return &Controller{
-		keys:    cfg.KeyBindings,
-		comment: comment,
-		summary: summary,
-		rng:     rng,
-		pending: newPending(state, client, selection, setFocus, comment, summary),
-		view:    view,
+		keys:     cfg.KeyBindings,
+		comment:  comment,
+		summary:  summary,
+		rng:      rng,
+		pending:  newPending(state, client, selection, setFocus, comment, summary),
+		view:     view,
+		setFocus: setFocus,
 	}
 }
 
@@ -133,6 +135,46 @@ func (c *Controller) ApplySubmitResult(msg SubmittedMsg) {
 
 func (c *Controller) ApplyDiscardResult(msg DiscardedMsg) {
 	c.pending.ApplyDiscardResult(msg)
+}
+
+func (c *Controller) HandleDeleteComment() tea.Cmd {
+	return c.pending.HandleDeleteComment()
+}
+
+func (c *Controller) BeginEditComment() bool {
+	comment, ok := c.pending.state.SelectedComment()
+	if !ok {
+		return false
+	}
+	c.pending.state.BeginEditComment()
+	c.comment.editor.SetValue(comment.Body)
+	c.comment.editor.Focus()
+	c.setFocus(FocusDiffContent)
+	return true
+}
+
+func (c *Controller) HandleEditCommentSave() tea.Cmd {
+	return c.pending.HandleEditCommentSave()
+}
+
+func (c *Controller) ApplyDeleteCommentResult(msg CommentDeletedMsg) {
+	c.pending.ApplyDeleteCommentResult(msg)
+}
+
+func (c *Controller) ApplyEditCommentResult(msg CommentUpdatedMsg) {
+	c.pending.ApplyEditCommentResult(msg)
+}
+
+func (c *Controller) SelectNextComment() {
+	c.pending.state.SelectNextComment()
+}
+
+func (c *Controller) SelectPrevComment() {
+	c.pending.state.SelectPrevComment()
+}
+
+func (c *Controller) IsEditingComment() bool {
+	return c.pending.state.Review.EditingCommentIdx >= 0
 }
 
 func (c *Controller) IsIndexWithinPendingRange(path string, commentable bool, idx int) bool {

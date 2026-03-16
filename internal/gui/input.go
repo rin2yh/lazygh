@@ -18,6 +18,9 @@ func (s *screen) handleReviewInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 			return s.gui.review.HandleDiscard(), true
 		case config.ActionReviewSave:
 			if s.gui.state.Review.InputMode == core.ReviewInputComment {
+				if s.gui.review.IsEditingComment() {
+					return s.gui.review.HandleEditCommentSave(), true
+				}
 				return s.gui.review.HandleCommentSave(), true
 			}
 		}
@@ -109,6 +112,14 @@ func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
 		if s.gui.state.IsDiffMode() {
 			s.gui.review.CycleReviewEvent()
 		}
+	case config.ActionReviewDeleteComment:
+		if s.gui.focus == panelReviewDrawer {
+			return s.gui.review.HandleDeleteComment()
+		}
+	case config.ActionReviewEditComment:
+		if s.gui.focus == panelReviewDrawer {
+			s.gui.review.BeginEditComment()
+		}
 	}
 	return nil
 }
@@ -189,6 +200,11 @@ func (s *screen) moveCursor(dir int) tea.Cmd {
 			}
 			return nil
 		case panelReviewDrawer:
+			if dir > 0 {
+				s.gui.review.SelectNextComment()
+			} else {
+				s.gui.review.SelectPrevComment()
+			}
 			return nil
 		}
 		return nil

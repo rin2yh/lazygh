@@ -250,21 +250,21 @@ func (c *Client) StartPendingReview(_ string, _ int, ctx ReviewContext) (string,
 	return reviewID, nil
 }
 
-func (c *Client) AddReviewComment(_ string, reviewID string, comment ReviewComment) error {
+func (c *Client) AddReviewComment(_ string, reviewID string, comment ReviewComment) (string, error) {
 	if strings.TrimSpace(reviewID) == "" {
-		return fmt.Errorf("review id is empty")
+		return "", fmt.Errorf("review id is empty")
 	}
 	if strings.TrimSpace(comment.Path) == "" {
-		return fmt.Errorf("comment path is empty")
+		return "", fmt.Errorf("comment path is empty")
 	}
 	if strings.TrimSpace(comment.Body) == "" {
-		return fmt.Errorf("comment body is empty")
+		return "", fmt.Errorf("comment body is empty")
 	}
 	if comment.Line <= 0 {
-		return fmt.Errorf("comment line is invalid")
+		return "", fmt.Errorf("comment line is invalid")
 	}
 
-	query := `mutation($pullRequestReviewId:ID!,$body:String!,$path:String!,$line:Int!,$side:DiffSide!,$startLine:Int,$startSide:DiffSide){addPullRequestReviewThread(input:{pullRequestReviewId:$pullRequestReviewId,body:$body,path:$path,line:$line,side:$side,startLine:$startLine,startSide:$startSide}){thread{id}}}`
+	query := `mutation($pullRequestReviewId:ID!,$body:String!,$path:String!,$line:Int!,$side:DiffSide!,$startLine:Int,$startSide:DiffSide){addPullRequestReviewThread(input:{pullRequestReviewId:$pullRequestReviewId,body:$body,path:$path,line:$line,side:$side,startLine:$startLine,startSide:$startSide}){thread{comments(first:1){nodes{id}}}}}`
 	args := []string{
 		"-f", "pullRequestReviewId=" + reviewID,
 		"-f", "body=" + comment.Body,
@@ -282,12 +282,58 @@ func (c *Client) AddReviewComment(_ string, reviewID string, comment ReviewComme
 		Data struct {
 			AddPullRequestReviewThread struct {
 				Thread struct {
-					ID string `json:"id"`
+					Comments struct {
+						Nodes []struct {
+							ID string `json:"id"`
+						} `json:"nodes"`
+					} `json:"comments"`
 				} `json:"thread"`
 			} `json:"addPullRequestReviewThread"`
 		} `json:"data"`
 	}
-	return c.api.RunGraphQL(&resp, query, args...)
+	if err := c.api.RunGraphQL(&resp, query, args...); err != nil {
+		return "", err
+	}
+	nodes := resp.Data.AddPullRequestReviewThread.Thread.Comments.Nodes
+	if len(nodes) == 0 {
+		return "", nil
+	}
+	return strings.TrimSpace(nodes[0].ID), nil
+}
+
+func (c *Client) DeletePendingReviewComment(commentID string) error {
+	if strings.TrimSpace(commentID) == "" {
+		return fmt.Errorf("comment id is empty")
+	}
+	var resp struct {
+		Data struct {
+			DeletePullRequestReviewComment struct {
+				ClientMutationID string `json:"clientMutationId"`
+			} `json:"deletePullRequestReviewComment"`
+		} `json:"data"`
+	}
+	query := `mutation($id:ID!){deletePullRequestReviewComment(input:{id:$id}){clientMutationId}}`
+	return c.api.RunGraphQL(&resp, query, "-f", "id="+commentID)
+}
+
+func (c *Client) UpdatePendingReviewComment(commentID string, body string) error {
+	if strings.TrimSpace(commentID) == "" {
+		return fmt.Errorf("comment id is empty")
+	}
+	if strings.TrimSpace(body) == "" {
+		return fmt.Errorf("comment body is empty")
+	}
+	var resp struct {
+		Data struct {
+			UpdatePullRequestReviewComment struct {
+				PullRequestReviewComment struct {
+					ID string `json:"id"`
+				} `json:"pullRequestReviewComment"`
+			} `json:"updatePullRequestReviewComment"`
+		} `json:"data"`
+	}
+	query := `mutation($id:ID!,$body:String!){updatePullRequestReviewComment(input:{pullRequestReviewCommentId:$id,body:$body}){pullRequestReviewComment{id}}}`
+	return c.api.RunGraphQL(&resp, query, "-f", "id="+commentID, "-f", "body="+body)
 }
 
 func (c *Client) SubmitReview(_ string, reviewID string, event ReviewEvent, body string) error {
