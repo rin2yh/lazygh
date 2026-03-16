@@ -9,17 +9,18 @@ import (
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	appstate "github.com/rin2yh/lazygh/internal/state"
 )
 
 type comment struct {
 	keys      config.KeyBindings
-	state     *core.State
+	state     *appstate.State
 	selection Selection
 	setFocus  func(FocusTarget)
 	editor    textarea.Model
 }
 
-func newComment(cfg *config.Config, state *core.State, setFocus func(FocusTarget)) *comment {
+func newComment(cfg *config.Config, state *appstate.State, setFocus func(FocusTarget)) *comment {
 	return &comment{
 		keys:     cfg.KeyBindings,
 		state:    state,

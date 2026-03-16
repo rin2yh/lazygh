@@ -7,12 +7,13 @@ import (
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	appstate "github.com/rin2yh/lazygh/internal/state"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 	reviewstub "github.com/rin2yh/lazygh/pkg/test/stub/review"
 )
 
 func TestApplyCommentResult_PersistsPendingReviewContextOnError(t *testing.T) {
-	state := core.NewState()
+	state := appstate.NewState()
 	state.ApplyPRsResult("owner/repo", []core.Item{{Number: 1, Title: "Fix bug"}}, nil)
 	state.BeginReviewLoad()
 	controller := NewController(config.Default(), state, &testmock.GHClient{}, reviewstub.Selection{}, func(FocusTarget) {})

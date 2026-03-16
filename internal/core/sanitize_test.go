@@ -11,13 +11,13 @@ func TestSanitize(t *testing.T) {
 	}{
 		{
 			name: "single line",
-			run:  sanitizeSingleLine,
+			run:  SanitizeSingleLine,
 			in:   "ok\x1b[31mred\x00\tline\nnext",
 			want: "ok[31mred line next",
 		},
 		{
 			name: "multi line",
-			run:  sanitizeMultiline,
+			run:  SanitizeMultiline,
 			in:   "title\x1b[31m\r\nbody\x00\nend",
 			want: "title[31m\nbody\nend",
 		},

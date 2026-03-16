@@ -4,14 +4,14 @@ import (
 	"testing"
 
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	appstate "github.com/rin2yh/lazygh/internal/state"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 	reviewstub "github.com/rin2yh/lazygh/pkg/test/stub/review"
 )
 
 func TestToggleRangeSelection_StartsAndClearsRange(t *testing.T) {
-	state := core.NewState()
+	state := appstate.NewState()
 	state.SwitchToDiff()
 	selection := reviewstub.Selection{
 		Line: gh.DiffLine{

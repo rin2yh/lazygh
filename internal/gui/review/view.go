@@ -1,15 +1,18 @@
 package review
 
-import "github.com/rin2yh/lazygh/internal/core"
+import (
+	"github.com/rin2yh/lazygh/internal/core"
+	appstate "github.com/rin2yh/lazygh/internal/state"
+)
 
 type view struct {
-	state    *core.State
+	state    *appstate.State
 	setFocus func(FocusTarget)
 	comment  *comment
 	summary  *summary
 }
 
-func newView(state *core.State, setFocus func(FocusTarget), comment *comment, summary *summary) *view {
+func newView(state *appstate.State, setFocus func(FocusTarget), comment *comment, summary *summary) *view {
 	return &view{
 		state:    state,
 		setFocus: setFocus,

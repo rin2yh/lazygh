@@ -5,6 +5,7 @@ import (
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	appstate "github.com/rin2yh/lazygh/internal/state"
 )
 
 type FocusTarget int
@@ -30,7 +31,7 @@ type Controller struct {
 	setFocus func(FocusTarget)
 }
 
-func NewController(cfg *config.Config, state *core.State, client PendingReviewClient, selection Selection, setFocus func(FocusTarget)) *Controller {
+func NewController(cfg *config.Config, state *appstate.State, client PendingReviewClient, selection Selection, setFocus func(FocusTarget)) *Controller {
 	comment := newComment(cfg, state, setFocus)
 	summary := newSummary(state, setFocus)
 	rng := newRange(state, selection, setFocus)

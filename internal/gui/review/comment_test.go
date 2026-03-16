@@ -7,6 +7,7 @@ import (
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	appstate "github.com/rin2yh/lazygh/internal/state"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 	reviewstub "github.com/rin2yh/lazygh/pkg/test/stub/review"
 )
@@ -111,7 +112,7 @@ func TestBuildDraft(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			state := core.NewState()
+			state := appstate.NewState()
 			c := newComment(defaultTestConfig(), state, func(FocusTarget) {})
 			c.bindSelection(tt.selection)
 
@@ -139,7 +140,7 @@ func TestBuildDraft(t *testing.T) {
 }
 
 func TestHandleEditorKey_EscCancelsCommentAndClearsRange(t *testing.T) {
-	state := core.NewState()
+	state := appstate.NewState()
 	state.SwitchToDiff()
 	state.BeginReviewCommentInput()
 	state.MarkReviewRangeStart(core.ReviewRange{Path: "a.txt", Index: 3, Line: 10})

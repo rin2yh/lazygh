@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
-	"github.com/rin2yh/lazygh/internal/core"
+	appstate "github.com/rin2yh/lazygh/internal/state"
 )
 
 func newEditor(placeholder string) textarea.Model {
@@ -23,7 +23,7 @@ func editorLines(e textarea.Model) []string {
 
 // beginInput performs the shared steps to start a review input form:
 // transition state, open drawer, set focus, populate editor, and focus it.
-func beginInput(state *core.State, setFocus func(FocusTarget), editor *textarea.Model, transitionState func(), initialValue string) {
+func beginInput(state *appstate.State, setFocus func(FocusTarget), editor *textarea.Model, transitionState func(), initialValue string) {
 	transitionState()
 	state.OpenReviewDrawer()
 	setFocus(FocusReviewDrawer)

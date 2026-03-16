@@ -3,11 +3,11 @@ package gui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/gui/detail"
 	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
 	guireview "github.com/rin2yh/lazygh/internal/gui/review"
+	"github.com/rin2yh/lazygh/internal/state"
 )
 
 type PRClient interface {
@@ -19,7 +19,7 @@ type PRClient interface {
 
 type Gui struct {
 	config *config.Config
-	state  *core.State
+	state  *state.State
 	client PRClient
 
 	focus    panelFocus
@@ -34,7 +34,7 @@ type Gui struct {
 func NewGui(cfg *config.Config, prClient PRClient, reviewClient guireview.PendingReviewClient) (*Gui, error) {
 	gui := &Gui{
 		config: cfg,
-		state:  core.NewState(),
+		state:  state.NewState(),
 		client: prClient,
 		focus:  panelPRs,
 		detail: detail.NewState(),

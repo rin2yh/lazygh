@@ -6,6 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	appstate "github.com/rin2yh/lazygh/internal/state"
 )
 
 type PendingReviewClient interface {
@@ -47,7 +48,7 @@ type DiscardedMsg struct {
 }
 
 type pending struct {
-	state     *core.State
+	state     *appstate.State
 	client    PendingReviewClient
 	selection Selection
 	setFocus  func(FocusTarget)
@@ -55,7 +56,7 @@ type pending struct {
 	summary   *summary
 }
 
-func newPending(state *core.State, client PendingReviewClient, selection Selection, setFocus func(FocusTarget), comment *comment, summary *summary) *pending {
+func newPending(state *appstate.State, client PendingReviewClient, selection Selection, setFocus func(FocusTarget), comment *comment, summary *summary) *pending {
 	comment.bindSelection(selection)
 	return &pending{
 		state:     state,

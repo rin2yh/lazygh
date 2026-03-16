@@ -2,15 +2,16 @@ package review
 
 import (
 	"github.com/rin2yh/lazygh/internal/core"
+	appstate "github.com/rin2yh/lazygh/internal/state"
 )
 
 type rangeState struct {
-	state     *core.State
+	state     *appstate.State
 	selection Selection
 	setFocus  func(FocusTarget)
 }
 
-func newRange(state *core.State, selection Selection, setFocus func(FocusTarget)) *rangeState {
+func newRange(state *appstate.State, selection Selection, setFocus func(FocusTarget)) *rangeState {
 	return &rangeState{
 		state:     state,
 		selection: selection,

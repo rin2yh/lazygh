@@ -7,14 +7,15 @@ import (
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	appstate "github.com/rin2yh/lazygh/internal/state"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 	reviewstub "github.com/rin2yh/lazygh/pkg/test/stub/review"
 )
 
 func defaultTestConfig() *config.Config { return config.Default() }
 
-func setupControllerWithPR(client *testmock.GHClient, sel reviewstub.Selection) (*Controller, *core.State, *FocusTarget) {
-	state := core.NewState()
+func setupControllerWithPR(client *testmock.GHClient, sel reviewstub.Selection) (*Controller, *appstate.State, *FocusTarget) {
+	state := appstate.NewState()
 	state.ApplyPRsResult("owner/repo", []core.Item{{Number: 1, Title: "PR"}}, nil)
 	focus := FocusDiffContent
 	c := NewController(defaultTestConfig(), state, client, sel, func(f FocusTarget) { focus = f })
@@ -22,7 +23,7 @@ func setupControllerWithPR(client *testmock.GHClient, sel reviewstub.Selection) 
 }
 
 func TestHandleCommentSave_NoPRSelected(t *testing.T) {
-	state := core.NewState()
+	state := appstate.NewState()
 	c := NewController(defaultTestConfig(), state, &testmock.GHClient{}, reviewstub.Selection{}, func(FocusTarget) {})
 
 	cmd := c.HandleCommentSave()
@@ -68,7 +69,7 @@ func TestHandleCommentSave_InvalidLine(t *testing.T) {
 }
 
 func TestHandleSubmit_NoPendingReview(t *testing.T) {
-	state := core.NewState()
+	state := appstate.NewState()
 	c := NewController(defaultTestConfig(), state, &testmock.GHClient{}, reviewstub.Selection{}, func(FocusTarget) {})
 
 	cmd := c.HandleSubmit()
