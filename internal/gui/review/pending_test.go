@@ -49,3 +49,40 @@ func TestApplyCommentResult_PersistsPendingReviewContextOnError(t *testing.T) {
 		t.Fatalf("got %q, want %q", state.Review.Notice, "add failed")
 	}
 }
+
+func TestHandleSubmit_PassesReviewEventToClient(t *testing.T) {
+	tests := []struct {
+		name      string
+		event     core.ReviewEvent
+		wantEvent string
+	}{
+		{"comment", core.ReviewEventComment, "COMMENT"},
+		{"approve", core.ReviewEventApprove, "APPROVE"},
+		{"request_changes", core.ReviewEventRequestChanges, "REQUEST_CHANGES"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mc := &testmock.GHClient{}
+			c, state, _ := setupControllerWithPR(mc, reviewstub.Selection{})
+			state.SetReviewContext(1, "PR_1", "abc", "PRR_1")
+			state.AddReviewComment(core.ReviewComment{Path: "a.go", Body: "hi", Line: 1})
+			state.Review.Event = tt.event
+
+			cmd := c.HandleSubmit()
+			if cmd == nil {
+				t.Fatal("expected non-nil cmd")
+			}
+			msg := cmd().(SubmittedMsg)
+			if msg.Err != nil {
+				t.Fatalf("unexpected error: %v", msg.Err)
+			}
+			if len(mc.SubmittedReviews) != 1 {
+				t.Fatalf("got %d submissions, want 1", len(mc.SubmittedReviews))
+			}
+			want := "PRR_1:" + tt.wantEvent + ":"
+			if mc.SubmittedReviews[0] != want {
+				t.Errorf("got %q, want %q", mc.SubmittedReviews[0], want)
+			}
+		})
+	}
+}
