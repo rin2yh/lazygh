@@ -127,7 +127,7 @@ func (m PRFilterMask) Label() string {
 	if len(parts) == 0 {
 		return "None"
 	}
-	return strings.Join(parts, "+")
+	return strings.Join(parts, ",")
 }
 
 func (m PRFilterMask) StateArg() string {
