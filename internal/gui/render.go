@@ -9,8 +9,8 @@ import (
 	"github.com/rin2yh/lazygh/internal/gui/layout"
 	"github.com/rin2yh/lazygh/internal/gui/prs"
 	guireview "github.com/rin2yh/lazygh/internal/gui/review"
-	"github.com/rin2yh/lazygh/internal/gui/widget"
 	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
 func (gui *Gui) render() string {

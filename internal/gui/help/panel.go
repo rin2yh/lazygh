@@ -6,7 +6,7 @@ import (
 
 	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/gui/widget"
+	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
 type section struct {

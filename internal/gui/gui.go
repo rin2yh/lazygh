@@ -17,6 +17,52 @@ type PRClient interface {
 	DiffPR(repo string, number int) (string, error)
 }
 
+// ReviewController は gui/ レイヤーが review 機能に要求するインターフェース。
+// gui/review/ を internal/review/ へ昇格する際は、tea.Cmd などの
+// GUI フレームワーク依存を持たない純粋なドメインインターフェースへ置き換える。
+type ReviewController interface {
+	ShouldShowDrawer() bool
+	IsIndexWithinPendingRange(path string, commentable bool, idx int) bool
+	CurrentSummaryValue() string
+	CommentInputLines() []string
+	SummaryInputLines() []string
+	HandleEditorKey(msg tea.KeyMsg) (tea.Cmd, bool)
+	HandleSubmit() tea.Cmd
+	HandleDiscard() tea.Cmd
+	HandleCommentSave() tea.Cmd
+	HandleEditCommentSave() tea.Cmd
+	HandleDeleteComment() tea.Cmd
+	ApplyCommentResult(msg guireview.CommentSavedMsg)
+	ApplyDeleteCommentResult(msg guireview.CommentDeletedMsg)
+	ApplyEditCommentResult(msg guireview.CommentUpdatedMsg)
+	ApplySubmitResult(msg guireview.SubmittedMsg)
+	ApplyDiscardResult(msg guireview.DiscardedMsg)
+	CurrentCommentValue() string
+	SetCommentValue(value string)
+	StopInput()
+	ClearCommentInput()
+	CycleReviewEvent()
+	BeginEditComment() bool
+	IsEditingComment() bool
+	SelectNextComment()
+	SelectPrevComment()
+	ToggleRangeSelection()
+	BeginCommentFlow()
+	BeginSummaryInput()
+}
+
+// DetailViewport は gui/ レイヤーが detail 機能に要求するインターフェース。
+// gui/detail/ を internal/detail/ へ昇格する際は、tea.KeyMsg / tea.Cmd などの
+// GUI フレームワーク依存を持たない純粋なドメインインターフェースへ置き換える。
+type DetailViewport interface {
+	Sync(width, height int, body string)
+	Height() int
+	Update(msg tea.KeyMsg) (bool, tea.Cmd)
+	ScrollDown(lines int)
+	ScrollUp(lines int)
+	View() string
+}
+
 type Gui struct {
 	config *config.Config
 	state  *appstate.State
@@ -26,18 +72,19 @@ type Gui struct {
 	showHelp bool
 
 	diff   guidiff.Selection
-	detail detail.State
+	detail DetailViewport
 
-	review *guireview.Controller
+	review ReviewController
 }
 
 func NewGui(cfg *config.Config, prClient PRClient, reviewClient guireview.PendingReviewClient) (*Gui, error) {
+	d := detail.NewState()
 	gui := &Gui{
 		config: cfg,
 		state:  appstate.NewState(),
 		client: prClient,
 		focus:  panelPRs,
-		detail: detail.NewState(),
+		detail: &d,
 	}
 	gui.review = guireview.NewController(cfg, gui.state, reviewClient, &gui.diff, gui.setReviewFocus)
 	return gui, nil

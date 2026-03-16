@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rin2yh/lazygh/internal/gui/widget"
 	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
 const (
