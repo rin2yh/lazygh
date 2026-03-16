@@ -15,17 +15,18 @@ func TestRenderDiffFileListLineShowsColoredStatusAndCounts(t *testing.T) {
 		Deletions: 1,
 	})
 
-	if !strings.Contains(line, ansiGreen+"A"+ansiReset) {
-		t.Fatalf("line does not contain %q", ansiGreen+"A"+ansiReset)
+	tests := []struct {
+		substr string
+	}{
+		{ansiGreen + "A" + ansiReset},
+		{ansiGreen + "+3" + ansiReset},
+		{ansiRed + "-1" + ansiReset},
+		{"a.txt"},
 	}
-	if !strings.Contains(line, ansiGreen+"+3"+ansiReset) {
-		t.Fatalf("line does not contain %q", ansiGreen+"+3"+ansiReset)
-	}
-	if !strings.Contains(line, ansiRed+"-1"+ansiReset) {
-		t.Fatalf("line does not contain %q", ansiRed+"-1"+ansiReset)
-	}
-	if !strings.Contains(line, "a.txt") {
-		t.Fatalf("line does not contain %q", "a.txt")
+	for _, tt := range tests {
+		if !strings.Contains(line, tt.substr) {
+			t.Errorf("line does not contain %q", tt.substr)
+		}
 	}
 }
 
@@ -42,16 +43,18 @@ func TestColorizeDiffContent(t *testing.T) {
 	}, "\n")
 
 	got := ColorizeContent(diff)
-	if !strings.Contains(got, ansiBlue+"diff --git a/a.txt b/a.txt"+ansiReset) {
-		t.Fatalf("diff content does not contain expected header")
+
+	tests := []struct {
+		substr string
+	}{
+		{ansiBlue + "diff --git a/a.txt b/a.txt" + ansiReset},
+		{ansiGray + "index 1111111..2222222 100644" + ansiReset},
+		{ansiRed + "-old" + ansiReset},
+		{ansiGreen + "+new" + ansiReset},
 	}
-	if !strings.Contains(got, ansiGray+"index 1111111..2222222 100644"+ansiReset) {
-		t.Fatalf("diff content does not contain expected index line")
-	}
-	if !strings.Contains(got, ansiRed+"-old"+ansiReset) {
-		t.Fatalf("diff content does not contain expected removal line")
-	}
-	if !strings.Contains(got, ansiGreen+"+new"+ansiReset) {
-		t.Fatalf("diff content does not contain expected addition line")
+	for _, tt := range tests {
+		if !strings.Contains(got, tt.substr) {
+			t.Errorf("diff content does not contain %q", tt.substr)
+		}
 	}
 }

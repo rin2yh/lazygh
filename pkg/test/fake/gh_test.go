@@ -62,53 +62,52 @@ func TestLog(t *testing.T) {
 func TestKey(t *testing.T) {
 	gh := Gh{}
 
-	t.Run("with gh prefix", func(t *testing.T) {
-		key, ok := gh.Key([]string{"gh", "repo", "view", "--json", "nameWithOwner"})
-		if !ok {
-			t.Fatal("expected ok, got false")
-		}
-		if key != "repo view" {
-			t.Fatalf("got %q, want %q", key, "repo view")
-		}
-	})
-
-	t.Run("without gh prefix", func(t *testing.T) {
-		key, ok := gh.Key([]string{"pr", "list"})
-		if !ok {
-			t.Fatal("expected ok, got false")
-		}
-		if key != "pr list" {
-			t.Fatalf("got %q, want %q", key, "pr list")
-		}
-	})
-
-	t.Run("too short", func(t *testing.T) {
-		_, ok := gh.Key([]string{"gh"})
-		if ok {
-			t.Fatal("expected false, got true")
-		}
-	})
+	tests := []struct {
+		name    string
+		args    []string
+		wantKey string
+		wantOK  bool
+	}{
+		{"with gh prefix", []string{"gh", "repo", "view", "--json", "nameWithOwner"}, "repo view", true},
+		{"without gh prefix", []string{"pr", "list"}, "pr list", true},
+		{"too short", []string{"gh"}, "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			key, ok := gh.Key(tt.args)
+			if ok != tt.wantOK {
+				t.Fatalf("ok = %v, want %v", ok, tt.wantOK)
+			}
+			if ok && key != tt.wantKey {
+				t.Fatalf("got %q, want %q", key, tt.wantKey)
+			}
+		})
+	}
 }
 
 func TestFind(t *testing.T) {
 	gh := Gh{Table: map[string]Response{"repo view": {Stdout: "ok", ExitCode: 0}}}
 
-	t.Run("hit", func(t *testing.T) {
-		resp, ok := gh.Find("repo view")
-		if !ok {
-			t.Fatal("expected hit, got miss")
-		}
-		if resp.Stdout != "ok" {
-			t.Fatalf("got %q, want %q", resp.Stdout, "ok")
-		}
-	})
-
-	t.Run("miss", func(t *testing.T) {
-		_, ok := gh.Find("pr list")
-		if ok {
-			t.Fatal("expected miss, got hit")
-		}
-	})
+	tests := []struct {
+		name       string
+		key        string
+		wantOK     bool
+		wantStdout string
+	}{
+		{"hit", "repo view", true, "ok"},
+		{"miss", "pr list", false, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, ok := gh.Find(tt.key)
+			if ok != tt.wantOK {
+				t.Fatalf("ok = %v, want %v", ok, tt.wantOK)
+			}
+			if ok && resp.Stdout != tt.wantStdout {
+				t.Fatalf("got %q, want %q", resp.Stdout, tt.wantStdout)
+			}
+		})
+	}
 }
 
 func TestWrite(t *testing.T) {
