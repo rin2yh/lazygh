@@ -23,7 +23,7 @@ func TestFakeGHProcess(t *testing.T) {
 			ExitCode: 0,
 		},
 		"pr list": {
-			Stdout:   `[{"number":1,"title":"Fix bug"}]`,
+			Stdout:   `[{"number":1,"title":"Fix bug","state":"OPEN"}]`,
 			ExitCode: 0,
 		},
 		"pr view": {

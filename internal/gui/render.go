@@ -31,7 +31,7 @@ func (gui *Gui) render() string {
 		PRsLoading: gui.state.List.PRsLoading,
 		PRs:        gui.renderPRItems(),
 		PRSelected: gui.state.List.PRsSelected,
-		Filter:     gui.state.List.Filter.String(),
+		Filter:     gui.state.List.Filter.Label(),
 	}
 
 	var rightLines []string
@@ -68,6 +68,9 @@ func (gui *Gui) render() string {
 	}
 	lines = append(lines, widget.PadOrTrim(statusLine, screen.Width))
 
+	if gui.state.List.FilterOpen {
+		lines = applyFilterOverlay(lines, gui.state.List.Filter, gui.state.List.FilterCursor, screen.Width)
+	}
 	if gui.showHelp {
 		lines = help.RenderOverlay(lines, gui.config.KeyBindings, screen.Width)
 	}
@@ -213,6 +216,58 @@ func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *guireview.DrawerInput {
 		input.SummaryInputLines = gui.review.SummaryInputLines()
 	}
 	return input
+}
+
+func applyFilterOverlay(background []string, filter core.PRFilterMask, cursor int, screenWidth int) []string {
+	panelLines, panelW := prs.FilterPanelLines(filter, cursor)
+	panelH := len(panelLines)
+
+	startY := max(0, (len(background)-panelH)/2)
+	startX := max(0, (screenWidth-panelW)/2)
+
+	result := make([]string, len(background))
+	copy(result, background)
+	for i, line := range panelLines {
+		y := startY + i
+		if y >= 0 && y < len(result) {
+			result[y] = overlayLine(result[y], line, startX, panelW, screenWidth)
+		}
+	}
+	return result
+}
+
+func overlayLine(bg, panel string, startX, panelW, screenWidth int) string {
+	left := widget.PadOrTrim(truncateAnsi(bg, startX), startX)
+	right := ""
+	endX := startX + panelW
+	if endX < screenWidth {
+		right = repeatSpace(screenWidth - endX)
+	}
+	return left + widget.PadOrTrim(panel, panelW) + right
+}
+
+func truncateAnsi(s string, w int) string {
+	// simple truncation by rune count (no ANSI stripping needed for background lines)
+	count := 0
+	for i, r := range s {
+		if count >= w {
+			return s[:i]
+		}
+		_ = r
+		count++
+	}
+	return s
+}
+
+func repeatSpace(n int) string {
+	if n <= 0 {
+		return ""
+	}
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = ' '
+	}
+	return string(b)
 }
 
 func splitNonEmptyLines(content string) []string {

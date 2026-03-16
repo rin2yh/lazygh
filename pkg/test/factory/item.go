@@ -16,5 +16,6 @@ func GHPRItem(number int, title string) gh.PRItem {
 	return gh.PRItem{
 		Number: number,
 		Title:  title,
+		State:  "OPEN",
 	}
 }

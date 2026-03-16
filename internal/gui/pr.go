@@ -22,9 +22,12 @@ type detailLoadedMsg struct {
 	err     error
 }
 
-func toCorePRs(prs []gh.PRItem) []core.Item {
+func toCorePRs(prs []gh.PRItem, filter core.PRFilterMask) []core.Item {
 	items := make([]core.Item, 0, len(prs))
 	for _, pr := range prs {
+		if !filter.Matches(pr.State) {
+			continue
+		}
 		status := pr.State
 		if pr.IsDraft {
 			status = "DRAFT"
@@ -47,17 +50,17 @@ func toCorePRs(prs []gh.PRItem) []core.Item {
 }
 
 func (s *screen) loadPRsCmd() tea.Cmd {
-	state := s.gui.state.List.Filter.StateArg()
+	filter := s.gui.state.List.Filter
 	return func() tea.Msg {
 		repo, err := s.gui.client.ResolveCurrentRepo()
 		if err != nil {
 			return prsLoadedMsg{err: err}
 		}
-		prs, err := s.gui.client.ListPRs(repo, state)
+		prs, err := s.gui.client.ListPRs(repo, filter.StateArg())
 		if err != nil {
 			return prsLoadedMsg{repo: repo, err: err}
 		}
-		return prsLoadedMsg{repo: repo, prs: toCorePRs(prs)}
+		return prsLoadedMsg{repo: repo, prs: toCorePRs(prs, filter)}
 	}
 }
 

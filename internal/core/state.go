@@ -92,43 +92,82 @@ type ReviewState struct {
 	Notice        string
 }
 
-type PRFilter int
+type PRFilterMask uint8
 
 const (
-	PRFilterOpen PRFilter = iota
-	PRFilterClosed
-	PRFilterMerged
+	PRFilterOpen   PRFilterMask = 1 << iota // 1
+	PRFilterClosed                          // 2
+	PRFilterMerged                          // 4
 )
 
-func (f PRFilter) String() string {
-	switch f {
-	case PRFilterClosed:
-		return "Closed"
-	case PRFilterMerged:
-		return "Merged"
-	default:
-		return "Open"
+// PRFilterOptions lists the filter options in display order.
+var PRFilterOptions = []PRFilterMask{PRFilterOpen, PRFilterClosed, PRFilterMerged}
+
+func (m PRFilterMask) Has(f PRFilterMask) bool { return m&f != 0 }
+
+func (m PRFilterMask) Toggle(f PRFilterMask) PRFilterMask { return m ^ f }
+
+func (m PRFilterMask) Label() string {
+	if m == PRFilterOpen|PRFilterClosed|PRFilterMerged {
+		return "All"
 	}
+	var parts []string
+	if m.Has(PRFilterOpen) {
+		parts = append(parts, "Open")
+	}
+	if m.Has(PRFilterClosed) {
+		parts = append(parts, "Closed")
+	}
+	if m.Has(PRFilterMerged) {
+		parts = append(parts, "Merged")
+	}
+	if len(parts) == 0 {
+		return "None"
+	}
+	result := parts[0]
+	for _, p := range parts[1:] {
+		result += "+" + p
+	}
+	return result
 }
 
-func (f PRFilter) StateArg() string {
-	switch f {
+func (m PRFilterMask) StateArg() string {
+	// single selection: use specific state arg for efficiency
+	switch m {
+	case PRFilterOpen:
+		return "open"
 	case PRFilterClosed:
 		return "closed"
 	case PRFilterMerged:
 		return "merged"
 	default:
-		return "open"
+		return "all"
+	}
+}
+
+// Matches returns true if the gh state string matches this filter mask.
+func (m PRFilterMask) Matches(state string) bool {
+	switch state {
+	case "OPEN":
+		return m.Has(PRFilterOpen)
+	case "CLOSED":
+		return m.Has(PRFilterClosed)
+	case "MERGED":
+		return m.Has(PRFilterMerged)
+	default:
+		return false
 	}
 }
 
 // ListState holds PR list and selection state.
 type ListState struct {
-	Repo        string
-	PRs         []Item
-	PRsLoading  bool
-	PRsSelected int
-	Filter      PRFilter
+	Repo         string
+	PRs          []Item
+	PRsLoading   bool
+	PRsSelected  int
+	Filter       PRFilterMask
+	FilterOpen   bool
+	FilterCursor int
 }
 
 // DetailState holds detail panel display and loading state.
@@ -156,7 +195,8 @@ type State struct {
 func NewState() *State {
 	return &State{
 		List: ListState{
-			PRs: []Item{},
+			PRs:    []Item{},
+			Filter: PRFilterOpen,
 		},
 		Detail: DetailState{
 			Mode: DetailModeOverview,
@@ -438,16 +478,34 @@ func (s *State) ResetReviewAfterDiscard(notice string) {
 	s.Review.Notice = sanitizeMultiline(notice)
 }
 
-func (s *State) CyclePRFilter() PRFilter {
-	switch s.List.Filter {
-	case PRFilterOpen:
-		s.List.Filter = PRFilterClosed
-	case PRFilterClosed:
-		s.List.Filter = PRFilterMerged
-	default:
-		s.List.Filter = PRFilterOpen
+func (s *State) OpenFilterSelect() {
+	s.List.FilterOpen = true
+	s.List.FilterCursor = 0
+}
+
+func (s *State) CloseFilterSelect() {
+	s.List.FilterOpen = false
+}
+
+func (s *State) MoveFilterCursor(dir int) {
+	n := len(PRFilterOptions)
+	s.List.FilterCursor = (s.List.FilterCursor + dir + n) % n
+}
+
+// ToggleFilterAtCursor toggles the filter option under the cursor.
+// It prevents deselecting all options and returns whether the filter changed.
+func (s *State) ToggleFilterAtCursor() bool {
+	if s.List.FilterCursor < 0 || s.List.FilterCursor >= len(PRFilterOptions) {
+		return false
 	}
-	return s.List.Filter
+	opt := PRFilterOptions[s.List.FilterCursor]
+	next := s.List.Filter.Toggle(opt)
+	if next == 0 {
+		return false // disallow empty selection
+	}
+	changed := next != s.List.Filter
+	s.List.Filter = next
+	return changed
 }
 
 func (s *State) blocksPRSelectionChange() bool {

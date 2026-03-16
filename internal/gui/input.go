@@ -69,7 +69,8 @@ func (s *screen) handleGlobalAction(action config.Action) (tea.Cmd, bool) {
 	case config.ActionOpenSelected:
 		return s.openSelectedPR(), true
 	case config.ActionFilterPRs:
-		return s.cyclePRFilter(), true
+		s.gui.state.OpenFilterSelect()
+		return nil, true
 	default:
 		return nil, false
 	}
@@ -112,10 +113,26 @@ func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
 	return nil
 }
 
-func (s *screen) cyclePRFilter() tea.Cmd {
-	s.gui.state.CyclePRFilter()
-	s.gui.state.BeginLoadPRs()
-	return s.loadPRsCmd()
+func (s *screen) handleFilterKey(msg tea.KeyMsg) tea.Cmd {
+	switch msg.String() {
+	case "esc", "q":
+		s.gui.state.CloseFilterSelect()
+		return nil
+	case "j", "down":
+		s.gui.state.MoveFilterCursor(1)
+		return nil
+	case "k", "up":
+		s.gui.state.MoveFilterCursor(-1)
+		return nil
+	case " ":
+		if s.gui.state.ToggleFilterAtCursor() {
+			s.gui.state.BeginLoadPRs()
+			s.gui.state.CloseFilterSelect()
+			return s.loadPRsCmd()
+		}
+		return nil
+	}
+	return nil
 }
 
 func (s *screen) handleCancel() tea.Cmd {

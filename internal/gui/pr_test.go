@@ -118,7 +118,7 @@ func TestToCorePRsMapsStatusAndAssignees(t *testing.T) {
 			State:   "OPEN",
 			IsDraft: true,
 		},
-	})
+	}, core.PRFilterOpen)
 
 	if len(items) != 2 {
 		t.Fatalf("got %d, want %d", len(items), 2)
