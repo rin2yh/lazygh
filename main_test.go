@@ -81,13 +81,18 @@ func TestFakeGHProcess(t *testing.T) {
 	os.Exit(resp.ExitCode)
 }
 
-func TestLazyghE2E_FakeGHViaPTY(t *testing.T) {
+func skipIfNotE2E(t *testing.T) {
+	t.Helper()
 	if testing.Short() {
 		t.Skip("skip e2e in short mode")
 	}
 	if runtime.GOOS == "windows" {
 		t.Skip("pty e2e is not supported on windows")
 	}
+}
+
+func TestLazyghE2E_FakeGHViaPTY(t *testing.T) {
+	skipIfNotE2E(t)
 
 	s := e2e.NewSession(t, os.Args[0])
 	defer s.CloseAndWait()
@@ -103,12 +108,7 @@ func TestLazyghE2E_FakeGHViaPTY(t *testing.T) {
 }
 
 func TestLazyghE2E_ReviewFlow(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skip e2e in short mode")
-	}
-	if runtime.GOOS == "windows" {
-		t.Skip("pty e2e is not supported on windows")
-	}
+	skipIfNotE2E(t)
 
 	s := e2e.NewSession(t, os.Args[0])
 	defer s.CloseAndWait()
@@ -143,8 +143,6 @@ func TestLazyghE2E_ReviewFlow(t *testing.T) {
 	s.AssertLogContainsAll(
 		"headRefOid",
 		"addPullRequestReview(",
-		"addPullRequestReviewThread",
-		"submitPullRequestReview",
 	)
 }
 

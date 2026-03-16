@@ -67,19 +67,21 @@ func (g Gh) Key(ghArgs []string) (string, bool) {
 	return base, true
 }
 
+var graphqlOps = []string{
+	"headRefOid",
+	"addPullRequestReviewThread",
+	"submitPullRequestReview",
+	"addPullRequestReview",
+	"deletePullRequestReview",
+}
+
 func graphqlOp(ghArgs []string) string {
 	for i, a := range ghArgs {
 		if (a == "-f" || a == "-F") && i+1 < len(ghArgs) {
 			v := ghArgs[i+1]
 			if strings.HasPrefix(v, "query=") {
 				q := v[len("query="):]
-				for _, op := range []string{
-					"headRefOid",
-					"addPullRequestReviewThread",
-					"submitPullRequestReview",
-					"addPullRequestReview",
-					"deletePullRequestReview",
-				} {
+				for _, op := range graphqlOps {
 					if strings.Contains(q, op) {
 						return op
 					}
