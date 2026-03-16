@@ -8,8 +8,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	"github.com/rin2yh/lazygh/internal/model"
 	testfactory "github.com/rin2yh/lazygh/pkg/test/factory"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 )
@@ -42,9 +42,9 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 	tests := []struct {
 		name         string
 		client       *testmock.GHClient
-		pr           core.Item
+		pr           model.Item
 		switchToDiff bool
-		wantMode     core.DetailMode
+		wantMode     model.DetailMode
 		wantContent  string
 		wantNumber   int
 	}{
@@ -52,7 +52,7 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 			name:        "overview",
 			client:      &testmock.GHClient{PRView: "detail"},
 			pr:          testfactory.CoreItem(1, "x"),
-			wantMode:    core.DetailModeOverview,
+			wantMode:    model.DetailModeOverview,
 			wantContent: "detail",
 			wantNumber:  1,
 		},
@@ -61,7 +61,7 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 			client:       &testmock.GHClient{PRDiff: "diff"},
 			pr:           testfactory.CoreItem(2, "x"),
 			switchToDiff: true,
-			wantMode:     core.DetailModeDiff,
+			wantMode:     model.DetailModeDiff,
 			wantContent:  "diff",
 			wantNumber:   2,
 		},
@@ -73,7 +73,7 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.state.ApplyPRsResult("owner/repo", []core.Item{tt.pr}, nil)
+			g.state.ApplyPRsResult("owner/repo", []model.Item{tt.pr}, nil)
 			if tt.switchToDiff {
 				g.switchToDiff()
 			}
@@ -118,26 +118,26 @@ func TestToCorePRsMapsStatusAndAssignees(t *testing.T) {
 			State:   "OPEN",
 			IsDraft: true,
 		},
-	}, core.PRFilterOpen)
+	}, model.PRFilterOpen)
 
 	if len(items) != 2 {
 		t.Fatalf("got %d, want %d", len(items), 2)
 	}
-	if items[0].Status != core.PRStatusOpen {
-		t.Fatalf("got %q, want %q", items[0].Status, core.PRStatusOpen)
+	if items[0].Status != model.PRStatusOpen {
+		t.Fatalf("got %q, want %q", items[0].Status, model.PRStatusOpen)
 	}
 	if strings.Join(items[0].Assignees, ",") != "alice,bob" {
 		t.Fatalf("got %q, want %q", strings.Join(items[0].Assignees, ","), "alice,bob")
 	}
-	if items[1].Status != core.PRStatusDraft {
-		t.Fatalf("got %q, want %q", items[1].Status, core.PRStatusDraft)
+	if items[1].Status != model.PRStatusDraft {
+		t.Fatalf("got %q, want %q", items[1].Status, model.PRStatusDraft)
 	}
 }
 
 func TestApplyPRsResult(t *testing.T) {
 	type want struct {
 		repo   string
-		prs    []core.Item
+		prs    []model.Item
 		detail string
 	}
 
@@ -150,11 +150,11 @@ func TestApplyPRsResult(t *testing.T) {
 			name: "success",
 			msg: prsLoadedMsg{
 				repo: "owner/repo",
-				prs:  []core.Item{{Number: 1, Title: "Fix bug", Status: "OPEN", Assignees: []string{"alice"}}},
+				prs:  []model.Item{{Number: 1, Title: "Fix bug", Status: "OPEN", Assignees: []string{"alice"}}},
 			},
 			want: want{
 				repo:   "owner/repo",
-				prs:    []core.Item{{Number: 1, Title: "Fix bug", Status: "OPEN", Assignees: []string{"alice"}}},
+				prs:    []model.Item{{Number: 1, Title: "Fix bug", Status: "OPEN", Assignees: []string{"alice"}}},
 				detail: "PR #1 Fix bug\nStatus: OPEN\nAssignee: alice",
 			},
 		},
@@ -195,8 +195,8 @@ func TestApplyPRsResult(t *testing.T) {
 			if g.state.List.PRsLoading {
 				t.Fatal("expected PRsLoading=false")
 			}
-			if g.state.Detail.Loading != core.LoadingNone {
-				t.Fatalf("got %v, want %v", g.state.Detail.Loading, core.LoadingNone)
+			if g.state.Detail.Loading != model.LoadingNone {
+				t.Fatalf("got %v, want %v", g.state.Detail.Loading, model.LoadingNone)
 			}
 			if g.state.List.Repo != tt.want.repo {
 				t.Fatalf("got %q, want %q", g.state.List.Repo, tt.want.repo)
@@ -224,7 +224,7 @@ func TestApplyDetailResult(t *testing.T) {
 		{
 			name: "success",
 			msg: detailLoadedMsg{
-				mode:    core.DetailModeOverview,
+				mode:    model.DetailModeOverview,
 				number:  1,
 				content: "hello",
 			},
@@ -235,7 +235,7 @@ func TestApplyDetailResult(t *testing.T) {
 		{
 			name: "error",
 			msg: detailLoadedMsg{
-				mode:   core.DetailModeOverview,
+				mode:   model.DetailModeOverview,
 				number: 1,
 				err:    errors.New("boom"),
 			},
@@ -251,13 +251,13 @@ func TestApplyDetailResult(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.state.ApplyPRsResult("owner/repo", []core.Item{{Number: 1, Title: "Fix bug"}}, nil)
-			g.state.Detail.Loading = core.LoadingDetail
+			g.state.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "Fix bug"}}, nil)
+			g.state.Detail.Loading = model.LoadingDetail
 
 			g.applyDetailResult(tt.msg)
 
-			if g.state.Detail.Loading != core.LoadingNone {
-				t.Fatalf("got %v, want %v", g.state.Detail.Loading, core.LoadingNone)
+			if g.state.Detail.Loading != model.LoadingNone {
+				t.Fatalf("got %v, want %v", g.state.Detail.Loading, model.LoadingNone)
 			}
 			if g.state.Detail.Content != tt.want.detail {
 				t.Fatalf("got %q, want %q", g.state.Detail.Content, tt.want.detail)
@@ -271,9 +271,9 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.state.ApplyPRsResult("owner/repo", []core.Item{{Number: 1, Title: "Fix bug"}}, nil)
+	g.state.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "Fix bug"}}, nil)
 	g.switchToDiff()
-	g.state.Detail.Loading = core.LoadingDetail
+	g.state.Detail.Loading = model.LoadingDetail
 
 	raw := strings.Join([]string{
 		"diff --git a/a.txt b/a.txt",
@@ -285,7 +285,7 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 	}, "\n")
 
 	g.applyDetailResult(detailLoadedMsg{
-		mode:    core.DetailModeDiff,
+		mode:    model.DetailModeDiff,
 		number:  1,
 		content: raw,
 	})

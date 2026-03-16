@@ -6,8 +6,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/core"
 	guireview "github.com/rin2yh/lazygh/internal/gui/review"
+	"github.com/rin2yh/lazygh/internal/model"
 	testfactory "github.com/rin2yh/lazygh/pkg/test/factory"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 )
@@ -17,7 +17,7 @@ func TestModelUpdate_VKeyTogglesRangeSelection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.state.ApplyPRsResult("owner/repo", []core.Item{testfactory.CoreItem(1, "x")}, nil)
+	g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.CoreItem(1, "x")}, nil)
 	g.switchToDiff()
 	g.updateDiffFiles(strings.Join([]string{
 		"diff --git a/a.txt b/a.txt",
@@ -50,7 +50,7 @@ func TestModelUpdate_EnterKeyUsesRangeFlowAfterV(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.state.ApplyPRsResult("owner/repo", []core.Item{testfactory.CoreItem(1, "x")}, nil)
+	g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.CoreItem(1, "x")}, nil)
 	g.switchToDiff()
 	g.updateDiffFiles(strings.Join([]string{
 		"diff --git a/a.txt b/a.txt",
@@ -76,8 +76,8 @@ func TestModelUpdate_EnterKeyUsesRangeFlowAfterV(t *testing.T) {
 	if cmd != nil {
 		t.Fatal("did not expect command")
 	}
-	if g.state.Review.InputMode != core.ReviewInputComment {
-		t.Fatalf("got %v, want %v", g.state.Review.InputMode, core.ReviewInputComment)
+	if g.state.Review.InputMode != model.ReviewInputComment {
+		t.Fatalf("got %v, want %v", g.state.Review.InputMode, model.ReviewInputComment)
 	}
 }
 
@@ -86,7 +86,7 @@ func TestModelUpdate_EscCancelsCommentAndClearsRangeHighlight(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.state.ApplyPRsResult("owner/repo", []core.Item{testfactory.CoreItem(1, "x")}, nil)
+	g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.CoreItem(1, "x")}, nil)
 	g.switchToDiff()
 	g.updateDiffFiles(strings.Join([]string{
 		"diff --git a/a.txt b/a.txt",
@@ -112,8 +112,8 @@ func TestModelUpdate_EscCancelsCommentAndClearsRangeHighlight(t *testing.T) {
 	if g.state.Review.RangeStart != nil {
 		t.Fatal("expected range start cleared after cancel")
 	}
-	if g.state.Review.InputMode != core.ReviewInputNone {
-		t.Fatalf("got %v, want %v", g.state.Review.InputMode, core.ReviewInputNone)
+	if g.state.Review.InputMode != model.ReviewInputNone {
+		t.Fatalf("got %v, want %v", g.state.Review.InputMode, model.ReviewInputNone)
 	}
 	if g.focus != panelDiffContent {
 		t.Fatalf("got %v, want %v", g.focus, panelDiffContent)
@@ -125,7 +125,7 @@ func TestModelUpdate_EscClearsRangeSelectionWithoutLeavingDiff(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.state.ApplyPRsResult("owner/repo", []core.Item{testfactory.CoreItem(1, "x")}, nil)
+	g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.CoreItem(1, "x")}, nil)
 	g.switchToDiff()
 	g.updateDiffFiles(strings.Join([]string{
 		"diff --git a/a.txt b/a.txt",
@@ -162,7 +162,7 @@ func TestModelUpdate_InputModeSubmitShortcutBypassesEditor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.state.ApplyPRsResult("owner/repo", []core.Item{testfactory.CoreItem(1, "x")}, nil)
+	g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.CoreItem(1, "x")}, nil)
 	g.switchToDiff()
 	g.state.SetReviewContext(1, "PR_kwDO123", "deadbeef", "PRR_kwDO456")
 	g.state.BeginReviewCommentInput()
@@ -191,7 +191,7 @@ func TestModelUpdate_InputModeDiscardShortcutBypassesEditor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.state.ApplyPRsResult("owner/repo", []core.Item{testfactory.CoreItem(1, "x")}, nil)
+	g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.CoreItem(1, "x")}, nil)
 	g.switchToDiff()
 	g.state.SetReviewContext(1, "PR_kwDO123", "deadbeef", "PRR_kwDO456")
 	g.state.BeginReviewCommentInput()
@@ -216,7 +216,7 @@ func TestModelUpdate_ReviewKeysIgnoredOutsideDiff(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.state.ApplyPRsResult("owner/repo", []core.Item{testfactory.CoreItem(1, "x")}, nil)
+	g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.CoreItem(1, "x")}, nil)
 	m := &screen{gui: g}
 
 	for _, key := range []tea.KeyMsg{
@@ -228,8 +228,8 @@ func TestModelUpdate_ReviewKeysIgnoredOutsideDiff(t *testing.T) {
 		if cmd != nil {
 			t.Fatal("did not expect command")
 		}
-		if g.state.Review.InputMode != core.ReviewInputNone {
-			t.Fatalf("got %v, want %v", g.state.Review.InputMode, core.ReviewInputNone)
+		if g.state.Review.InputMode != model.ReviewInputNone {
+			t.Fatalf("got %v, want %v", g.state.Review.InputMode, model.ReviewInputNone)
 		}
 		if g.state.Review.RangeStart != nil {
 			t.Fatal("expected no range selection outside diff")

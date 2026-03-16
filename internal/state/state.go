@@ -3,7 +3,7 @@ package state
 import (
 	"fmt"
 
-	"github.com/rin2yh/lazygh/internal/core"
+	"github.com/rin2yh/lazygh/internal/model"
 )
 
 type ReviewState struct {
@@ -12,11 +12,11 @@ type ReviewState struct {
 	CommitOID          string
 	ReviewID           string
 	DrawerOpen         bool
-	InputMode          core.ReviewInputMode
-	Event              core.ReviewEvent
+	InputMode          model.ReviewInputMode
+	Event              model.ReviewEvent
 	Summary            string
-	Comments           []core.ReviewComment
-	RangeStart         *core.ReviewRange
+	Comments           []model.ReviewComment
+	RangeStart         *model.ReviewRange
 	Notice             string
 	SelectedCommentIdx int
 	EditingCommentIdx  int
@@ -25,23 +25,23 @@ type ReviewState struct {
 // ListState holds PR list and selection state.
 type ListState struct {
 	Repo         string
-	PRs          []core.Item
+	PRs          []model.Item
 	PRsLoading   bool
 	PRsSelected  int
-	Filter       core.PRFilterMask
+	Filter       model.PRFilterMask
 	FilterOpen   bool
 	FilterCursor int
 }
 
 // DetailState holds detail panel display and loading state.
 type DetailState struct {
-	Mode    core.DetailMode
+	Mode    model.DetailMode
 	Content string
-	Loading core.LoadingKind
+	Loading model.LoadingKind
 }
 
 type EnterAction struct {
-	Kind   core.EnterActionKind
+	Kind   model.EnterActionKind
 	Repo   string
 	Number int
 }
@@ -58,15 +58,15 @@ type State struct {
 func NewState() *State {
 	return &State{
 		List: ListState{
-			PRs:    []core.Item{},
-			Filter: core.PRFilterOpen,
+			PRs:    []model.Item{},
+			Filter: model.PRFilterOpen,
 		},
 		Detail: DetailState{
-			Mode: core.DetailModeOverview,
+			Mode: model.DetailModeOverview,
 		},
 		Review: ReviewState{
-			Comments:          []core.ReviewComment{},
-			EditingCommentIdx: core.NoEditingComment,
+			Comments:          []model.ReviewComment{},
+			EditingCommentIdx: model.NoEditingComment,
 		},
 	}
 }
@@ -78,27 +78,27 @@ func (s *State) SetWindowSize(width int, height int) {
 
 func (s *State) BeginLoadPRs() {
 	s.List.PRsLoading = true
-	s.Detail.Loading = core.LoadingPRs
+	s.Detail.Loading = model.LoadingPRs
 }
 
 // BeginReviewLoad marks a review operation as in-progress.
 func (s *State) BeginReviewLoad() {
-	s.Detail.Loading = core.LoadingReview
+	s.Detail.Loading = model.LoadingReview
 }
 
 // ClearLoading clears any in-progress loading indicator.
 func (s *State) ClearLoading() {
-	s.Detail.Loading = core.LoadingNone
+	s.Detail.Loading = model.LoadingNone
 }
 
 // StopReviewInput exits any active review input mode without closing the drawer.
 func (s *State) StopReviewInput() {
-	s.Review.InputMode = core.ReviewInputNone
+	s.Review.InputMode = model.ReviewInputNone
 }
 
-func (s *State) ApplyPRsResult(repo string, prs []core.Item, err error) {
+func (s *State) ApplyPRsResult(repo string, prs []model.Item, err error) {
 	s.List.PRsLoading = false
-	s.Detail.Loading = core.LoadingNone
+	s.Detail.Loading = model.LoadingNone
 	if err != nil {
 		s.showError("Error loading PRs", err)
 		return
@@ -107,13 +107,13 @@ func (s *State) ApplyPRsResult(repo string, prs []core.Item, err error) {
 	s.List.Repo = repo
 	s.List.PRs = prs
 	s.List.PRsSelected = 0
-	s.Detail.Mode = core.DetailModeOverview
+	s.Detail.Mode = model.DetailModeOverview
 	s.resetReview()
 	if len(prs) == 0 {
 		s.Detail.Content = "No pull requests"
 		return
 	}
-	s.Detail.Content = core.FormatPROverview(prs[s.List.PRsSelected])
+	s.Detail.Content = model.FormatPROverview(prs[s.List.PRsSelected])
 }
 
 func (s *State) ApplyDetailResult(content string, err error) {
@@ -121,8 +121,8 @@ func (s *State) ApplyDetailResult(content string, err error) {
 		s.showError("Error loading detail", err)
 		return
 	}
-	s.Detail.Loading = core.LoadingNone
-	s.Detail.Content = core.SanitizeMultiline(content)
+	s.Detail.Loading = model.LoadingNone
+	s.Detail.Content = model.SanitizeMultiline(content)
 }
 
 func (s *State) ApplyDiffResult(content string, err error) {
@@ -130,8 +130,8 @@ func (s *State) ApplyDiffResult(content string, err error) {
 		s.showError("Error loading diff", err)
 		return
 	}
-	s.Detail.Loading = core.LoadingNone
-	s.Detail.Content = core.SanitizeMultiline(content)
+	s.Detail.Loading = model.LoadingNone
+	s.Detail.Content = model.SanitizeMultiline(content)
 }
 
 func (s *State) NavigateDown() bool {
@@ -144,7 +144,7 @@ func (s *State) NavigateDown() bool {
 		s.List.PRsSelected++
 		changed = true
 	}
-	if changed && s.Detail.Mode == core.DetailModeOverview {
+	if changed && s.Detail.Mode == model.DetailModeOverview {
 		s.refreshDetailPreview()
 	}
 	return changed
@@ -160,39 +160,39 @@ func (s *State) NavigateUp() bool {
 		s.List.PRsSelected--
 		changed = true
 	}
-	if changed && s.Detail.Mode == core.DetailModeOverview {
+	if changed && s.Detail.Mode == model.DetailModeOverview {
 		s.refreshDetailPreview()
 	}
 	return changed
 }
 
 func (s *State) SwitchToOverview() bool {
-	if s.Detail.Mode == core.DetailModeOverview {
+	if s.Detail.Mode == model.DetailModeOverview {
 		return false
 	}
-	s.Detail.Mode = core.DetailModeOverview
-	s.Detail.Loading = core.LoadingNone
-	s.Review.InputMode = core.ReviewInputNone
+	s.Detail.Mode = model.DetailModeOverview
+	s.Detail.Loading = model.LoadingNone
+	s.Review.InputMode = model.ReviewInputNone
 	s.refreshDetailPreview()
 	return true
 }
 
 func (s *State) SwitchToDiff() bool {
-	if s.Detail.Mode == core.DetailModeDiff {
+	if s.Detail.Mode == model.DetailModeDiff {
 		return false
 	}
-	s.Detail.Mode = core.DetailModeDiff
-	s.Detail.Loading = core.LoadingNone
+	s.Detail.Mode = model.DetailModeDiff
+	s.Detail.Loading = model.LoadingNone
 	s.Review.DrawerOpen = false
-	s.Review.InputMode = core.ReviewInputNone
+	s.Review.InputMode = model.ReviewInputNone
 	return true
 }
 
 func (s *State) IsDiffMode() bool {
-	return s.Detail.Mode == core.DetailModeDiff
+	return s.Detail.Mode == model.DetailModeDiff
 }
 
-func (s *State) ShouldApplyDetailResult(mode core.DetailMode, number int) bool {
+func (s *State) ShouldApplyDetailResult(mode model.DetailMode, number int) bool {
 	if s.Detail.Mode != mode {
 		return false
 	}
@@ -212,15 +212,15 @@ func (s *State) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
 		return EnterAction{}
 	}
 	if forcedDetailText != "" {
-		s.Detail.Loading = core.LoadingNone
+		s.Detail.Loading = model.LoadingNone
 		s.Detail.Content = forcedDetailText
 		return EnterAction{}
 	}
-	s.Detail.Loading = core.LoadingDetail
-	if s.Detail.Mode == core.DetailModeDiff {
-		return EnterAction{Kind: core.EnterLoadPRDiff, Repo: s.List.Repo, Number: item.Number}
+	s.Detail.Loading = model.LoadingDetail
+	if s.Detail.Mode == model.DetailModeDiff {
+		return EnterAction{Kind: model.EnterLoadPRDiff, Repo: s.List.Repo, Number: item.Number}
 	}
-	return EnterAction{Kind: core.EnterLoadPRDetail, Repo: s.List.Repo, Number: item.Number}
+	return EnterAction{Kind: model.EnterLoadPRDetail, Repo: s.List.Repo, Number: item.Number}
 }
 
 func (s *State) refreshDetailPreview() {
@@ -228,25 +228,25 @@ func (s *State) refreshDetailPreview() {
 	if !ok {
 		return
 	}
-	s.Detail.Content = core.FormatPROverview(item)
+	s.Detail.Content = model.FormatPROverview(item)
 }
 
-func (s *State) selectedPR() (core.Item, bool) {
+func (s *State) selectedPR() (model.Item, bool) {
 	if len(s.List.PRs) == 0 {
-		return core.Item{}, false
+		return model.Item{}, false
 	}
 	if s.List.PRsSelected < 0 || s.List.PRsSelected >= len(s.List.PRs) {
-		return core.Item{}, false
+		return model.Item{}, false
 	}
 	return s.List.PRs[s.List.PRsSelected], true
 }
 
 func (s *State) showError(msg string, err error) {
-	s.Detail.Loading = core.LoadingNone
-	s.Detail.Content = core.SanitizeMultiline(fmt.Sprintf("%s: %v", msg, err))
+	s.Detail.Loading = model.LoadingNone
+	s.Detail.Content = model.SanitizeMultiline(fmt.Sprintf("%s: %v", msg, err))
 }
 
-func (s *State) SelectedPR() (core.Item, bool) {
+func (s *State) SelectedPR() (model.Item, bool) {
 	return s.selectedPR()
 }
 
@@ -256,47 +256,47 @@ func (s *State) OpenReviewDrawer() {
 
 func (s *State) CloseReviewDrawer() {
 	s.Review.DrawerOpen = false
-	s.Review.InputMode = core.ReviewInputNone
+	s.Review.InputMode = model.ReviewInputNone
 	s.Review.Notice = ""
 }
 
 func (s *State) BeginReviewCommentInput() {
 	s.Review.DrawerOpen = true
-	s.Review.InputMode = core.ReviewInputComment
+	s.Review.InputMode = model.ReviewInputComment
 	s.Review.Notice = ""
 }
 
 func (s *State) BeginReviewSummaryInput() {
 	s.Review.DrawerOpen = true
-	s.Review.InputMode = core.ReviewInputSummary
+	s.Review.InputMode = model.ReviewInputSummary
 	s.Review.Notice = ""
 }
 
 func (s *State) SetReviewSummary(summary string) {
-	s.Review.Summary = core.SanitizeMultiline(summary)
+	s.Review.Summary = model.SanitizeMultiline(summary)
 }
 
 func (s *State) SetReviewContext(prNumber int, pullRequestID string, commitOID string, reviewID string) {
 	s.Review.PRNumber = prNumber
-	s.Review.PullRequestID = core.SanitizeSingleLine(pullRequestID)
-	s.Review.CommitOID = core.SanitizeSingleLine(commitOID)
-	s.Review.ReviewID = core.SanitizeSingleLine(reviewID)
+	s.Review.PullRequestID = model.SanitizeSingleLine(pullRequestID)
+	s.Review.CommitOID = model.SanitizeSingleLine(commitOID)
+	s.Review.ReviewID = model.SanitizeSingleLine(reviewID)
 }
 
-func (s *State) AddReviewComment(comment core.ReviewComment) {
-	s.Review.Comments = append(s.Review.Comments, core.ReviewComment{
+func (s *State) AddReviewComment(comment model.ReviewComment) {
+	s.Review.Comments = append(s.Review.Comments, model.ReviewComment{
 		CommentID: comment.CommentID,
-		Path:      core.SanitizeSingleLine(comment.Path),
-		Body:      core.SanitizeMultiline(comment.Body),
-		Side:      core.SanitizeSingleLine(comment.Side),
+		Path:      model.SanitizeSingleLine(comment.Path),
+		Body:      model.SanitizeMultiline(comment.Body),
+		Side:      model.SanitizeSingleLine(comment.Side),
 		Line:      comment.Line,
-		StartSide: core.SanitizeSingleLine(comment.StartSide),
+		StartSide: model.SanitizeSingleLine(comment.StartSide),
 		StartLine: comment.StartLine,
 	})
 	s.Review.SelectedCommentIdx = len(s.Review.Comments) - 1
 	s.Review.Notice = "Review comment added."
 	s.Review.DrawerOpen = true
-	s.Review.InputMode = core.ReviewInputNone
+	s.Review.InputMode = model.ReviewInputNone
 	s.Review.RangeStart = nil
 }
 
@@ -315,10 +315,10 @@ func (s *State) SelectPrevComment() {
 	}
 }
 
-func (s *State) DeleteSelectedComment() (core.ReviewComment, bool) {
+func (s *State) DeleteSelectedComment() (model.ReviewComment, bool) {
 	idx := s.Review.SelectedCommentIdx
 	if idx < 0 || idx >= len(s.Review.Comments) {
-		return core.ReviewComment{}, false
+		return model.ReviewComment{}, false
 	}
 	deleted := s.Review.Comments[idx]
 	s.Review.Comments = append(s.Review.Comments[:idx], s.Review.Comments[idx+1:]...)
@@ -330,17 +330,17 @@ func (s *State) DeleteSelectedComment() (core.ReviewComment, bool) {
 	return deleted, true
 }
 
-func (s *State) SelectedComment() (core.ReviewComment, bool) {
+func (s *State) SelectedComment() (model.ReviewComment, bool) {
 	idx := s.Review.SelectedCommentIdx
 	if idx < 0 || idx >= len(s.Review.Comments) {
-		return core.ReviewComment{}, false
+		return model.ReviewComment{}, false
 	}
 	return s.Review.Comments[idx], true
 }
 
 func (s *State) BeginEditComment() {
 	s.Review.EditingCommentIdx = s.Review.SelectedCommentIdx
-	s.Review.InputMode = core.ReviewInputComment
+	s.Review.InputMode = model.ReviewInputComment
 	s.Review.DrawerOpen = true
 	s.Review.Notice = ""
 }
@@ -350,18 +350,18 @@ func (s *State) ApplyEditComment(newBody string) {
 	if idx < 0 || idx >= len(s.Review.Comments) {
 		return
 	}
-	s.Review.Comments[idx].Body = core.SanitizeMultiline(newBody)
-	s.Review.EditingCommentIdx = core.NoEditingComment
-	s.Review.InputMode = core.ReviewInputNone
+	s.Review.Comments[idx].Body = model.SanitizeMultiline(newBody)
+	s.Review.EditingCommentIdx = model.NoEditingComment
+	s.Review.InputMode = model.ReviewInputNone
 	s.Review.Notice = "Comment updated."
 }
 
 func (s *State) ClearEditingComment() {
-	s.Review.EditingCommentIdx = core.NoEditingComment
+	s.Review.EditingCommentIdx = model.NoEditingComment
 }
 
 func (s *State) SetReviewNotice(msg string) {
-	s.Review.Notice = core.SanitizeMultiline(msg)
+	s.Review.Notice = model.SanitizeMultiline(msg)
 }
 
 func (s *State) ClearReviewNotice() {
@@ -372,7 +372,7 @@ func (s *State) HasPendingReview() bool {
 	return s.Review.ReviewID != ""
 }
 
-func (s *State) MarkReviewRangeStart(anchor core.ReviewRange) {
+func (s *State) MarkReviewRangeStart(anchor model.ReviewRange) {
 	copied := anchor
 	s.Review.RangeStart = &copied
 	s.Review.DrawerOpen = true
@@ -381,12 +381,12 @@ func (s *State) MarkReviewRangeStart(anchor core.ReviewRange) {
 
 func (s *State) CycleReviewEvent() {
 	switch s.Review.Event {
-	case core.ReviewEventComment:
-		s.Review.Event = core.ReviewEventApprove
-	case core.ReviewEventApprove:
-		s.Review.Event = core.ReviewEventRequestChanges
+	case model.ReviewEventComment:
+		s.Review.Event = model.ReviewEventApprove
+	case model.ReviewEventApprove:
+		s.Review.Event = model.ReviewEventRequestChanges
 	default:
-		s.Review.Event = core.ReviewEventComment
+		s.Review.Event = model.ReviewEventComment
 	}
 }
 
@@ -396,12 +396,12 @@ func (s *State) ClearReviewRangeStart() {
 
 func (s *State) ResetReviewAfterSubmit(notice string) {
 	s.resetReview()
-	s.Review.Notice = core.SanitizeMultiline(notice)
+	s.Review.Notice = model.SanitizeMultiline(notice)
 }
 
 func (s *State) ResetReviewAfterDiscard(notice string) {
 	s.resetReview()
-	s.Review.Notice = core.SanitizeMultiline(notice)
+	s.Review.Notice = model.SanitizeMultiline(notice)
 }
 
 func (s *State) OpenFilterSelect() {
@@ -414,17 +414,17 @@ func (s *State) CloseFilterSelect() {
 }
 
 func (s *State) MoveFilterCursor(dir int) {
-	n := len(core.PRFilterOptions)
+	n := len(model.PRFilterOptions)
 	s.List.FilterCursor = (s.List.FilterCursor + dir + n) % n
 }
 
 // ToggleFilterAtCursor toggles the filter option under the cursor.
 // It prevents deselecting all options (at least one must remain selected).
 func (s *State) ToggleFilterAtCursor() {
-	if s.List.FilterCursor < 0 || s.List.FilterCursor >= len(core.PRFilterOptions) {
+	if s.List.FilterCursor < 0 || s.List.FilterCursor >= len(model.PRFilterOptions) {
 		return
 	}
-	opt := core.PRFilterOptions[s.List.FilterCursor]
+	opt := model.PRFilterOptions[s.List.FilterCursor]
 	next := s.List.Filter.Toggle(opt)
 	if next == 0 {
 		return // disallow empty selection
@@ -443,6 +443,6 @@ func (s *State) blocksPRSelectionChange() bool {
 func (s *State) resetReview() {
 	s.Review = ReviewState{
 		Notice:            s.Review.Notice,
-		EditingCommentIdx: core.NoEditingComment,
+		EditingCommentIdx: model.NoEditingComment,
 	}
 }

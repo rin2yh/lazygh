@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/core"
+	"github.com/rin2yh/lazygh/internal/model"
 )
 
 func TestFormatStatusLine(t *testing.T) {
@@ -13,7 +13,7 @@ func TestFormatStatusLine(t *testing.T) {
 		loading   bool
 		diffMode  bool
 		focus     Focus
-		inputMode core.ReviewInputMode
+		inputMode model.ReviewInputMode
 		want      string
 	}{
 		{
@@ -38,14 +38,14 @@ func TestFormatStatusLine(t *testing.T) {
 			name:      "review input comment",
 			diffMode:  true,
 			focus:     FocusReviewDrawer,
-			inputMode: core.ReviewInputComment,
+			inputMode: model.ReviewInputComment,
 			want:      "[q]Quit [?]Help | [ctrl+s]Save Comment [Esc]Cancel",
 		},
 		{
 			name:      "review input summary",
 			diffMode:  true,
 			focus:     FocusReviewDrawer,
-			inputMode: core.ReviewInputSummary,
+			inputMode: model.ReviewInputSummary,
 			want:      "[q]Quit [?]Help | [ctrl+s]Save Summary [Esc]Cancel",
 		},
 		{
@@ -81,7 +81,7 @@ func TestFormatStatusLine_UsesCustomBindings(t *testing.T) {
 	got := Status{
 		DiffMode:  true,
 		Focus:     FocusPRs,
-		InputMode: core.ReviewInputNone,
+		InputMode: model.ReviewInputNone,
 		Keys:      keys,
 	}.String()
 

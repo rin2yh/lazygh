@@ -1,7 +1,7 @@
 package review
 
 import (
-	"github.com/rin2yh/lazygh/internal/core"
+	"github.com/rin2yh/lazygh/internal/model"
 	appstate "github.com/rin2yh/lazygh/internal/state"
 )
 
@@ -19,7 +19,7 @@ func newRange(state *appstate.State, selection Selection, setFocus func(FocusTar
 	}
 }
 
-func (f *rangeState) RangeStart() *core.ReviewRange {
+func (f *rangeState) RangeStart() *model.ReviewRange {
 	return f.state.Review.RangeStart
 }
 
@@ -35,7 +35,7 @@ func (f *rangeState) ToggleSelection() {
 		f.setFocus(FocusDiffContent)
 		return
 	}
-	anchor := core.ReviewRange{
+	anchor := model.ReviewRange{
 		Path:  line.Path,
 		Index: f.selection.CurrentLineIndex(),
 		Side:  string(line.Side),

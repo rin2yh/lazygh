@@ -3,8 +3,8 @@ package gui
 import (
 	"testing"
 
-	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gui/widget"
+	"github.com/rin2yh/lazygh/internal/model"
 )
 
 func TestPRStatusPrefix(t *testing.T) {
@@ -12,10 +12,10 @@ func TestPRStatusPrefix(t *testing.T) {
 		status string
 		want   string
 	}{
-		{core.PRStatusOpen, widget.Colorize("O", "green")},
-		{core.PRStatusDraft, widget.Colorize("D", "gray")},
-		{core.PRStatusClosed, widget.Colorize("C", "red")},
-		{core.PRStatusMerged, widget.Colorize("M", "purple")},
+		{model.PRStatusOpen, widget.Colorize("O", "green")},
+		{model.PRStatusDraft, widget.Colorize("D", "gray")},
+		{model.PRStatusClosed, widget.Colorize("C", "red")},
+		{model.PRStatusMerged, widget.Colorize("M", "purple")},
 		{"", widget.Colorize("O", "green")},
 		{"UNKNOWN", widget.Colorize("O", "green")},
 	}

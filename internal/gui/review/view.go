@@ -1,7 +1,7 @@
 package review
 
 import (
-	"github.com/rin2yh/lazygh/internal/core"
+	"github.com/rin2yh/lazygh/internal/model"
 	appstate "github.com/rin2yh/lazygh/internal/state"
 )
 
@@ -21,7 +21,7 @@ func newView(state *appstate.State, setFocus func(FocusTarget), comment *comment
 	}
 }
 
-func (f *view) InputMode() core.ReviewInputMode {
+func (f *view) InputMode() model.ReviewInputMode {
 	return f.state.Review.InputMode
 }
 
@@ -30,13 +30,13 @@ func (f *view) ShouldShowDrawer() bool {
 		return false
 	}
 	review := f.state.Review
-	return review.DrawerOpen || review.InputMode != core.ReviewInputNone || f.state.HasPendingReview() || len(review.Comments) > 0 || review.Summary != "" || review.RangeStart != nil
+	return review.DrawerOpen || review.InputMode != model.ReviewInputNone || f.state.HasPendingReview() || len(review.Comments) > 0 || review.Summary != "" || review.RangeStart != nil
 }
 
 func (f *view) StopInput() {
 	f.comment.editor.Blur()
 	f.summary.editor.Blur()
-	if f.state.Review.InputMode == core.ReviewInputComment {
+	if f.state.Review.InputMode == model.ReviewInputComment {
 		f.state.ClearReviewRangeStart()
 		f.state.ClearEditingComment()
 		f.comment.editor.SetValue("")

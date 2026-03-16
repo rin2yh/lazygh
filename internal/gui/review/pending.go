@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	"github.com/rin2yh/lazygh/internal/model"
 	appstate "github.com/rin2yh/lazygh/internal/state"
 )
 
@@ -122,7 +122,7 @@ func (f *pending) BeginEditComment() bool {
 }
 
 func (f *pending) IsEditingComment() bool {
-	return f.state.Review.EditingCommentIdx != core.NoEditingComment
+	return f.state.Review.EditingCommentIdx != model.NoEditingComment
 }
 
 func (f *pending) SelectNextComment() {
@@ -178,7 +178,7 @@ func (f *pending) HandleEditCommentSave() tea.Cmd {
 }
 
 func (f *pending) HandleSubmit() tea.Cmd {
-	if f.state.Review.InputMode == core.ReviewInputSummary {
+	if f.state.Review.InputMode == model.ReviewInputSummary {
 		f.summary.Save()
 		f.summary.StopInput()
 		f.state.StopReviewInput()
@@ -198,11 +198,11 @@ func (f *pending) HandleSubmit() tea.Cmd {
 	}
 }
 
-func coreEventToGH(e core.ReviewEvent) gh.ReviewEvent {
+func coreEventToGH(e model.ReviewEvent) gh.ReviewEvent {
 	switch e {
-	case core.ReviewEventApprove:
+	case model.ReviewEventApprove:
 		return gh.ReviewEventApprove
-	case core.ReviewEventRequestChanges:
+	case model.ReviewEventRequestChanges:
 		return gh.ReviewEventRequestChanges
 	default:
 		return gh.ReviewEventComment
@@ -210,7 +210,7 @@ func coreEventToGH(e core.ReviewEvent) gh.ReviewEvent {
 }
 
 func (f *pending) HandleDiscard() tea.Cmd {
-	if f.state.Review.InputMode == core.ReviewInputSummary {
+	if f.state.Review.InputMode == model.ReviewInputSummary {
 		f.summary.StopInput()
 		f.state.StopReviewInput()
 	}
@@ -236,7 +236,7 @@ func (f *pending) ApplyCommentResult(msg CommentSavedMsg) {
 		f.state.SetReviewNotice(msg.Err.Error())
 		return
 	}
-	f.state.AddReviewComment(core.ReviewComment{
+	f.state.AddReviewComment(model.ReviewComment{
 		CommentID: msg.CommentID,
 		Path:      msg.Comment.Path,
 		Body:      msg.Comment.Body,

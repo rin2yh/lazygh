@@ -5,7 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/core"
+	"github.com/rin2yh/lazygh/internal/model"
 )
 
 func (s *screen) handleReviewInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
@@ -17,7 +17,7 @@ func (s *screen) handleReviewInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 		case config.ActionReviewDiscard:
 			return s.gui.review.HandleDiscard(), true
 		case config.ActionReviewSave:
-			if s.gui.state.Review.InputMode == core.ReviewInputComment {
+			if s.gui.state.Review.InputMode == model.ReviewInputComment {
 				if s.gui.review.IsEditingComment() {
 					return s.gui.review.HandleEditCommentSave(), true
 				}
@@ -105,7 +105,7 @@ func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
 	case config.ActionReviewDiscard:
 		return s.gui.review.HandleDiscard()
 	case config.ActionReviewClearComment:
-		if s.gui.state.Review.InputMode == core.ReviewInputComment {
+		if s.gui.state.Review.InputMode == model.ReviewInputComment {
 			s.gui.review.ClearCommentInput()
 		}
 	case config.ActionReviewEvent:
@@ -147,7 +147,7 @@ func (s *screen) handleFilterKey(msg tea.KeyMsg) tea.Cmd {
 }
 
 func (s *screen) handleCancel() tea.Cmd {
-	if s.gui.state.Review.InputMode == core.ReviewInputNone && s.gui.state.Review.RangeStart != nil {
+	if s.gui.state.Review.InputMode == model.ReviewInputNone && s.gui.state.Review.RangeStart != nil {
 		s.gui.state.ClearReviewRangeStart()
 		s.gui.state.SetReviewNotice("Range selection cleared.")
 		s.gui.focus = panelDiffContent
@@ -223,10 +223,10 @@ func (s *screen) moveCursor(dir int) tea.Cmd {
 func (s *screen) openSelectedPR() tea.Cmd {
 	action := s.gui.state.PlanEnter(s.gui.client != nil, os.Getenv("LAZYGH_DEBUG_DETAIL_TEXT"))
 	switch action.Kind {
-	case core.EnterLoadPRDiff:
-		return s.loadDetailCmd(action.Repo, action.Number, core.DetailModeDiff)
-	case core.EnterLoadPRDetail:
-		return s.loadDetailCmd(action.Repo, action.Number, core.DetailModeOverview)
+	case model.EnterLoadPRDiff:
+		return s.loadDetailCmd(action.Repo, action.Number, model.DetailModeDiff)
+	case model.EnterLoadPRDetail:
+		return s.loadDetailCmd(action.Repo, action.Number, model.DetailModeOverview)
 	default:
 		return nil
 	}

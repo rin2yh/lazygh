@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gui/widget"
+	"github.com/rin2yh/lazygh/internal/model"
 )
 
 const (
@@ -46,7 +46,7 @@ func (c DrawerComment) Summary() string {
 }
 
 func (c DrawerComment) sanitize() string {
-	return strings.TrimSpace(core.SanitizeSingleLine(c.Body))
+	return strings.TrimSpace(model.SanitizeSingleLine(c.Body))
 }
 
 type DrawerInput struct {

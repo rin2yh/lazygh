@@ -3,8 +3,8 @@ package review
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	"github.com/rin2yh/lazygh/internal/model"
 	appstate "github.com/rin2yh/lazygh/internal/state"
 )
 
@@ -84,14 +84,14 @@ func (c *Controller) HandleEditorKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	case tea.KeyEsc:
 		return nil, c.view.HandleEsc()
 	}
-	if c.keys.Matches(msg, config.ActionReviewSave) && c.view.InputMode() == core.ReviewInputSummary {
+	if c.keys.Matches(msg, config.ActionReviewSave) && c.view.InputMode() == model.ReviewInputSummary {
 		return nil, c.view.HandleSummarySave()
 	}
 
 	switch c.view.InputMode() {
-	case core.ReviewInputComment:
+	case model.ReviewInputComment:
 		return c.comment.HandleKey(msg)
-	case core.ReviewInputSummary:
+	case model.ReviewInputSummary:
 		return c.summary.HandleKey(msg)
 	default:
 		return nil, false

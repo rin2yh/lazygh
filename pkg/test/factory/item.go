@@ -1,12 +1,12 @@
 package factory
 
 import (
-	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	"github.com/rin2yh/lazygh/internal/model"
 )
 
-func CoreItem(number int, title string) core.Item {
-	return core.Item{
+func CoreItem(number int, title string) model.Item {
+	return model.Item{
 		Number: number,
 		Title:  title,
 	}
