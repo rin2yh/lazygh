@@ -6,6 +6,7 @@ import (
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
 	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
+	"github.com/rin2yh/lazygh/internal/gui/help"
 	"github.com/rin2yh/lazygh/internal/gui/layout"
 	"github.com/rin2yh/lazygh/internal/gui/prs"
 	guireview "github.com/rin2yh/lazygh/internal/gui/review"
@@ -18,14 +19,11 @@ func (gui *Gui) render() string {
 	screen := layout.New(gui.state.Width, gui.state.Height, isDiff, showDrawer)
 	focus := gui.renderFocus()
 	statusLine := layout.Status{
-		Loading:         gui.state.Detail.Loading != core.LoadingNone,
-		DiffMode:        isDiff,
-		HasPR:           len(gui.state.List.PRs) > 0,
-		Focus:           focus,
-		HasFiles:        len(gui.diff.Files()) > 0,
-		HasReviewDrawer: showDrawer,
-		InputMode:       gui.state.Review.InputMode,
-		Keys:            gui.config.KeyBindings,
+		Loading:   gui.state.Detail.Loading != core.LoadingNone,
+		DiffMode:  isDiff,
+		Focus:     focus,
+		InputMode: gui.state.Review.InputMode,
+		Keys:      gui.config.KeyBindings,
 	}.String()
 
 	leftInput := prs.Input{
@@ -59,20 +57,25 @@ func (gui *Gui) render() string {
 	)
 	rightPanelLines := gui.renderRight(rightInput, screen, focus)
 
-	var b strings.Builder
-	for _, line := range widget.JoinColumns(leftLines, screen.LeftWidth, rightPanelLines, screen.RightWidth, screen.MainHeight) {
-		b.WriteString(line)
-		b.WriteByte('\n')
-	}
+	lines := widget.JoinColumns(leftLines, screen.LeftWidth, rightPanelLines, screen.RightWidth, screen.MainHeight)
 	drawerInput := gui.buildReviewDrawerInput(showDrawer)
 	if drawerInput != nil && screen.DrawerHeight > 0 {
 		drawerActive := focus == layout.FocusReviewDrawer
 		for _, line := range guireview.RenderDrawer(*drawerInput, gui.style(drawerActive), screen.Width, screen.DrawerHeight) {
-			b.WriteString(widget.PadOrTrim(line, screen.Width))
-			b.WriteByte('\n')
+			lines = append(lines, widget.PadOrTrim(line, screen.Width))
 		}
 	}
-	b.WriteString(widget.PadOrTrim(statusLine, screen.Width))
+	lines = append(lines, widget.PadOrTrim(statusLine, screen.Width))
+
+	if gui.showHelp {
+		lines = help.RenderOverlay(lines, gui.config.KeyBindings, screen.Width)
+	}
+
+	var b strings.Builder
+	for _, line := range lines {
+		b.WriteString(line)
+		b.WriteByte('\n')
+	}
 	return b.String()
 }
 
