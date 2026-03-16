@@ -58,6 +58,10 @@ func (f *comment) StopInput() {
 	f.editor.SetValue("")
 }
 
+func (f *comment) Focus() {
+	f.editor.Focus()
+}
+
 func (f *comment) HandleKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	switch {
 	case f.keys.Matches(msg, config.ActionReviewSave):

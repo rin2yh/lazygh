@@ -62,7 +62,7 @@ func OverlayPanel(background []string, panelLines []string, panelW, screenWidth 
 	copy(result, background)
 	for i, line := range panelLines {
 		y := startY + i
-		if y >= 0 && y < len(result) {
+		if y < len(result) {
 			result[y] = overlayLine(result[y], line, startX, panelW, screenWidth)
 		}
 	}

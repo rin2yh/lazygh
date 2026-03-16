@@ -116,8 +116,8 @@ func (f *pending) BeginEditComment() bool {
 		return false
 	}
 	f.state.BeginEditComment()
-	f.comment.editor.SetValue(comment.Body)
-	f.comment.editor.Focus()
+	f.comment.SetValue(comment.Body)
+	f.comment.Focus()
 	return true
 }
 
