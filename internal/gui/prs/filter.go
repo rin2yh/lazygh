@@ -47,7 +47,7 @@ func buildFilterContent(filter core.PRFilterMask, cursor int) []string {
 		lines = append(lines, line)
 	}
 	lines = append(lines, "")
-	lines = append(lines, "  space:toggle  esc:close")
+	lines = append(lines, "  space:toggle  enter:apply  esc:cancel")
 	lines = append(lines, "")
 	return lines
 }

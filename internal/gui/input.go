@@ -115,9 +115,13 @@ func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
 
 func (s *screen) handleFilterKey(msg tea.KeyMsg) tea.Cmd {
 	switch msg.String() {
-	case "esc", "q":
+	case "esc":
 		s.gui.state.CloseFilterSelect()
 		return nil
+	case "enter":
+		s.gui.state.CloseFilterSelect()
+		s.gui.state.BeginLoadPRs()
+		return s.loadPRsCmd()
 	case "j", "down":
 		s.gui.state.MoveFilterCursor(1)
 		return nil
@@ -125,11 +129,7 @@ func (s *screen) handleFilterKey(msg tea.KeyMsg) tea.Cmd {
 		s.gui.state.MoveFilterCursor(-1)
 		return nil
 	case " ":
-		if s.gui.state.ToggleFilterAtCursor() {
-			s.gui.state.BeginLoadPRs()
-			s.gui.state.CloseFilterSelect()
-			return s.loadPRsCmd()
-		}
+		s.gui.state.ToggleFilterAtCursor()
 		return nil
 	}
 	return nil
