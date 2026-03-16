@@ -63,7 +63,7 @@ var actionSpecs = []ActionSpec{
 	{Action: ActionReviewRange, Name: "Review Range", DefaultKeys: []string{"v"}},
 	{Action: ActionReviewComment, Name: "Review Comment", DefaultKeys: []string{"enter"}},
 	{Action: ActionReviewSummary, Name: "Review Summary", DefaultKeys: []string{"R"}},
-	{Action: ActionReviewSubmit, Name: "Review Submit", DefaultKeys: []string{"S"}},
+	{Action: ActionReviewSubmit, Name: "Review Submit", DefaultKeys: []string{"ctrl+r"}},
 	{Action: ActionReviewDiscard, Name: "Review Discard", DefaultKeys: []string{"X"}},
 	{Action: ActionReviewSave, Name: "Review Save", DefaultKeys: []string{"ctrl+s"}},
 	{Action: ActionReviewClearComment, Name: "Review Clear Comment", DefaultKeys: []string{"x"}},
@@ -241,10 +241,6 @@ func (k KeyBindings) labels(action Action) []string {
 
 func formatKeyLabel(key string) string {
 	switch key {
-	case "ctrl+c":
-		return "Ctrl+C"
-	case "ctrl+s":
-		return "Ctrl+S"
 	case "esc":
 		return "Esc"
 	case "up":
