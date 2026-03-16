@@ -12,8 +12,8 @@ Execute milestone work as a repeatable issue lifecycle, not as isolated edits.
 `gh milestone list` は存在しない。マイルストーン操作には以下のコマンドのみ使用すること。
 
 ```sh
-# マイルストーン一覧
-gh api repos/{owner}/{repo}/milestones
+# マイルストーン一覧（owner/repo は実際の値に置換すること）
+gh api repos/OWNER/REPO/milestones
 
 # マイルストーン名でIssue一覧（ラベル・本文付き）
 gh issue list --milestone "<milestone-name>" --json number,title,labels,body
@@ -33,7 +33,6 @@ gh issue edit <number> --add-label "<label1>,<label2>"
 
 **禁止コマンド:**
 - `gh milestone list` — 存在しない、使用禁止
-- `gh api repos/{owner}/{repo}/milestones` の `{owner}/{repo}` リテラル展開 — 必ず実際のオーナー/リポジトリ名に置換すること
 
 ## Workflow
 
