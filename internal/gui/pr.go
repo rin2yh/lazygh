@@ -47,12 +47,13 @@ func toCorePRs(prs []gh.PRItem) []core.Item {
 }
 
 func (s *screen) loadPRsCmd() tea.Cmd {
+	state := s.gui.state.List.Filter.StateArg()
 	return func() tea.Msg {
 		repo, err := s.gui.client.ResolveCurrentRepo()
 		if err != nil {
 			return prsLoadedMsg{err: err}
 		}
-		prs, err := s.gui.client.ListPRs(repo)
+		prs, err := s.gui.client.ListPRs(repo, state)
 		if err != nil {
 			return prsLoadedMsg{repo: repo, err: err}
 		}

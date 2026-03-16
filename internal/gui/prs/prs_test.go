@@ -15,6 +15,7 @@ func TestRenderLeftPanelsSeparated(t *testing.T) {
 		Repo:       "owner/repo",
 		PRs:        []string{"PR #1 Fix bug"},
 		PRSelected: 0,
+		Filter:     "Open",
 	}
 	active := func(f layout.Focus) bool { return f == layout.FocusRepo }
 	style := func(a bool) widget.PanelStyle {
@@ -30,7 +31,7 @@ func TestRenderLeftPanelsSeparated(t *testing.T) {
 	if !strings.HasPrefix(xansi.Strip(lines[0]), "┌ Repository ") {
 		t.Fatalf("unexpected first line: %q", xansi.Strip(lines[0]))
 	}
-	if !strings.Contains(xansi.Strip(lines[4]), "PRs (Open/Draft)") {
+	if !strings.Contains(xansi.Strip(lines[4]), "PRs [Open]") {
 		t.Fatalf("line does not contain expected title: %q", xansi.Strip(lines[4]))
 	}
 }

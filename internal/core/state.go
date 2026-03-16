@@ -92,12 +92,43 @@ type ReviewState struct {
 	Notice        string
 }
 
+type PRFilter int
+
+const (
+	PRFilterOpen PRFilter = iota
+	PRFilterClosed
+	PRFilterMerged
+)
+
+func (f PRFilter) String() string {
+	switch f {
+	case PRFilterClosed:
+		return "Closed"
+	case PRFilterMerged:
+		return "Merged"
+	default:
+		return "Open"
+	}
+}
+
+func (f PRFilter) StateArg() string {
+	switch f {
+	case PRFilterClosed:
+		return "closed"
+	case PRFilterMerged:
+		return "merged"
+	default:
+		return "open"
+	}
+}
+
 // ListState holds PR list and selection state.
 type ListState struct {
 	Repo        string
 	PRs         []Item
 	PRsLoading  bool
 	PRsSelected int
+	Filter      PRFilter
 }
 
 // DetailState holds detail panel display and loading state.
@@ -405,6 +436,18 @@ func (s *State) ResetReviewAfterSubmit(notice string) {
 func (s *State) ResetReviewAfterDiscard(notice string) {
 	s.resetReview()
 	s.Review.Notice = sanitizeMultiline(notice)
+}
+
+func (s *State) CyclePRFilter() PRFilter {
+	switch s.List.Filter {
+	case PRFilterOpen:
+		s.List.Filter = PRFilterClosed
+	case PRFilterClosed:
+		s.List.Filter = PRFilterMerged
+	default:
+		s.List.Filter = PRFilterOpen
+	}
+	return s.List.Filter
 }
 
 func (s *State) blocksPRSelectionChange() bool {

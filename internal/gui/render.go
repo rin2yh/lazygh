@@ -31,6 +31,7 @@ func (gui *Gui) render() string {
 		PRsLoading: gui.state.List.PRsLoading,
 		PRs:        gui.renderPRItems(),
 		PRSelected: gui.state.List.PRsSelected,
+		Filter:     gui.state.List.Filter.String(),
 	}
 
 	var rightLines []string

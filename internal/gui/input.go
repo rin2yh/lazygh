@@ -68,6 +68,8 @@ func (s *screen) handleGlobalAction(action config.Action) (tea.Cmd, bool) {
 		return s.showDiff(), true
 	case config.ActionOpenSelected:
 		return s.openSelectedPR(), true
+	case config.ActionFilterPRs:
+		return s.cyclePRFilter(), true
 	default:
 		return nil, false
 	}
@@ -108,6 +110,12 @@ func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
 		}
 	}
 	return nil
+}
+
+func (s *screen) cyclePRFilter() tea.Cmd {
+	s.gui.state.CyclePRFilter()
+	s.gui.state.BeginLoadPRs()
+	return s.loadPRsCmd()
 }
 
 func (s *screen) handleCancel() tea.Cmd {

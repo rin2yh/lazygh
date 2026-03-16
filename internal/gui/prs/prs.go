@@ -10,12 +10,14 @@ type Input struct {
 	PRsLoading bool
 	PRs        []string
 	PRSelected int
+	Filter     string
 }
 
 func RenderLeft(input Input, repoHeight, prHeight int, active func(layout.Focus) bool, style func(bool) widget.PanelStyle, width int) []string {
 	height := repoHeight + prHeight
 	repoLines := widget.FramePanel("Repository", renderRepo(input), width, repoHeight, style(active(layout.FocusRepo)))
-	prLines := widget.FramePanel("PRs (Open/Draft)", renderPRs(input), width, prHeight, style(active(layout.FocusPRs)))
+	prTitle := "PRs [" + input.Filter + "]"
+	prLines := widget.FramePanel(prTitle, renderPRs(input), width, prHeight, style(active(layout.FocusPRs)))
 	lines := make([]string, 0, height)
 	lines = append(lines, repoLines...)
 	lines = append(lines, prLines...)
