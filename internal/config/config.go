@@ -232,10 +232,6 @@ func (k KeyBindings) HelpLabel() string {
 	return k.PrimaryLabel(ActionShowHelp)
 }
 
-func (k KeyBindings) FilterLabel() string {
-	return k.PrimaryLabel(ActionFilterPRs)
-}
-
 func (k KeyBindings) labels(action Action) []string {
 	keys := k.Binding(action).Keys
 	labels := make([]string, 0, len(keys))

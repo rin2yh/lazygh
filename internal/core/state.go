@@ -1,6 +1,9 @@
 package core
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Item struct {
 	Number    int
@@ -124,11 +127,7 @@ func (m PRFilterMask) Label() string {
 	if len(parts) == 0 {
 		return "None"
 	}
-	result := parts[0]
-	for _, p := range parts[1:] {
-		result += "+" + p
-	}
-	return result
+	return strings.Join(parts, "+")
 }
 
 func (m PRFilterMask) StateArg() string {
@@ -493,19 +492,17 @@ func (s *State) MoveFilterCursor(dir int) {
 }
 
 // ToggleFilterAtCursor toggles the filter option under the cursor.
-// It prevents deselecting all options and returns whether the filter changed.
-func (s *State) ToggleFilterAtCursor() bool {
+// It prevents deselecting all options (at least one must remain selected).
+func (s *State) ToggleFilterAtCursor() {
 	if s.List.FilterCursor < 0 || s.List.FilterCursor >= len(PRFilterOptions) {
-		return false
+		return
 	}
 	opt := PRFilterOptions[s.List.FilterCursor]
 	next := s.List.Filter.Toggle(opt)
 	if next == 0 {
-		return false // disallow empty selection
+		return // disallow empty selection
 	}
-	changed := next != s.List.Filter
 	s.List.Filter = next
-	return changed
 }
 
 func (s *State) blocksPRSelectionChange() bool {

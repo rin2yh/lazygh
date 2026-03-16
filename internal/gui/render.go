@@ -3,6 +3,7 @@ package gui
 import (
 	"strings"
 
+	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
 	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
@@ -237,37 +238,12 @@ func applyFilterOverlay(background []string, filter core.PRFilterMask, cursor in
 }
 
 func overlayLine(bg, panel string, startX, panelW, screenWidth int) string {
-	left := widget.PadOrTrim(truncateAnsi(bg, startX), startX)
+	left := widget.PadOrTrim(xansi.Truncate(bg, startX, ""), startX)
 	right := ""
-	endX := startX + panelW
-	if endX < screenWidth {
-		right = repeatSpace(screenWidth - endX)
+	if endX := startX + panelW; endX < screenWidth {
+		right = strings.Repeat(" ", screenWidth-endX)
 	}
 	return left + widget.PadOrTrim(panel, panelW) + right
-}
-
-func truncateAnsi(s string, w int) string {
-	// simple truncation by rune count (no ANSI stripping needed for background lines)
-	count := 0
-	for i, r := range s {
-		if count >= w {
-			return s[:i]
-		}
-		_ = r
-		count++
-	}
-	return s
-}
-
-func repeatSpace(n int) string {
-	if n <= 0 {
-		return ""
-	}
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = ' '
-	}
-	return string(b)
 }
 
 func splitNonEmptyLines(content string) []string {
