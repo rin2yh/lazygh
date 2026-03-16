@@ -35,6 +35,7 @@ const (
 	ActionReviewDiscard
 	ActionReviewSave
 	ActionReviewClearComment
+	ActionReviewEvent
 	ActionShowHelp
 )
 
@@ -66,6 +67,7 @@ var actionSpecs = []ActionSpec{
 	{Action: ActionReviewDiscard, Name: "Review Discard", DefaultKeys: []string{"X"}},
 	{Action: ActionReviewSave, Name: "Review Save", DefaultKeys: []string{"ctrl+s"}},
 	{Action: ActionReviewClearComment, Name: "Review Clear Comment", DefaultKeys: []string{"x"}},
+	{Action: ActionReviewEvent, Name: "Review Event", DefaultKeys: []string{"e"}},
 	{Action: ActionShowHelp, Name: "Show Help", DefaultKeys: []string{"?"}},
 }
 

@@ -102,6 +102,10 @@ func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
 		if s.gui.state.Review.InputMode == core.ReviewInputComment {
 			s.gui.review.ClearCommentInput()
 		}
+	case config.ActionReviewEvent:
+		if s.gui.state.IsDiffMode() {
+			s.gui.review.CycleReviewEvent()
+		}
 	}
 	return nil
 }

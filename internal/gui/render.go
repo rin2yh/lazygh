@@ -186,6 +186,7 @@ func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *guireview.DrawerInput {
 	input := &guireview.DrawerInput{
 		SummaryLines:     splitNonEmptyLines(summary),
 		CommentModeLabel: guireview.CommentModeSingleLine,
+		EventLabel:       gui.state.Review.Event.Label(),
 		Notice:           gui.state.Review.Notice,
 	}
 	if gui.state.Review.RangeStart != nil {

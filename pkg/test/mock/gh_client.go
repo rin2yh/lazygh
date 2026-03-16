@@ -51,11 +51,11 @@ func (m *GHClient) AddReviewComment(_ string, _ string, comment gh.ReviewComment
 	return nil
 }
 
-func (m *GHClient) SubmitReview(_ string, reviewID string, body string) error {
+func (m *GHClient) SubmitReview(_ string, reviewID string, event gh.ReviewEvent, body string) error {
 	if m.Err != nil {
 		return m.Err
 	}
-	m.SubmittedReviews = append(m.SubmittedReviews, reviewID+":"+body)
+	m.SubmittedReviews = append(m.SubmittedReviews, reviewID+":"+string(event)+":"+body)
 	return nil
 }
 
@@ -167,7 +167,7 @@ func (c *ControlledGHClient) AddReviewComment(_ string, _ string, _ gh.ReviewCom
 	return c.Err
 }
 
-func (c *ControlledGHClient) SubmitReview(_ string, _ string, _ string) error {
+func (c *ControlledGHClient) SubmitReview(_ string, _ string, _ gh.ReviewEvent, _ string) error {
 	return c.Err
 }
 

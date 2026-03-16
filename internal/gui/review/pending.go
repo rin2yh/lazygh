@@ -10,7 +10,7 @@ type PendingReviewClient interface {
 	GetReviewContext(repo string, number int) (gh.ReviewContext, error)
 	StartPendingReview(repo string, number int, ctx gh.ReviewContext) (string, error)
 	AddReviewComment(repo string, reviewID string, comment gh.ReviewComment) error
-	SubmitReview(repo string, reviewID string, body string) error
+	SubmitReview(repo string, reviewID string, event gh.ReviewEvent, body string) error
 	DeletePendingReview(repo string, reviewID string) error
 }
 
@@ -108,9 +108,21 @@ func (f *pending) HandleSubmit() tea.Cmd {
 	reviewID := f.state.Review.ReviewID
 	body := f.state.Review.Summary
 	repo := f.state.List.Repo
+	event := coreEventToGH(f.state.Review.Event)
 	return func() tea.Msg {
-		err := f.client.SubmitReview(repo, reviewID, body)
+		err := f.client.SubmitReview(repo, reviewID, event, body)
 		return SubmittedMsg{ReviewID: reviewID, Err: err}
+	}
+}
+
+func coreEventToGH(e core.ReviewEvent) gh.ReviewEvent {
+	switch e {
+	case core.ReviewEventApprove:
+		return gh.ReviewEventApprove
+	case core.ReviewEventRequestChanges:
+		return gh.ReviewEventRequestChanges
+	default:
+		return gh.ReviewEventComment
 	}
 }
 

@@ -51,6 +51,7 @@ func (c DrawerComment) sanitize() string {
 type DrawerInput struct {
 	SummaryLines      []string
 	CommentModeLabel  string
+	EventLabel        string
 	RangeStart        *DrawerRange
 	Comments          []DrawerComment
 	Notice            string
@@ -73,6 +74,9 @@ func RenderDrawer(input DrawerInput, style widget.PanelStyle, width, height int)
 		}
 	}
 	lines = append(lines, "Comment mode: "+input.CommentModeLabel)
+	if input.EventLabel != "" {
+		lines = append(lines, "Event: "+input.EventLabel)
+	}
 	if input.RangeStart != nil {
 		if label := input.RangeStart.String(); label != "" {
 			lines = append(lines, "Range start: "+label)
