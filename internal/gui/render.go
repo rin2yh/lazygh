@@ -3,7 +3,6 @@ package gui
 import (
 	"strings"
 
-	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
 	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
 	"github.com/rin2yh/lazygh/internal/gui/help"
@@ -11,6 +10,7 @@ import (
 	"github.com/rin2yh/lazygh/internal/gui/prs"
 	guireview "github.com/rin2yh/lazygh/internal/gui/review"
 	"github.com/rin2yh/lazygh/internal/gui/widget"
+	"github.com/rin2yh/lazygh/internal/model"
 )
 
 func (gui *Gui) render() string {
@@ -19,7 +19,7 @@ func (gui *Gui) render() string {
 	screen := layout.New(gui.state.Width, gui.state.Height, isDiff, showDrawer)
 	focus := gui.renderFocus()
 	statusLine := layout.Status{
-		Loading:   gui.state.Detail.Loading != core.LoadingNone,
+		Loading:   gui.state.Detail.Loading != model.LoadingNone,
 		DiffMode:  isDiff,
 		Focus:     focus,
 		InputMode: gui.state.Review.InputMode,
@@ -139,7 +139,7 @@ func (gui *Gui) renderFocus() layout.Focus {
 func (gui *Gui) renderPRItems() []string {
 	items := make([]string, 0, len(gui.state.List.PRs))
 	for _, pr := range gui.state.List.PRs {
-		items = append(items, prStatusPrefix(pr.Status)+" "+core.FormatPRItem(pr))
+		items = append(items, prStatusPrefix(pr.Status)+" "+model.FormatPRItem(pr))
 	}
 	return items
 }
@@ -153,11 +153,11 @@ var (
 
 func prStatusPrefix(status string) string {
 	switch status {
-	case core.PRStatusDraft:
+	case model.PRStatusDraft:
 		return prPrefixDraft
-	case core.PRStatusClosed:
+	case model.PRStatusClosed:
 		return prPrefixClosed
-	case core.PRStatusMerged:
+	case model.PRStatusMerged:
 		return prPrefixMerged
 	default:
 		return prPrefixOpen
@@ -204,7 +204,7 @@ func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *guireview.DrawerInput {
 		return nil
 	}
 	summary := gui.state.Review.Summary
-	if gui.state.Review.InputMode == core.ReviewInputSummary {
+	if gui.state.Review.InputMode == model.ReviewInputSummary {
 		summary = gui.review.CurrentSummaryValue()
 	}
 	input := &guireview.DrawerInput{
@@ -230,16 +230,16 @@ func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *guireview.DrawerInput {
 		})
 	}
 	input.SelectedCommentIdx = gui.state.Review.SelectedCommentIdx
-	if gui.state.Review.InputMode == core.ReviewInputComment {
+	if gui.state.Review.InputMode == model.ReviewInputComment {
 		input.CommentInputLines = gui.review.CommentInputLines()
 	}
-	if gui.state.Review.InputMode == core.ReviewInputSummary {
+	if gui.state.Review.InputMode == model.ReviewInputSummary {
 		input.SummaryInputLines = gui.review.SummaryInputLines()
 	}
 	return input
 }
 
-func applyFilterOverlay(background []string, filter core.PRFilterMask, cursor int, screenWidth int) []string {
+func applyFilterOverlay(background []string, filter model.PRFilterMask, cursor int, screenWidth int) []string {
 	panelLines, panelW := prs.FilterPanelLines(filter, cursor)
 	return widget.OverlayPanel(background, panelLines, panelW, screenWidth)
 }

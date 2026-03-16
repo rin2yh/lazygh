@@ -4,13 +4,13 @@ import (
 	"fmt"
 
 	xansi "github.com/charmbracelet/x/ansi"
-	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gui/widget"
+	"github.com/rin2yh/lazygh/internal/model"
 )
 
 // FilterPanelLines builds the filter selection panel content and returns
 // the framed lines and the panel width.
-func FilterPanelLines(filter core.PRFilterMask, cursor int) ([]string, int) {
+func FilterPanelLines(filter model.PRFilterMask, cursor int) ([]string, int) {
 	content := buildFilterContent(filter, cursor)
 	innerW := 0
 	for _, line := range content {
@@ -29,9 +29,9 @@ func FilterPanelLines(filter core.PRFilterMask, cursor int) ([]string, int) {
 	return lines, panelW
 }
 
-func buildFilterContent(filter core.PRFilterMask, cursor int) []string {
+func buildFilterContent(filter model.PRFilterMask, cursor int) []string {
 	lines := []string{""}
-	for i, opt := range core.PRFilterOptions {
+	for i, opt := range model.PRFilterOptions {
 		check := "[ ]"
 		if filter.Has(opt) {
 			check = "[x]"

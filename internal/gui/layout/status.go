@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/core"
+	"github.com/rin2yh/lazygh/internal/model"
 )
 
 type Focus int
@@ -21,7 +21,7 @@ type Status struct {
 	Loading   bool
 	DiffMode  bool
 	Focus     Focus
-	InputMode core.ReviewInputMode
+	InputMode model.ReviewInputMode
 	Keys      config.KeyBindings
 }
 
@@ -30,9 +30,9 @@ func (s Status) String() string {
 
 	var ctx string
 	switch {
-	case s.InputMode == core.ReviewInputComment:
+	case s.InputMode == model.ReviewInputComment:
 		ctx = fmt.Sprintf("[%s]Save Comment [%s]Cancel", s.Keys.SaveLabel(), s.Keys.CancelLabel())
-	case s.InputMode == core.ReviewInputSummary:
+	case s.InputMode == model.ReviewInputSummary:
 		ctx = fmt.Sprintf("[%s]Save Summary [%s]Cancel", s.Keys.SaveLabel(), s.Keys.CancelLabel())
 	case s.Focus == FocusReviewDrawer:
 		ctx = fmt.Sprintf("[Review] [%s]Submit [%s]Discard [%s]Cancel", s.Keys.SubmitLabel(), s.Keys.DiscardLabel(), s.Keys.CancelLabel())

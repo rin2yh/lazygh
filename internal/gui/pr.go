@@ -4,33 +4,33 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
 	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
+	"github.com/rin2yh/lazygh/internal/model"
 )
 
 type prsLoadedMsg struct {
 	repo string
-	prs  []core.Item
+	prs  []model.Item
 	err  error
 }
 
 type detailLoadedMsg struct {
-	mode    core.DetailMode
+	mode    model.DetailMode
 	number  int
 	content string
 	err     error
 }
 
-func toCorePRs(prs []gh.PRItem, filter core.PRFilterMask) []core.Item {
-	items := make([]core.Item, 0, len(prs))
+func toCorePRs(prs []gh.PRItem, filter model.PRFilterMask) []model.Item {
+	items := make([]model.Item, 0, len(prs))
 	for _, pr := range prs {
 		if !filter.Matches(pr.State) {
 			continue
 		}
 		status := pr.State
 		if pr.IsDraft {
-			status = core.PRStatusDraft
+			status = model.PRStatusDraft
 		}
 		assignees := make([]string, 0, len(pr.Assignees))
 		for _, user := range pr.Assignees {
@@ -39,7 +39,7 @@ func toCorePRs(prs []gh.PRItem, filter core.PRFilterMask) []core.Item {
 				assignees = append(assignees, name)
 			}
 		}
-		items = append(items, core.Item{
+		items = append(items, model.Item{
 			Number:    pr.Number,
 			Title:     pr.Title,
 			Status:    status,
@@ -64,14 +64,14 @@ func (s *screen) loadPRsCmd() tea.Cmd {
 	}
 }
 
-func (s *screen) loadDetailCmd(repo string, number int, mode core.DetailMode) tea.Cmd {
+func (s *screen) loadDetailCmd(repo string, number int, mode model.DetailMode) tea.Cmd {
 	return func() tea.Msg {
 		var (
 			content string
 			err     error
 		)
 		switch mode {
-		case core.DetailModeDiff:
+		case model.DetailModeDiff:
 			content, err = s.gui.client.DiffPR(repo, number)
 		default:
 			content, err = s.gui.client.ViewPR(repo, number)
@@ -89,7 +89,7 @@ func (gui *Gui) applyDetailResult(msg detailLoadedMsg) {
 	if !gui.state.ShouldApplyDetailResult(msg.mode, msg.number) {
 		return
 	}
-	if msg.mode == core.DetailModeDiff {
+	if msg.mode == model.DetailModeDiff {
 		gui.state.ApplyDiffResult(msg.content, msg.err)
 		if msg.err != nil {
 			gui.diff.Reset()

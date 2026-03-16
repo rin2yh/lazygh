@@ -1,8 +1,8 @@
-package core
+package model
 
 import "strings"
 
-func sanitizeSingleLine(s string) string {
+func SanitizeSingleLine(s string) string {
 	var b strings.Builder
 	for _, r := range s {
 		switch {
@@ -17,7 +17,7 @@ func sanitizeSingleLine(s string) string {
 	return b.String()
 }
 
-func sanitizeMultiline(s string) string {
+func SanitizeMultiline(s string) string {
 	var b strings.Builder
 	for _, r := range s {
 		switch {

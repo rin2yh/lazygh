@@ -5,8 +5,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	"github.com/rin2yh/lazygh/internal/model"
+	appstate "github.com/rin2yh/lazygh/internal/state"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 	reviewstub "github.com/rin2yh/lazygh/pkg/test/stub/review"
 )
@@ -23,7 +24,7 @@ func TestBuildDraft(t *testing.T) {
 		name      string
 		body      string
 		selection reviewstub.Selection
-		rangePtr  *core.ReviewRange
+		rangePtr  *model.ReviewRange
 		wantErr   string
 		wantLine  int
 		wantStart int
@@ -80,14 +81,14 @@ func TestBuildDraft(t *testing.T) {
 			name:      "range across different files fails",
 			body:      "cross-file",
 			selection: reviewstub.Selection{Line: commentableLine, LineIndex: 5},
-			rangePtr:  &core.ReviewRange{Path: "other.go", Index: 2, Line: 10},
+			rangePtr:  &model.ReviewRange{Path: "other.go", Index: 2, Line: 10},
 			wantErr:   "range must stay within one file",
 		},
 		{
 			name:      "valid range comment",
 			body:      "range comment",
 			selection: reviewstub.Selection{Line: commentableLine, LineIndex: 5},
-			rangePtr:  &core.ReviewRange{Path: "main.go", Index: 2, Line: 30, Side: "RIGHT"},
+			rangePtr:  &model.ReviewRange{Path: "main.go", Index: 2, Line: 30, Side: "RIGHT"},
 			wantLine:  42,
 			wantStart: 30,
 		},
@@ -95,7 +96,7 @@ func TestBuildDraft(t *testing.T) {
 			name:      "range with reversed indices swaps lines",
 			body:      "reversed range",
 			selection: reviewstub.Selection{Line: commentableLine, LineIndex: 2},
-			rangePtr:  &core.ReviewRange{Path: "main.go", Index: 5, Line: 50, Side: "RIGHT"},
+			rangePtr:  &model.ReviewRange{Path: "main.go", Index: 5, Line: 50, Side: "RIGHT"},
 			wantLine:  50,
 			wantStart: 42,
 		},
@@ -103,7 +104,7 @@ func TestBuildDraft(t *testing.T) {
 			name:      "same index range has no StartLine",
 			body:      "same line range",
 			selection: reviewstub.Selection{Line: commentableLine, LineIndex: 5},
-			rangePtr:  &core.ReviewRange{Path: "main.go", Index: 5, Line: 42, Side: "RIGHT"},
+			rangePtr:  &model.ReviewRange{Path: "main.go", Index: 5, Line: 42, Side: "RIGHT"},
 			wantLine:  42,
 			wantStart: 0,
 		},
@@ -111,7 +112,7 @@ func TestBuildDraft(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			state := core.NewState()
+			state := appstate.NewState()
 			c := newComment(defaultTestConfig(), state, func(FocusTarget) {})
 			c.bindSelection(tt.selection)
 
@@ -139,10 +140,10 @@ func TestBuildDraft(t *testing.T) {
 }
 
 func TestHandleEditorKey_EscCancelsCommentAndClearsRange(t *testing.T) {
-	state := core.NewState()
+	state := appstate.NewState()
 	state.SwitchToDiff()
 	state.BeginReviewCommentInput()
-	state.MarkReviewRangeStart(core.ReviewRange{Path: "a.txt", Index: 3, Line: 10})
+	state.MarkReviewRangeStart(model.ReviewRange{Path: "a.txt", Index: 3, Line: 10})
 	focus := FocusReviewDrawer
 	controller := NewController(config.Default(), state, &testmock.GHClient{}, reviewstub.Selection{}, func(target FocusTarget) {
 		focus = target
@@ -156,8 +157,8 @@ func TestHandleEditorKey_EscCancelsCommentAndClearsRange(t *testing.T) {
 	if state.Review.RangeStart != nil {
 		t.Fatal("expected range cleared")
 	}
-	if state.Review.InputMode != core.ReviewInputNone {
-		t.Fatalf("got %v, want %v", state.Review.InputMode, core.ReviewInputNone)
+	if state.Review.InputMode != model.ReviewInputNone {
+		t.Fatalf("got %v, want %v", state.Review.InputMode, model.ReviewInputNone)
 	}
 	if controller.CurrentCommentValue() != "" {
 		t.Fatalf("got %q, want empty", controller.CurrentCommentValue())

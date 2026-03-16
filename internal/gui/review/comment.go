@@ -7,19 +7,20 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	"github.com/rin2yh/lazygh/internal/model"
+	appstate "github.com/rin2yh/lazygh/internal/state"
 )
 
 type comment struct {
 	keys      config.KeyBindings
-	state     *core.State
+	state     *appstate.State
 	selection Selection
 	setFocus  func(FocusTarget)
 	editor    textarea.Model
 }
 
-func newComment(cfg *config.Config, state *core.State, setFocus func(FocusTarget)) *comment {
+func newComment(cfg *config.Config, state *appstate.State, setFocus func(FocusTarget)) *comment {
 	return &comment{
 		keys:     cfg.KeyBindings,
 		state:    state,
@@ -74,7 +75,7 @@ func (f *comment) HandleKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	return cmd, true
 }
 
-func (f *comment) BuildDraft(body string, start *core.ReviewRange) (gh.ReviewComment, error) {
+func (f *comment) BuildDraft(body string, start *model.ReviewRange) (gh.ReviewComment, error) {
 	body = strings.TrimSpace(body)
 	if body == "" {
 		return gh.ReviewComment{}, fmt.Errorf("comment body is empty")

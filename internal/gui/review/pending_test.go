@@ -5,15 +5,16 @@ import (
 	"testing"
 
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	"github.com/rin2yh/lazygh/internal/model"
+	appstate "github.com/rin2yh/lazygh/internal/state"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 	reviewstub "github.com/rin2yh/lazygh/pkg/test/stub/review"
 )
 
 func TestApplyCommentResult_PersistsPendingReviewContextOnError(t *testing.T) {
-	state := core.NewState()
-	state.ApplyPRsResult("owner/repo", []core.Item{{Number: 1, Title: "Fix bug"}}, nil)
+	state := appstate.NewState()
+	state.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "Fix bug"}}, nil)
 	state.BeginReviewLoad()
 	controller := NewController(config.Default(), state, &testmock.GHClient{}, reviewstub.Selection{}, func(FocusTarget) {})
 
@@ -54,7 +55,7 @@ func TestHandleDeleteComment_WithCommentID(t *testing.T) {
 	mc := &testmock.GHClient{}
 	c, state, _ := setupControllerWithPR(mc, reviewstub.Selection{})
 	state.SetReviewContext(1, "PR_1", "abc", "PRR_1")
-	state.AddReviewComment(core.ReviewComment{CommentID: "IC_1", Path: "a.go", Body: "hi", Line: 1})
+	state.AddReviewComment(model.ReviewComment{CommentID: "IC_1", Path: "a.go", Body: "hi", Line: 1})
 	state.Review.SelectedCommentIdx = 0
 
 	cmd := c.HandleDeleteComment()
@@ -78,7 +79,7 @@ func TestApplyDeleteCommentResult_SuccessDeletesFromState(t *testing.T) {
 	mc := &testmock.GHClient{}
 	c, state, _ := setupControllerWithPR(mc, reviewstub.Selection{})
 	state.SetReviewContext(1, "PR_1", "abc", "PRR_1")
-	state.AddReviewComment(core.ReviewComment{CommentID: "IC_1", Path: "a.go", Body: "hi", Line: 1})
+	state.AddReviewComment(model.ReviewComment{CommentID: "IC_1", Path: "a.go", Body: "hi", Line: 1})
 	state.Review.SelectedCommentIdx = 0
 	state.BeginReviewLoad()
 
@@ -96,7 +97,7 @@ func TestHandleDeleteComment_WithoutCommentID(t *testing.T) {
 	mc := &testmock.GHClient{}
 	c, state, _ := setupControllerWithPR(mc, reviewstub.Selection{})
 	state.SetReviewContext(1, "PR_1", "abc", "PRR_1")
-	state.AddReviewComment(core.ReviewComment{Path: "a.go", Body: "hi", Line: 1})
+	state.AddReviewComment(model.ReviewComment{Path: "a.go", Body: "hi", Line: 1})
 	state.Review.SelectedCommentIdx = 0
 
 	cmd := c.HandleDeleteComment()
@@ -112,7 +113,7 @@ func TestApplyDeleteCommentResult_Error(t *testing.T) {
 	mc := &testmock.GHClient{}
 	c, state, _ := setupControllerWithPR(mc, reviewstub.Selection{})
 	state.SetReviewContext(1, "PR_1", "abc", "PRR_1")
-	state.AddReviewComment(core.ReviewComment{CommentID: "IC_1", Path: "a.go", Body: "hi", Line: 1})
+	state.AddReviewComment(model.ReviewComment{CommentID: "IC_1", Path: "a.go", Body: "hi", Line: 1})
 	state.BeginReviewLoad()
 
 	c.ApplyDeleteCommentResult(CommentDeletedMsg{CommentID: "IC_1", Err: errors.New("network error")})
@@ -129,19 +130,19 @@ func TestApplyDeleteCommentResult_Error(t *testing.T) {
 func TestHandleSubmit_PassesReviewEventToClient(t *testing.T) {
 	tests := []struct {
 		name      string
-		event     core.ReviewEvent
+		event     model.ReviewEvent
 		wantEvent string
 	}{
-		{"comment", core.ReviewEventComment, "COMMENT"},
-		{"approve", core.ReviewEventApprove, "APPROVE"},
-		{"request_changes", core.ReviewEventRequestChanges, "REQUEST_CHANGES"},
+		{"comment", model.ReviewEventComment, "COMMENT"},
+		{"approve", model.ReviewEventApprove, "APPROVE"},
+		{"request_changes", model.ReviewEventRequestChanges, "REQUEST_CHANGES"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mc := &testmock.GHClient{}
 			c, state, _ := setupControllerWithPR(mc, reviewstub.Selection{})
 			state.SetReviewContext(1, "PR_1", "abc", "PRR_1")
-			state.AddReviewComment(core.ReviewComment{Path: "a.go", Body: "hi", Line: 1})
+			state.AddReviewComment(model.ReviewComment{Path: "a.go", Body: "hi", Line: 1})
 			state.Review.Event = tt.event
 
 			cmd := c.HandleSubmit()

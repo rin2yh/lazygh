@@ -1,8 +1,10 @@
-package core
+package state
 
 import (
 	"errors"
 	"testing"
+
+	"github.com/rin2yh/lazygh/internal/model"
 )
 
 func TestApplyPRsResult(t *testing.T) {
@@ -15,14 +17,14 @@ func TestApplyPRsResult(t *testing.T) {
 	tests := []struct {
 		name string
 		repo string
-		prs  []Item
+		prs  []model.Item
 		err  error
 		want want
 	}{
 		{
 			name: "success",
 			repo: "owner/repo",
-			prs:  []Item{{Number: 1, Title: "Fix bug"}},
+			prs:  []model.Item{{Number: 1, Title: "Fix bug"}},
 			want: want{
 				repo:    "owner/repo",
 				prCount: 1,
@@ -58,8 +60,8 @@ func TestApplyPRsResult(t *testing.T) {
 			if s.List.PRsLoading {
 				t.Fatal("prs should not be loading")
 			}
-			if s.Detail.Loading != LoadingNone {
-				t.Fatalf("got %v, want %v", s.Detail.Loading, LoadingNone)
+			if s.Detail.Loading != model.LoadingNone {
+				t.Fatalf("got %v, want %v", s.Detail.Loading, model.LoadingNone)
 			}
 			if s.List.Repo != tt.want.repo {
 				t.Fatalf("got %q, want %q", s.List.Repo, tt.want.repo)
@@ -70,8 +72,8 @@ func TestApplyPRsResult(t *testing.T) {
 			if s.Detail.Content != tt.want.detail {
 				t.Fatalf("got %q, want %q", s.Detail.Content, tt.want.detail)
 			}
-			if s.Detail.Mode != DetailModeOverview {
-				t.Fatalf("got %v, want %v", s.Detail.Mode, DetailModeOverview)
+			if s.Detail.Mode != model.DetailModeOverview {
+				t.Fatalf("got %v, want %v", s.Detail.Mode, model.DetailModeOverview)
 			}
 		})
 	}
@@ -86,8 +88,8 @@ func TestBeginLoadPRs_OnlySetsLoadingState(t *testing.T) {
 	if !s.List.PRsLoading {
 		t.Fatal("expected PRsLoading to be true")
 	}
-	if s.Detail.Loading != LoadingPRs {
-		t.Fatalf("got %v, want %v", s.Detail.Loading, LoadingPRs)
+	if s.Detail.Loading != model.LoadingPRs {
+		t.Fatalf("got %v, want %v", s.Detail.Loading, model.LoadingPRs)
 	}
 	if s.Detail.Content != "keep" {
 		t.Fatalf("got %q, want %q", s.Detail.Content, "keep")
@@ -96,7 +98,7 @@ func TestBeginLoadPRs_OnlySetsLoadingState(t *testing.T) {
 
 func TestNavigatePRs(t *testing.T) {
 	s := NewState()
-	s.ApplyPRsResult("owner/repo", []Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
+	s.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
 
 	changed := s.NavigateDown()
 	if !changed {
@@ -123,7 +125,7 @@ func TestNavigatePRs(t *testing.T) {
 
 func TestNavigatePRs_DiffModeDoesNotOverwriteContent(t *testing.T) {
 	s := NewState()
-	s.ApplyPRsResult("owner/repo", []Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
+	s.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
 	s.Detail.Content = "diff-body"
 	s.SwitchToDiff()
 
@@ -143,24 +145,24 @@ func TestPlanEnter_LoadPR(t *testing.T) {
 	tests := []struct {
 		name       string
 		switchDiff bool
-		wantKind   EnterActionKind
+		wantKind   model.EnterActionKind
 	}{
 		{
 			name:       "overview",
 			switchDiff: false,
-			wantKind:   EnterLoadPRDetail,
+			wantKind:   model.EnterLoadPRDetail,
 		},
 		{
 			name:       "diff",
 			switchDiff: true,
-			wantKind:   EnterLoadPRDiff,
+			wantKind:   model.EnterLoadPRDiff,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewState()
-			s.ApplyPRsResult("owner/repo", []Item{{Number: 7, Title: "Fix bug"}}, nil)
+			s.ApplyPRsResult("owner/repo", []model.Item{{Number: 7, Title: "Fix bug"}}, nil)
 			if tt.switchDiff {
 				s.SwitchToDiff()
 			}
@@ -176,10 +178,10 @@ func TestPlanEnter_LoadPR(t *testing.T) {
 			if action.Number != 7 {
 				t.Fatalf("got %d, want %d", action.Number, 7)
 			}
-			if s.Detail.Loading != LoadingDetail {
-				t.Fatalf("got %v, want %v", s.Detail.Loading, LoadingDetail)
+			if s.Detail.Loading != model.LoadingDetail {
+				t.Fatalf("got %v, want %v", s.Detail.Loading, model.LoadingDetail)
 			}
-			if tt.wantKind == EnterLoadPRDetail {
+			if tt.wantKind == model.EnterLoadPRDetail {
 				if s.Detail.Content != before {
 					t.Fatalf("got %q, want %q", s.Detail.Content, before)
 				}
@@ -218,12 +220,12 @@ func TestApplyDetailResult(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewState()
-			s.Detail.Loading = LoadingDetail
+			s.Detail.Loading = model.LoadingDetail
 
 			s.ApplyDetailResult(tt.content, tt.err)
 
-			if s.Detail.Loading != LoadingNone {
-				t.Fatalf("got %v, want %v", s.Detail.Loading, LoadingNone)
+			if s.Detail.Loading != model.LoadingNone {
+				t.Fatalf("got %v, want %v", s.Detail.Loading, model.LoadingNone)
 			}
 			if s.Detail.Content != tt.want.detail {
 				t.Fatalf("got %q, want %q", s.Detail.Content, tt.want.detail)
@@ -262,12 +264,12 @@ func TestApplyDiffResult(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewState()
-			s.Detail.Loading = LoadingDetail
+			s.Detail.Loading = model.LoadingDetail
 
 			s.ApplyDiffResult(tt.content, tt.err)
 
-			if s.Detail.Loading != LoadingNone {
-				t.Fatalf("got %v, want %v", s.Detail.Loading, LoadingNone)
+			if s.Detail.Loading != model.LoadingNone {
+				t.Fatalf("got %v, want %v", s.Detail.Loading, model.LoadingNone)
 			}
 			if s.Detail.Content != tt.want.detail {
 				t.Fatalf("got %q, want %q", s.Detail.Content, tt.want.detail)
@@ -278,20 +280,20 @@ func TestApplyDiffResult(t *testing.T) {
 
 func TestSwitchMode(t *testing.T) {
 	s := NewState()
-	s.ApplyPRsResult("owner/repo", []Item{{Number: 1, Title: "one"}}, nil)
+	s.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "one"}}, nil)
 	s.Detail.Content = "from-overview"
 
 	if !s.SwitchToDiff() {
 		t.Fatal("expected switch to diff")
 	}
-	if s.Detail.Mode != DetailModeDiff {
-		t.Fatalf("got %v, want %v", s.Detail.Mode, DetailModeDiff)
+	if s.Detail.Mode != model.DetailModeDiff {
+		t.Fatalf("got %v, want %v", s.Detail.Mode, model.DetailModeDiff)
 	}
 	if !s.SwitchToOverview() {
 		t.Fatal("expected switch to overview")
 	}
-	if s.Detail.Mode != DetailModeOverview {
-		t.Fatalf("got %v, want %v", s.Detail.Mode, DetailModeOverview)
+	if s.Detail.Mode != model.DetailModeOverview {
+		t.Fatalf("got %v, want %v", s.Detail.Mode, model.DetailModeOverview)
 	}
 	if s.Detail.Content != "PR #1 one\nStatus: OPEN\nAssignee: unassigned" {
 		t.Fatalf("got %q, want %q", s.Detail.Content, "PR #1 one\nStatus: OPEN\nAssignee: unassigned")
@@ -300,32 +302,32 @@ func TestSwitchMode(t *testing.T) {
 
 func TestShouldApplyDetailResult(t *testing.T) {
 	s := NewState()
-	s.ApplyPRsResult("owner/repo", []Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
+	s.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
 
-	if !s.ShouldApplyDetailResult(DetailModeOverview, 1) {
+	if !s.ShouldApplyDetailResult(model.DetailModeOverview, 1) {
 		t.Fatal("expected overview detail to apply")
 	}
-	if s.ShouldApplyDetailResult(DetailModeDiff, 1) {
+	if s.ShouldApplyDetailResult(model.DetailModeDiff, 1) {
 		t.Fatal("expected diff detail not to apply in overview mode")
 	}
 
 	s.SwitchToDiff()
-	if !s.ShouldApplyDetailResult(DetailModeDiff, 1) {
+	if !s.ShouldApplyDetailResult(model.DetailModeDiff, 1) {
 		t.Fatal("expected diff detail to apply")
 	}
-	if s.ShouldApplyDetailResult(DetailModeDiff, 2) {
+	if s.ShouldApplyDetailResult(model.DetailModeDiff, 2) {
 		t.Fatal("expected different PR detail not to apply")
 	}
 }
 
 func TestCycleReviewEvent(t *testing.T) {
 	tests := []struct {
-		start ReviewEvent
-		want  ReviewEvent
+		start model.ReviewEvent
+		want  model.ReviewEvent
 	}{
-		{ReviewEventComment, ReviewEventApprove},
-		{ReviewEventApprove, ReviewEventRequestChanges},
-		{ReviewEventRequestChanges, ReviewEventComment},
+		{model.ReviewEventComment, model.ReviewEventApprove},
+		{model.ReviewEventApprove, model.ReviewEventRequestChanges},
+		{model.ReviewEventRequestChanges, model.ReviewEventComment},
 	}
 	for _, tt := range tests {
 		s := NewState()
@@ -340,7 +342,7 @@ func TestCycleReviewEvent(t *testing.T) {
 func TestDeleteSelectedComment(t *testing.T) {
 	tests := []struct {
 		name            string
-		comments        []ReviewComment
+		comments        []model.ReviewComment
 		selectedIdx     int
 		wantDeleted     string
 		wantCount       int
@@ -348,7 +350,7 @@ func TestDeleteSelectedComment(t *testing.T) {
 	}{
 		{
 			name:            "delete middle comment",
-			comments:        []ReviewComment{{CommentID: "c1", Body: "a"}, {CommentID: "c2", Body: "b"}, {CommentID: "c3", Body: "c"}},
+			comments:        []model.ReviewComment{{CommentID: "c1", Body: "a"}, {CommentID: "c2", Body: "b"}, {CommentID: "c3", Body: "c"}},
 			selectedIdx:     1,
 			wantDeleted:     "c2",
 			wantCount:       2,
@@ -356,7 +358,7 @@ func TestDeleteSelectedComment(t *testing.T) {
 		},
 		{
 			name:            "delete last comment",
-			comments:        []ReviewComment{{CommentID: "c1", Body: "a"}, {CommentID: "c2", Body: "b"}},
+			comments:        []model.ReviewComment{{CommentID: "c1", Body: "a"}, {CommentID: "c2", Body: "b"}},
 			selectedIdx:     1,
 			wantDeleted:     "c2",
 			wantCount:       1,
@@ -364,7 +366,7 @@ func TestDeleteSelectedComment(t *testing.T) {
 		},
 		{
 			name:            "delete only comment",
-			comments:        []ReviewComment{{CommentID: "c1", Body: "a"}},
+			comments:        []model.ReviewComment{{CommentID: "c1", Body: "a"}},
 			selectedIdx:     0,
 			wantDeleted:     "c1",
 			wantCount:       0,
@@ -396,7 +398,7 @@ func TestDeleteSelectedComment(t *testing.T) {
 
 func TestSelectComment(t *testing.T) {
 	s := NewState()
-	s.Review.Comments = []ReviewComment{{Body: "a"}, {Body: "b"}, {Body: "c"}}
+	s.Review.Comments = []model.ReviewComment{{Body: "a"}, {Body: "b"}, {Body: "c"}}
 	s.Review.SelectedCommentIdx = 0
 
 	s.SelectNextComment()
@@ -421,14 +423,14 @@ func TestSelectComment(t *testing.T) {
 
 func TestApplyEditComment(t *testing.T) {
 	s := NewState()
-	s.Review.Comments = []ReviewComment{{CommentID: "c1", Body: "original"}}
+	s.Review.Comments = []model.ReviewComment{{CommentID: "c1", Body: "original"}}
 	s.Review.SelectedCommentIdx = 0
 	s.BeginEditComment()
 
 	if s.Review.EditingCommentIdx != 0 {
 		t.Fatalf("got EditingCommentIdx=%d, want 0", s.Review.EditingCommentIdx)
 	}
-	if s.Review.InputMode != ReviewInputComment {
+	if s.Review.InputMode != model.ReviewInputComment {
 		t.Fatalf("expected ReviewInputComment mode")
 	}
 
@@ -440,44 +442,7 @@ func TestApplyEditComment(t *testing.T) {
 	if s.Review.EditingCommentIdx != -1 {
 		t.Errorf("got EditingCommentIdx=%d, want -1", s.Review.EditingCommentIdx)
 	}
-	if s.Review.InputMode != ReviewInputNone {
+	if s.Review.InputMode != model.ReviewInputNone {
 		t.Errorf("expected ReviewInputNone mode after edit")
-	}
-}
-
-func TestPRFilterMaskLabel(t *testing.T) {
-	tests := []struct {
-		mask  PRFilterMask
-		label string
-	}{
-		{PRFilterOpen, "Open"},
-		{PRFilterClosed, "Closed"},
-		{PRFilterMerged, "Merged"},
-		{PRFilterOpen | PRFilterClosed, "Open,Closed"},
-		{PRFilterOpen | PRFilterMerged, "Open,Merged"},
-		{PRFilterClosed | PRFilterMerged, "Closed,Merged"},
-		{PRFilterOpen | PRFilterClosed | PRFilterMerged, "All"},
-		{0, "None"},
-	}
-	for _, tt := range tests {
-		if got := tt.mask.Label(); got != tt.label {
-			t.Errorf("mask=%v: got %q, want %q", tt.mask, got, tt.label)
-		}
-	}
-}
-
-func TestReviewEventLabel(t *testing.T) {
-	tests := []struct {
-		event ReviewEvent
-		label string
-	}{
-		{ReviewEventComment, "COMMENT"},
-		{ReviewEventApprove, "APPROVE"},
-		{ReviewEventRequestChanges, "REQUEST CHANGES"},
-	}
-	for _, tt := range tests {
-		if got := tt.event.Label(); got != tt.label {
-			t.Errorf("event=%v: got %q, want %q", tt.event, got, tt.label)
-		}
 	}
 }

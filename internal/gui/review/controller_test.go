@@ -5,24 +5,25 @@ import (
 	"testing"
 
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
+	"github.com/rin2yh/lazygh/internal/model"
+	appstate "github.com/rin2yh/lazygh/internal/state"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 	reviewstub "github.com/rin2yh/lazygh/pkg/test/stub/review"
 )
 
 func defaultTestConfig() *config.Config { return config.Default() }
 
-func setupControllerWithPR(client *testmock.GHClient, sel reviewstub.Selection) (*Controller, *core.State, *FocusTarget) {
-	state := core.NewState()
-	state.ApplyPRsResult("owner/repo", []core.Item{{Number: 1, Title: "PR"}}, nil)
+func setupControllerWithPR(client *testmock.GHClient, sel reviewstub.Selection) (*Controller, *appstate.State, *FocusTarget) {
+	state := appstate.NewState()
+	state.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "PR"}}, nil)
 	focus := FocusDiffContent
 	c := NewController(defaultTestConfig(), state, client, sel, func(f FocusTarget) { focus = f })
 	return c, state, &focus
 }
 
 func TestHandleCommentSave_NoPRSelected(t *testing.T) {
-	state := core.NewState()
+	state := appstate.NewState()
 	c := NewController(defaultTestConfig(), state, &testmock.GHClient{}, reviewstub.Selection{}, func(FocusTarget) {})
 
 	cmd := c.HandleCommentSave()
@@ -68,7 +69,7 @@ func TestHandleCommentSave_InvalidLine(t *testing.T) {
 }
 
 func TestHandleSubmit_NoPendingReview(t *testing.T) {
-	state := core.NewState()
+	state := appstate.NewState()
 	c := NewController(defaultTestConfig(), state, &testmock.GHClient{}, reviewstub.Selection{}, func(FocusTarget) {})
 
 	cmd := c.HandleSubmit()
@@ -84,7 +85,7 @@ func TestApplySubmitResult_ErrorPreservesState(t *testing.T) {
 	c, state, _ := setupControllerWithPR(&testmock.GHClient{}, reviewstub.Selection{})
 	state.BeginReviewLoad()
 	state.SetReviewContext(1, "PR_1", "abc123", "PRR_1")
-	state.AddReviewComment(core.ReviewComment{Path: "a.go", Body: "hi", Line: 10})
+	state.AddReviewComment(model.ReviewComment{Path: "a.go", Body: "hi", Line: 10})
 
 	c.ApplySubmitResult(SubmittedMsg{ReviewID: "PRR_1", Err: errors.New("network error")})
 
@@ -103,7 +104,7 @@ func TestApplySubmitResult_SuccessClearsReview(t *testing.T) {
 	c, state, focus := setupControllerWithPR(&testmock.GHClient{}, reviewstub.Selection{})
 	state.BeginReviewLoad()
 	state.SetReviewContext(1, "PR_1", "abc123", "PRR_1")
-	state.AddReviewComment(core.ReviewComment{Path: "a.go", Body: "hi", Line: 10})
+	state.AddReviewComment(model.ReviewComment{Path: "a.go", Body: "hi", Line: 10})
 
 	c.ApplySubmitResult(SubmittedMsg{ReviewID: "PRR_1"})
 
@@ -122,7 +123,7 @@ func TestApplyDiscardResult_ErrorPreservesState(t *testing.T) {
 	c, state, _ := setupControllerWithPR(&testmock.GHClient{}, reviewstub.Selection{})
 	state.BeginReviewLoad()
 	state.SetReviewContext(1, "PR_1", "abc123", "PRR_1")
-	state.AddReviewComment(core.ReviewComment{Path: "a.go", Body: "hi", Line: 10})
+	state.AddReviewComment(model.ReviewComment{Path: "a.go", Body: "hi", Line: 10})
 
 	c.ApplyDiscardResult(DiscardedMsg{Err: errors.New("discard failed")})
 
@@ -138,7 +139,7 @@ func TestApplyDiscardResult_SuccessClearsReview(t *testing.T) {
 	c, state, focus := setupControllerWithPR(&testmock.GHClient{}, reviewstub.Selection{})
 	state.BeginReviewLoad()
 	state.SetReviewContext(1, "PR_1", "abc123", "PRR_1")
-	state.AddReviewComment(core.ReviewComment{Path: "a.go", Body: "hi", Line: 10})
+	state.AddReviewComment(model.ReviewComment{Path: "a.go", Body: "hi", Line: 10})
 	state.SetReviewSummary("my summary")
 
 	c.ApplyDiscardResult(DiscardedMsg{})
@@ -182,7 +183,7 @@ func TestApplyCommentResult_SuccessAddsComment(t *testing.T) {
 func TestHandleSubmit_SavesSummaryIfInSummaryMode(t *testing.T) {
 	c, state, _ := setupControllerWithPR(&testmock.GHClient{}, reviewstub.Selection{})
 	state.SetReviewContext(1, "PR_1", "abc", "PRR_1")
-	state.AddReviewComment(core.ReviewComment{Path: "a.go", Body: "hi", Line: 1})
+	state.AddReviewComment(model.ReviewComment{Path: "a.go", Body: "hi", Line: 1})
 	state.BeginReviewSummaryInput()
 
 	// Set summary text in the editor via controller
@@ -196,7 +197,7 @@ func TestHandleSubmit_SavesSummaryIfInSummaryMode(t *testing.T) {
 	if state.Review.Summary != "my summary text" {
 		t.Fatalf("summary not saved, got %q", state.Review.Summary)
 	}
-	if state.Review.InputMode != core.ReviewInputNone {
+	if state.Review.InputMode != model.ReviewInputNone {
 		t.Fatalf("input mode not cleared, got %v", state.Review.InputMode)
 	}
 }

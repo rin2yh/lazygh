@@ -3,16 +3,16 @@ package review
 import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/rin2yh/lazygh/internal/core"
+	appstate "github.com/rin2yh/lazygh/internal/state"
 )
 
 type summary struct {
-	state    *core.State
+	state    *appstate.State
 	setFocus func(FocusTarget)
 	editor   textarea.Model
 }
 
-func newSummary(state *core.State, setFocus func(FocusTarget)) *summary {
+func newSummary(state *appstate.State, setFocus func(FocusTarget)) *summary {
 	return &summary{
 		state:    state,
 		setFocus: setFocus,

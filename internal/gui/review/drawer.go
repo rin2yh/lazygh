@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/rin2yh/lazygh/internal/gui/widget"
+	"github.com/rin2yh/lazygh/internal/model"
 )
 
 const (
@@ -45,7 +46,7 @@ func (c DrawerComment) Summary() string {
 }
 
 func (c DrawerComment) sanitize() string {
-	return strings.TrimSpace(strings.ReplaceAll(c.Body, "\n", " "))
+	return strings.TrimSpace(model.SanitizeSingleLine(c.Body))
 }
 
 type DrawerInput struct {

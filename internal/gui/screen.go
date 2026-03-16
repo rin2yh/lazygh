@@ -2,8 +2,8 @@ package gui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/rin2yh/lazygh/internal/core"
 	guireview "github.com/rin2yh/lazygh/internal/gui/review"
+	"github.com/rin2yh/lazygh/internal/model"
 )
 
 type screen struct {
@@ -52,7 +52,7 @@ func (s *screen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if s.gui.state.List.FilterOpen {
 			return s, s.handleFilterKey(msg)
 		}
-		if s.gui.state.Review.InputMode != core.ReviewInputNone {
+		if s.gui.state.Review.InputMode != model.ReviewInputNone {
 			if cmd, handled := s.handleReviewInputKey(msg); handled {
 				return s, cmd
 			}
