@@ -194,6 +194,6 @@ func (rs *ReviewState) reset() {
 	*rs = ReviewState{
 		Notice:            notice,
 		EditingCommentIdx: model.NoEditingComment,
+		Comments:          []model.ReviewComment{},
 	}
-	rs.Comments = []model.ReviewComment{}
 }
