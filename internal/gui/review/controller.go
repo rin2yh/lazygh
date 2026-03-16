@@ -174,7 +174,7 @@ func (c *Controller) SelectPrevComment() {
 }
 
 func (c *Controller) IsEditingComment() bool {
-	return c.pending.state.Review.EditingCommentIdx >= 0
+	return c.pending.state.Review.EditingCommentIdx != core.NoEditingComment
 }
 
 func (c *Controller) IsIndexWithinPendingRange(path string, commentable bool, idx int) bool {

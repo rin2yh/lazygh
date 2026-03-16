@@ -79,6 +79,8 @@ type ReviewRange struct {
 	StartLine int
 }
 
+const NoEditingComment = -1
+
 type ReviewState struct {
 	PRNumber           int
 	PullRequestID      string
@@ -135,7 +137,7 @@ func NewState() *State {
 		},
 		Review: ReviewState{
 			Comments:          []ReviewComment{},
-			EditingCommentIdx: -1,
+			EditingCommentIdx: NoEditingComment,
 		},
 	}
 }
@@ -420,13 +422,13 @@ func (s *State) ApplyEditComment(newBody string) {
 		return
 	}
 	s.Review.Comments[idx].Body = sanitizeMultiline(newBody)
-	s.Review.EditingCommentIdx = -1
+	s.Review.EditingCommentIdx = NoEditingComment
 	s.Review.InputMode = ReviewInputNone
 	s.Review.Notice = "Comment updated."
 }
 
 func (s *State) ClearEditingComment() {
-	s.Review.EditingCommentIdx = -1
+	s.Review.EditingCommentIdx = NoEditingComment
 }
 
 func (s *State) SetReviewNotice(msg string) {
@@ -485,7 +487,7 @@ func (s *State) resetReview() {
 	s.Review = ReviewState{
 		Comments:          []ReviewComment{},
 		Notice:            s.Review.Notice,
-		EditingCommentIdx: -1,
+		EditingCommentIdx: NoEditingComment,
 	}
 }
 

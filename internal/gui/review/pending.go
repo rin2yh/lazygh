@@ -33,7 +33,6 @@ type CommentDeletedMsg struct {
 }
 
 type CommentUpdatedMsg struct {
-	Idx  int
 	Body string
 	Err  error
 }
@@ -112,12 +111,13 @@ func (f *pending) HandleCommentSave() tea.Cmd {
 }
 
 func (f *pending) HandleDeleteComment() tea.Cmd {
-	comment, ok := f.state.DeleteSelectedComment()
+	comment, ok := f.state.SelectedComment()
 	if !ok {
 		f.state.SetReviewNotice("No comment selected.")
 		return nil
 	}
 	if comment.CommentID == "" {
+		f.state.DeleteSelectedComment()
 		f.state.SetReviewNotice("Comment deleted.")
 		return nil
 	}
@@ -150,7 +150,7 @@ func (f *pending) HandleEditCommentSave() tea.Cmd {
 	f.state.BeginReviewLoad()
 	return func() tea.Msg {
 		err := f.client.UpdatePendingReviewComment(commentID, body)
-		return CommentUpdatedMsg{Idx: idx, Body: body, Err: err}
+		return CommentUpdatedMsg{Body: body, Err: err}
 	}
 }
 
@@ -231,6 +231,7 @@ func (f *pending) ApplyDeleteCommentResult(msg CommentDeletedMsg) {
 		f.state.SetReviewNotice(msg.Err.Error())
 		return
 	}
+	f.state.DeleteSelectedComment()
 	f.state.SetReviewNotice("Comment deleted.")
 }
 
