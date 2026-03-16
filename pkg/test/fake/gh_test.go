@@ -71,6 +71,11 @@ func TestKey(t *testing.T) {
 		{"with gh prefix", []string{"gh", "repo", "view", "--json", "nameWithOwner"}, "repo view", true},
 		{"without gh prefix", []string{"pr", "list"}, "pr list", true},
 		{"too short", []string{"gh"}, "", false},
+		{"graphql headRefOid", []string{"api", "graphql", "-f", "query=query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){id headRefOid}}}"}, "api graphql headRefOid", true},
+		{"graphql addPullRequestReview", []string{"api", "graphql", "-f", "query=mutation($pullRequestId:ID!,$commitOID:GitObjectID!){addPullRequestReview(input:{pullRequestId:$pullRequestId,commitOID:$commitOID}){pullRequestReview{id}}}"}, "api graphql addPullRequestReview", true},
+		{"graphql addPullRequestReviewThread", []string{"api", "graphql", "-f", "query=mutation($pullRequestReviewId:ID!,...){addPullRequestReviewThread(...)...}"}, "api graphql addPullRequestReviewThread", true},
+		{"graphql submitPullRequestReview", []string{"api", "graphql", "-f", "query=mutation($pullRequestReviewId:ID!){submitPullRequestReview(...)...}"}, "api graphql submitPullRequestReview", true},
+		{"graphql without query", []string{"api", "graphql", "-f", "owner=foo"}, "api graphql", true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

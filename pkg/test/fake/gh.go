@@ -58,7 +58,37 @@ func (g Gh) Key(ghArgs []string) (string, bool) {
 	if len(parts) < 2 {
 		return "", false
 	}
-	return parts[0] + " " + parts[1], true
+	base := parts[0] + " " + parts[1]
+	if base == "api graphql" {
+		if op := graphqlOp(parts[2:]); op != "" {
+			return base + " " + op, true
+		}
+	}
+	return base, true
+}
+
+func graphqlOp(ghArgs []string) string {
+	for i, a := range ghArgs {
+		if (a == "-f" || a == "-F") && i+1 < len(ghArgs) {
+			v := ghArgs[i+1]
+			if strings.HasPrefix(v, "query=") {
+				q := v[len("query="):]
+				for _, op := range []string{
+					"headRefOid",
+					"addPullRequestReviewThread",
+					"submitPullRequestReview",
+					"addPullRequestReview",
+					"deletePullRequestReview",
+				} {
+					if strings.Contains(q, op) {
+						return op
+					}
+				}
+				break
+			}
+		}
+	}
+	return ""
 }
 
 func (g Gh) Find(key string) (Response, bool) {
