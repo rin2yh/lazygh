@@ -1,19 +1,19 @@
-# lazygh コンセプト
+# lazygh Concept
 
 ## Why lazygh
 
-lazygitのようなキーバインドで、現在レポジトリのPRレビューを最短導線で行うためのTUI。
+A TUI for performing PR reviews on the current repository via the shortest possible workflow, using lazygit-style keybindings.
 
-### 既存ツールとの差別化
+### Differentiation from Existing Tools
 
-| 観点 | gh CLI | lazygit | lazygh |
-|------|--------|---------|--------|
-| 操作性 | コマンド記憶が必要 | 単キー中心 | 単キー中心（GitHub PR向け） |
-| 対象 | GitHub全般 | Gitローカル操作 | 現在レポのPRレビュー |
-| 認証 | `gh auth` | 不要 | `gh auth` に委譲 |
-| 差分閲覧 | コマンド出力 | 高速 | PR Unified diffを中央表示 |
+| Aspect | gh CLI | lazygit | lazygh |
+|--------|--------|---------|--------|
+| Usability | Requires memorizing commands | Single-key focused | Single-key focused (for GitHub PRs) |
+| Scope | GitHub in general | Local Git operations | PR review for the current repo |
+| Authentication | `gh auth` | Not required | Delegated to `gh auth` |
+| Diff viewing | Command output | Fast | PR unified diff displayed in center panel |
 
-## アーキテクチャ概要
+## Architecture Overview
 
 ```
 lazygh (Go TUI)
@@ -23,25 +23,25 @@ gh CLI
 GitHub API
 ```
 
-### 各レイヤーの責務
+### Layer Responsibilities
 
-- **lazygh (Go TUI)**: 画面描画、キー入力、状態遷移
-- **gh CLI**: APIアクセスと認証
-- **GitHub API**: PR/コメント/差分データ
+- **lazygh (Go TUI)**: Screen rendering, key input, state transitions
+- **gh CLI**: API access and authentication
+- **GitHub API**: PR / comment / diff data
 
-## 設計方針
+## Design Principles
 
-### 現在レポジトリ固定
-起動時に現在レポジトリを解決し、そのレポのPRだけを扱う。
-複数レポ切替はv2以降。
+### Fixed to Current Repository
+Resolves the current repository at startup and handles only PRs for that repo.
+Multi-repo switching is planned for v2 and beyond.
 
-### PRレビュー特化
-v1はPRレビューに必要な最小機能に絞る。
-Issue導線はv1では提供しない。
+### Focused on PR Review
+v1 is scoped to the minimum features required for PR review.
+Issue workflows are not provided in v1.
 
-### 操作はlazygit寄せ
-`h/j/k/l` を中心に、選択と表示切替を高速に行える導線を優先する。
+### lazygit-style Keybindings
+Prioritizes `h/j/k/l`-centered navigation for fast selection and view switching.
 
-- 左: PR一覧
-- 中央: PR詳細（Overview / Diff）
-- 下部: ステータス/キーガイド
+- Left: PR list
+- Center: PR details (Overview / Diff)
+- Bottom: Status / key guide
