@@ -50,58 +50,48 @@ func buildSections(keys config.KeyBindings) []section {
 	}
 }
 
-// RenderOverlay renders the help panel lines centered on the screen.
-// It paints over the background lines in the center region.
-func RenderOverlay(background []string, keys config.KeyBindings, screenWidth int) []string {
-	sections := buildSections(keys)
-	content := buildContent(sections)
+func buildPanelLines(keys config.KeyBindings, screenWidth int) ([]string, int) {
+	content := buildContent(buildSections(keys))
 	closeHint := fmt.Sprintf("Press [%s] or [%s] to close", keys.HelpLabel(), keys.Label(config.ActionCancel))
 
-	// Build panel lines
-	panelContent := make([]string, 0, len(content)+2)
+	panelContent := make([]string, 0, len(content)+4)
 	panelContent = append(panelContent, "")
 	panelContent = append(panelContent, content...)
 	panelContent = append(panelContent, "")
 	panelContent = append(panelContent, "  "+closeHint)
 	panelContent = append(panelContent, "")
 
-	// Determine panel dimensions
 	innerW := 0
 	for _, line := range panelContent {
-		w := xansi.StringWidth(line)
-		if w > innerW {
+		if w := xansi.StringWidth(line); w > innerW {
 			innerW = w
 		}
 	}
-	panelW := innerW + 2 // FramePanel subtracts 2 for borders; content already has 2-space indent
-	if panelW > screenWidth-2 {
-		panelW = screenWidth - 2
-	}
-	panelH := len(panelContent) + 2 // 2 border rows
+	panelW := min(innerW+2, screenWidth-2) // FramePanel subtracts 2 for borders
+	panelH := len(panelContent) + 2        // 2 border rows
 
-	panelLines := widget.FramePanel("Keybindings", panelContent, panelW, panelH,
+	lines := widget.FramePanel("Keybindings", panelContent, panelW, panelH,
 		widget.PanelStyle{BorderColor: "yellow", TitleColor: "yellow"},
 	)
+	return lines, panelW
+}
 
-	screenH := len(background)
-	startY := (screenH - panelH) / 2
-	if startY < 0 {
-		startY = 0
-	}
-	startX := (screenWidth - panelW) / 2
-	if startX < 0 {
-		startX = 0
-	}
+// RenderOverlay renders the help panel lines centered on the screen.
+// It paints over the background lines in the center region.
+func RenderOverlay(background []string, keys config.KeyBindings, screenWidth int) []string {
+	panelLines, panelW := buildPanelLines(keys, screenWidth)
+	panelH := len(panelLines)
+
+	startY := max(0, (len(background)-panelH)/2)
+	startX := max(0, (screenWidth-panelW)/2)
 
 	result := make([]string, len(background))
 	copy(result, background)
-
 	for i, line := range panelLines {
 		y := startY + i
-		if y < 0 || y >= len(result) {
-			continue
+		if y >= 0 && y < len(result) {
+			result[y] = overlayLine(result[y], line, startX, panelW, screenWidth)
 		}
-		result[y] = overlayLine(result[y], line, startX, panelW, screenWidth)
 	}
 	return result
 }

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/rin2yh/lazygh/internal/config"
 )
 
@@ -66,6 +67,26 @@ func TestOverlayLine(t *testing.T) {
 	want := "abcXY     "
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
+	}
+}
+
+func TestBuildPanelLines_WidthMatchesLines(t *testing.T) {
+	keys := config.Default().KeyBindings
+	lines, w := buildPanelLines(keys, 120)
+	for i, line := range lines {
+		got := xansi.StringWidth(line)
+		if got != w {
+			t.Errorf("line[%d] width=%d, want %d: %q", i, got, w, line)
+		}
+	}
+}
+
+func TestBuildPanelLines_ClampsToScreenWidth(t *testing.T) {
+	keys := config.Default().KeyBindings
+	const screenW = 40
+	_, w := buildPanelLines(keys, screenW)
+	if w != screenW-2 {
+		t.Fatalf("got w=%d, want %d", w, screenW-2)
 	}
 }
 
