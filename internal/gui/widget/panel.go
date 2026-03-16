@@ -53,6 +53,31 @@ func PadOrTrim(s string, width int) string {
 	return out
 }
 
+// OverlayPanel centers panelLines (of rendered width panelW) over background and returns the composite.
+func OverlayPanel(background []string, panelLines []string, panelW, screenWidth int) []string {
+	panelH := len(panelLines)
+	startY := max(0, (len(background)-panelH)/2)
+	startX := max(0, (screenWidth-panelW)/2)
+	result := make([]string, len(background))
+	copy(result, background)
+	for i, line := range panelLines {
+		y := startY + i
+		if y < len(result) {
+			result[y] = overlayLine(result[y], line, startX, panelW, screenWidth)
+		}
+	}
+	return result
+}
+
+func overlayLine(bg, panel string, startX, panelW, screenWidth int) string {
+	left := PadOrTrim(xansi.Truncate(bg, startX, ""), startX)
+	right := ""
+	if endX := startX + panelW; endX < screenWidth {
+		right = strings.Repeat(" ", screenWidth-endX)
+	}
+	return left + PadOrTrim(panel, panelW) + right
+}
+
 // JoinColumns horizontally joins two padded column slices into one slice of combined lines.
 func JoinColumns(left []string, leftW int, right []string, rightW int, height int) []string {
 	lines := make([]string, 0, height)

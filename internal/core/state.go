@@ -64,6 +64,7 @@ func (e ReviewEvent) Label() string {
 }
 
 type ReviewComment struct {
+	CommentID string
 	Path      string
 	Body      string
 	Side      string
@@ -81,18 +82,22 @@ type ReviewRange struct {
 	StartLine int
 }
 
+const NoEditingComment = -1
+
 type ReviewState struct {
-	PRNumber      int
-	PullRequestID string
-	CommitOID     string
-	ReviewID      string
-	DrawerOpen    bool
-	InputMode     ReviewInputMode
-	Event         ReviewEvent
-	Summary       string
-	Comments      []ReviewComment
-	RangeStart    *ReviewRange
-	Notice        string
+	PRNumber           int
+	PullRequestID      string
+	CommitOID          string
+	ReviewID           string
+	DrawerOpen         bool
+	InputMode          ReviewInputMode
+	Event              ReviewEvent
+	Summary            string
+	Comments           []ReviewComment
+	RangeStart         *ReviewRange
+	Notice             string
+	SelectedCommentIdx int
+	EditingCommentIdx  int
 }
 
 const (
@@ -208,7 +213,8 @@ func NewState() *State {
 			Mode: DetailModeOverview,
 		},
 		Review: ReviewState{
-			Comments: []ReviewComment{},
+			Comments:          []ReviewComment{},
+			EditingCommentIdx: NoEditingComment,
 		},
 	}
 }
@@ -427,6 +433,7 @@ func (s *State) SetReviewContext(prNumber int, pullRequestID string, commitOID s
 
 func (s *State) AddReviewComment(comment ReviewComment) {
 	s.Review.Comments = append(s.Review.Comments, ReviewComment{
+		CommentID: comment.CommentID,
 		Path:      sanitizeSingleLine(comment.Path),
 		Body:      sanitizeMultiline(comment.Body),
 		Side:      sanitizeSingleLine(comment.Side),
@@ -434,10 +441,71 @@ func (s *State) AddReviewComment(comment ReviewComment) {
 		StartSide: sanitizeSingleLine(comment.StartSide),
 		StartLine: comment.StartLine,
 	})
+	s.Review.SelectedCommentIdx = len(s.Review.Comments) - 1
 	s.Review.Notice = "Review comment added."
 	s.Review.DrawerOpen = true
 	s.Review.InputMode = ReviewInputNone
 	s.Review.RangeStart = nil
+}
+
+func (s *State) SelectNextComment() {
+	if len(s.Review.Comments) == 0 {
+		return
+	}
+	if s.Review.SelectedCommentIdx < len(s.Review.Comments)-1 {
+		s.Review.SelectedCommentIdx++
+	}
+}
+
+func (s *State) SelectPrevComment() {
+	if s.Review.SelectedCommentIdx > 0 {
+		s.Review.SelectedCommentIdx--
+	}
+}
+
+func (s *State) DeleteSelectedComment() (ReviewComment, bool) {
+	idx := s.Review.SelectedCommentIdx
+	if idx < 0 || idx >= len(s.Review.Comments) {
+		return ReviewComment{}, false
+	}
+	deleted := s.Review.Comments[idx]
+	s.Review.Comments = append(s.Review.Comments[:idx], s.Review.Comments[idx+1:]...)
+	if len(s.Review.Comments) == 0 {
+		s.Review.SelectedCommentIdx = 0
+	} else if s.Review.SelectedCommentIdx >= len(s.Review.Comments) {
+		s.Review.SelectedCommentIdx = len(s.Review.Comments) - 1
+	}
+	return deleted, true
+}
+
+func (s *State) SelectedComment() (ReviewComment, bool) {
+	idx := s.Review.SelectedCommentIdx
+	if idx < 0 || idx >= len(s.Review.Comments) {
+		return ReviewComment{}, false
+	}
+	return s.Review.Comments[idx], true
+}
+
+func (s *State) BeginEditComment() {
+	s.Review.EditingCommentIdx = s.Review.SelectedCommentIdx
+	s.Review.InputMode = ReviewInputComment
+	s.Review.DrawerOpen = true
+	s.Review.Notice = ""
+}
+
+func (s *State) ApplyEditComment(newBody string) {
+	idx := s.Review.EditingCommentIdx
+	if idx < 0 || idx >= len(s.Review.Comments) {
+		return
+	}
+	s.Review.Comments[idx].Body = sanitizeMultiline(newBody)
+	s.Review.EditingCommentIdx = NoEditingComment
+	s.Review.InputMode = ReviewInputNone
+	s.Review.Notice = "Comment updated."
+}
+
+func (s *State) ClearEditingComment() {
+	s.Review.EditingCommentIdx = NoEditingComment
 }
 
 func (s *State) SetReviewNotice(msg string) {
@@ -522,8 +590,9 @@ func (s *State) blocksPRSelectionChange() bool {
 
 func (s *State) resetReview() {
 	s.Review = ReviewState{
-		Comments: []ReviewComment{},
-		Notice:   s.Review.Notice,
+		Comments:          []ReviewComment{},
+		Notice:            s.Review.Notice,
+		EditingCommentIdx: NoEditingComment,
 	}
 }
 

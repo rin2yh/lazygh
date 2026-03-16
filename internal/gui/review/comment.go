@@ -53,6 +53,11 @@ func (f *comment) Clear() {
 	f.state.SetReviewNotice("Comment input cleared.")
 }
 
+func (f *comment) StartEdit(body string) {
+	f.editor.SetValue(body)
+	f.editor.Focus()
+}
+
 func (f *comment) StopInput() {
 	f.editor.Blur()
 	f.editor.SetValue("")
