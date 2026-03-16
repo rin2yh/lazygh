@@ -169,7 +169,7 @@ func TestModelUpdate_InputModeSubmitShortcutBypassesEditor(t *testing.T) {
 	g.review.SetCommentValue("draft")
 
 	m := &screen{gui: g}
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'S'}})
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlJ})
 	if cmd == nil {
 		t.Fatal("expected submit command")
 	}
