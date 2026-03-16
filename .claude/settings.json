@@ -8,6 +8,19 @@
     "allowUnsandboxedCommands": true,
     "excludedCommands": ["git", "docker", "go"]
   },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun x gh-setup-hooks",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
     "allow": [
       "Bash(gh issue:*)",
