@@ -23,7 +23,7 @@ func (m *GHClient) ResolveCurrentRepo() (string, error) {
 	return m.Repo, m.Err
 }
 
-func (m *GHClient) ListPRs(_ string) ([]gh.PRItem, error) {
+func (m *GHClient) ListPRs(_ string, _ string) ([]gh.PRItem, error) {
 	return m.PRs, m.Err
 }
 
@@ -107,7 +107,7 @@ func (c *ControlledGHClient) ResolveCurrentRepo() (string, error) {
 	return c.Repo, nil
 }
 
-func (c *ControlledGHClient) ListPRs(_ string) ([]gh.PRItem, error) {
+func (c *ControlledGHClient) ListPRs(_ string, _ string) ([]gh.PRItem, error) {
 	if c.PRsCalled != nil {
 		c.prsOnce.Do(func() { close(c.PRsCalled) })
 	}

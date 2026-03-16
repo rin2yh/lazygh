@@ -118,19 +118,19 @@ func TestToCorePRsMapsStatusAndAssignees(t *testing.T) {
 			State:   "OPEN",
 			IsDraft: true,
 		},
-	})
+	}, core.PRFilterOpen)
 
 	if len(items) != 2 {
 		t.Fatalf("got %d, want %d", len(items), 2)
 	}
-	if items[0].Status != "OPEN" {
-		t.Fatalf("got %q, want %q", items[0].Status, "OPEN")
+	if items[0].Status != core.PRStatusOpen {
+		t.Fatalf("got %q, want %q", items[0].Status, core.PRStatusOpen)
 	}
 	if strings.Join(items[0].Assignees, ",") != "alice,bob" {
 		t.Fatalf("got %q, want %q", strings.Join(items[0].Assignees, ","), "alice,bob")
 	}
-	if items[1].Status != "DRAFT" {
-		t.Fatalf("got %q, want %q", items[1].Status, "DRAFT")
+	if items[1].Status != core.PRStatusDraft {
+		t.Fatalf("got %q, want %q", items[1].Status, core.PRStatusDraft)
 	}
 }
 

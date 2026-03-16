@@ -1,6 +1,9 @@
 package core
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Item struct {
 	Number    int
@@ -92,12 +95,85 @@ type ReviewState struct {
 	Notice        string
 }
 
+const (
+	PRStatusOpen   = "OPEN"
+	PRStatusClosed = "CLOSED"
+	PRStatusMerged = "MERGED"
+	PRStatusDraft  = "DRAFT"
+)
+
+type PRFilterMask uint8
+
+const (
+	PRFilterOpen   PRFilterMask = 1 << iota // 1
+	PRFilterClosed                          // 2
+	PRFilterMerged                          // 4
+)
+
+// PRFilterOptions lists the filter options in display order.
+var PRFilterOptions = []PRFilterMask{PRFilterOpen, PRFilterClosed, PRFilterMerged}
+
+func (m PRFilterMask) Has(f PRFilterMask) bool { return m&f != 0 }
+
+func (m PRFilterMask) Toggle(f PRFilterMask) PRFilterMask { return m ^ f }
+
+func (m PRFilterMask) Label() string {
+	if m == PRFilterOpen|PRFilterClosed|PRFilterMerged {
+		return "All"
+	}
+	var parts []string
+	if m.Has(PRFilterOpen) {
+		parts = append(parts, "Open")
+	}
+	if m.Has(PRFilterClosed) {
+		parts = append(parts, "Closed")
+	}
+	if m.Has(PRFilterMerged) {
+		parts = append(parts, "Merged")
+	}
+	if len(parts) == 0 {
+		return "None"
+	}
+	return strings.Join(parts, ",")
+}
+
+func (m PRFilterMask) StateArg() string {
+	// single selection: use specific state arg for efficiency
+	switch m {
+	case PRFilterOpen:
+		return "open"
+	case PRFilterClosed:
+		return "closed"
+	case PRFilterMerged:
+		return "merged"
+	default:
+		return "all"
+	}
+}
+
+// Matches returns true if the gh state string matches this filter mask.
+func (m PRFilterMask) Matches(state string) bool {
+	switch state {
+	case PRStatusOpen:
+		return m.Has(PRFilterOpen)
+	case PRStatusClosed:
+		return m.Has(PRFilterClosed)
+	case PRStatusMerged:
+		return m.Has(PRFilterMerged)
+	default:
+		return false
+	}
+}
+
 // ListState holds PR list and selection state.
 type ListState struct {
-	Repo        string
-	PRs         []Item
-	PRsLoading  bool
-	PRsSelected int
+	Repo         string
+	PRs          []Item
+	PRsLoading   bool
+	PRsSelected  int
+	Filter       PRFilterMask
+	FilterOpen   bool
+	FilterCursor int
 }
 
 // DetailState holds detail panel display and loading state.
@@ -125,7 +201,8 @@ type State struct {
 func NewState() *State {
 	return &State{
 		List: ListState{
-			PRs: []Item{},
+			PRs:    []Item{},
+			Filter: PRFilterOpen,
 		},
 		Detail: DetailState{
 			Mode: DetailModeOverview,
@@ -407,6 +484,34 @@ func (s *State) ResetReviewAfterDiscard(notice string) {
 	s.Review.Notice = sanitizeMultiline(notice)
 }
 
+func (s *State) OpenFilterSelect() {
+	s.List.FilterOpen = true
+	s.List.FilterCursor = 0
+}
+
+func (s *State) CloseFilterSelect() {
+	s.List.FilterOpen = false
+}
+
+func (s *State) MoveFilterCursor(dir int) {
+	n := len(PRFilterOptions)
+	s.List.FilterCursor = (s.List.FilterCursor + dir + n) % n
+}
+
+// ToggleFilterAtCursor toggles the filter option under the cursor.
+// It prevents deselecting all options (at least one must remain selected).
+func (s *State) ToggleFilterAtCursor() {
+	if s.List.FilterCursor < 0 || s.List.FilterCursor >= len(PRFilterOptions) {
+		return
+	}
+	opt := PRFilterOptions[s.List.FilterCursor]
+	next := s.List.Filter.Toggle(opt)
+	if next == 0 {
+		return // disallow empty selection
+	}
+	s.List.Filter = next
+}
+
 func (s *State) blocksPRSelectionChange() bool {
 	item, ok := s.selectedPR()
 	if !ok {
@@ -423,13 +528,13 @@ func (s *State) resetReview() {
 }
 
 func FormatPRItem(item Item) string {
-	return fmt.Sprintf("PR #%d %s", item.Number, sanitizeSingleLine(item.Title))
+	return fmt.Sprintf("#%d %s", item.Number, sanitizeSingleLine(item.Title))
 }
 
 func FormatPROverview(item Item) string {
 	status := sanitizeSingleLine(item.Status)
 	if status == "" {
-		status = "OPEN"
+		status = PRStatusOpen
 	}
 
 	assignee := "unassigned"

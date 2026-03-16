@@ -37,6 +37,7 @@ const (
 	ActionReviewClearComment
 	ActionReviewEvent
 	ActionShowHelp
+	ActionFilterPRs
 )
 
 type ActionSpec struct {
@@ -69,6 +70,7 @@ var actionSpecs = []ActionSpec{
 	{Action: ActionReviewClearComment, Name: "Review Clear Comment", DefaultKeys: []string{"x"}},
 	{Action: ActionReviewEvent, Name: "Review Event", DefaultKeys: []string{"e"}},
 	{Action: ActionShowHelp, Name: "Show Help", DefaultKeys: []string{"?"}},
+	{Action: ActionFilterPRs, Name: "Filter PRs", DefaultKeys: []string{"/"}},
 }
 
 type KeyBinding struct {

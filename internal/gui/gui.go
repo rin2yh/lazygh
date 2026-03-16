@@ -12,7 +12,7 @@ import (
 
 type PRClient interface {
 	ResolveCurrentRepo() (string, error)
-	ListPRs(repo string) ([]gh.PRItem, error)
+	ListPRs(repo string, state string) ([]gh.PRItem, error)
 	ViewPR(repo string, number int) (string, error)
 	DiffPR(repo string, number int) (string, error)
 }

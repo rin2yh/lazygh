@@ -68,6 +68,9 @@ func (s *screen) handleGlobalAction(action config.Action) (tea.Cmd, bool) {
 		return s.showDiff(), true
 	case config.ActionOpenSelected:
 		return s.openSelectedPR(), true
+	case config.ActionFilterPRs:
+		s.gui.state.OpenFilterSelect()
+		return nil, true
 	default:
 		return nil, false
 	}
@@ -106,6 +109,28 @@ func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
 		if s.gui.state.IsDiffMode() {
 			s.gui.review.CycleReviewEvent()
 		}
+	}
+	return nil
+}
+
+func (s *screen) handleFilterKey(msg tea.KeyMsg) tea.Cmd {
+	switch msg.String() {
+	case "esc":
+		s.gui.state.CloseFilterSelect()
+		return nil
+	case "enter":
+		s.gui.state.CloseFilterSelect()
+		s.gui.state.BeginLoadPRs()
+		return s.loadPRsCmd()
+	case "j", "down":
+		s.gui.state.MoveFilterCursor(1)
+		return nil
+	case "k", "up":
+		s.gui.state.MoveFilterCursor(-1)
+		return nil
+	case " ":
+		s.gui.state.ToggleFilterAtCursor()
+		return nil
 	}
 	return nil
 }

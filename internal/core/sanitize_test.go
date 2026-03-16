@@ -34,7 +34,7 @@ func TestSanitize(t *testing.T) {
 
 func TestFormatPRItemSanitizeTitle(t *testing.T) {
 	pr := FormatPRItem(Item{Number: 2, Title: "bad\x00title"})
-	if pr != "PR #2 badtitle" {
+	if pr != "#2 badtitle" {
 		t.Fatalf("unexpected pr format: %q", pr)
 	}
 }
@@ -43,7 +43,7 @@ func TestFormatPROverview(t *testing.T) {
 	pr := FormatPROverview(Item{
 		Number:    3,
 		Title:     "bad\x00title",
-		Status:    "DRAFT",
+		Status:    PRStatusDraft,
 		Assignees: []string{"alice", "bob"},
 	})
 	want := "PR #3 badtitle\nStatus: DRAFT\nAssignee: alice (+1)"

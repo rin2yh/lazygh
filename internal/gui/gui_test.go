@@ -19,7 +19,7 @@ func TestGuiRun_LoadsPRsAndDetail(t *testing.T) {
 
 	client := &testmock.ControlledGHClient{
 		Repo:           "owner/repo1",
-		PRs:            []gh.PRItem{{Number: 1, Title: "Fix bug"}},
+		PRs:            []gh.PRItem{{Number: 1, Title: "Fix bug", State: "OPEN"}},
 		PRView:         "PR detail",
 		ResolveCalled:  make(chan struct{}),
 		PRsCalled:      make(chan struct{}),
