@@ -82,6 +82,9 @@ func (m PRFilterMask) Matches(state string) bool {
 	}
 }
 
+// FormatPRItem is used exclusively by internal/gui/render.go for PR list
+// rendering. If PR list rendering were moved into internal/gui/prs/, this
+// could move to internal/gui/prs/model.go.
 func FormatPRItem(item Item) string {
 	return fmt.Sprintf("#%d %s", item.Number, SanitizeSingleLine(item.Title))
 }

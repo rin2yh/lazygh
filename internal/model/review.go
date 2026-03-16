@@ -1,5 +1,11 @@
 package model
 
+// ReviewInputMode and ReviewEvent are used by both internal/state and multiple
+// internal/gui subpackages (input routing, layout/status). If state were split
+// into feature packages, these would still cross package boundaries, so they
+// should stay here unless input routing is also refactored to delegate to the
+// review package.
+
 type ReviewInputMode int
 
 const (
@@ -26,6 +32,11 @@ func (e ReviewEvent) Label() string {
 		return "COMMENT"
 	}
 }
+
+// ReviewComment, ReviewRange, and NoEditingComment are used exclusively within
+// the review domain (internal/state.ReviewState + internal/gui/review/).
+// If ReviewState were moved into internal/gui/review/, these could move to
+// internal/gui/review/model.go.
 
 type ReviewComment struct {
 	CommentID string
