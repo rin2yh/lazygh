@@ -137,8 +137,8 @@ func TestLazyghE2E_ReviewFlow(t *testing.T) {
 	// save comment with Ctrl+S; waits for the addPullRequestReviewThread API call
 	s.WriteInputAndWaitLogContains([]byte{19}, "addPullRequestReviewThread", 5*time.Second)
 
-	// submit review; waits for the submitPullRequestReview API call
-	s.WriteInputAndWaitLogContains([]byte("S"), "submitPullRequestReview", 5*time.Second)
+	// submit review with Ctrl+R; waits for the submitPullRequestReview API call
+	s.WriteInputAndWaitLogContains([]byte{18}, "submitPullRequestReview", 5*time.Second)
 
 	s.AssertLogContainsAll(
 		"headRefOid",

@@ -43,7 +43,8 @@ func TestKeyBindingsMatches(t *testing.T) {
 		{name: "move down rune", msg: tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}}, action: ActionMoveDown, want: true},
 		{name: "move down arrow", msg: tea.KeyMsg{Type: tea.KeyDown}, action: ActionMoveDown, want: true},
 		{name: "save review", msg: tea.KeyMsg{Type: tea.KeyCtrlS}, action: ActionReviewSave, want: true},
-		{name: "submit review uppercase only", msg: tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}}, action: ActionReviewSubmit, want: false},
+		{name: "submit review ctrl+r", msg: tea.KeyMsg{Type: tea.KeyCtrlR}, action: ActionReviewSubmit, want: true},
+		{name: "submit review S no longer bound", msg: tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'S'}}, action: ActionReviewSubmit, want: false},
 		{name: "go bottom uppercase only", msg: tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'g'}}, action: ActionGoBottom, want: false},
 	}
 

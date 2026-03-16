@@ -52,7 +52,7 @@ func TestFormatStatusLine(t *testing.T) {
 			name:     "review drawer focus",
 			diffMode: true,
 			focus:    FocusReviewDrawer,
-			want:     "[q]Quit [?]Help | [Review] [S]Submit [X]Discard [Esc]Cancel",
+			want:     "[q]Quit [?]Help | [Review] [Ctrl+R]Submit [X]Discard [Esc]Cancel",
 		},
 	}
 
