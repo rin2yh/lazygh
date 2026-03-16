@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	xansi "github.com/charmbracelet/x/ansi"
-	"github.com/rin2yh/lazygh/internal/gui/widget"
 	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
 // FilterPanelLines builds the filter selection panel content and returns

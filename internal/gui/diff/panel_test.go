@@ -6,7 +6,7 @@ import (
 
 	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/gui/widget"
+	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
 func TestRenderRightPanels_DiffModeHasFilesPanel(t *testing.T) {

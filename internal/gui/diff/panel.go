@@ -2,7 +2,7 @@ package diff
 
 import (
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/gui/widget"
+	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
 const diffLocationColWidth = 7

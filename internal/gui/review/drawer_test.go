@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	xansi "github.com/charmbracelet/x/ansi"
-	"github.com/rin2yh/lazygh/internal/gui/widget"
+	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
 func TestRenderCommentSummary(t *testing.T) {

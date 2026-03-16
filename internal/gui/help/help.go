@@ -2,7 +2,7 @@ package help
 
 import (
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/gui/widget"
+	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
 // RenderOverlay renders the help panel lines centered on the screen.

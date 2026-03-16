@@ -2,7 +2,7 @@ package prs
 
 import (
 	"github.com/rin2yh/lazygh/internal/gui/layout"
-	"github.com/rin2yh/lazygh/internal/gui/widget"
+	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
 type Input struct {

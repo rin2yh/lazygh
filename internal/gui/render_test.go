@@ -3,8 +3,8 @@ package gui
 import (
 	"testing"
 
-	"github.com/rin2yh/lazygh/internal/gui/widget"
 	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
 func TestPRStatusPrefix(t *testing.T) {
