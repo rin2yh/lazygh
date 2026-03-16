@@ -110,6 +110,29 @@ func (f *pending) HandleCommentSave() tea.Cmd {
 	}
 }
 
+func (f *pending) BeginEditComment() bool {
+	comment, ok := f.state.SelectedComment()
+	if !ok {
+		return false
+	}
+	f.state.BeginEditComment()
+	f.comment.editor.SetValue(comment.Body)
+	f.comment.editor.Focus()
+	return true
+}
+
+func (f *pending) IsEditingComment() bool {
+	return f.state.Review.EditingCommentIdx != core.NoEditingComment
+}
+
+func (f *pending) SelectNextComment() {
+	f.state.SelectNextComment()
+}
+
+func (f *pending) SelectPrevComment() {
+	f.state.SelectPrevComment()
+}
+
 func (f *pending) HandleDeleteComment() tea.Cmd {
 	comment, ok := f.state.SelectedComment()
 	if !ok {

@@ -3,7 +3,6 @@ package gui
 import (
 	"strings"
 
-	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
 	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
@@ -242,29 +241,7 @@ func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *guireview.DrawerInput {
 
 func applyFilterOverlay(background []string, filter core.PRFilterMask, cursor int, screenWidth int) []string {
 	panelLines, panelW := prs.FilterPanelLines(filter, cursor)
-	panelH := len(panelLines)
-
-	startY := max(0, (len(background)-panelH)/2)
-	startX := max(0, (screenWidth-panelW)/2)
-
-	result := make([]string, len(background))
-	copy(result, background)
-	for i, line := range panelLines {
-		y := startY + i
-		if y >= 0 && y < len(result) {
-			result[y] = overlayLine(result[y], line, startX, panelW, screenWidth)
-		}
-	}
-	return result
-}
-
-func overlayLine(bg, panel string, startX, panelW, screenWidth int) string {
-	left := widget.PadOrTrim(xansi.Truncate(bg, startX, ""), startX)
-	right := ""
-	if endX := startX + panelW; endX < screenWidth {
-		right = strings.Repeat(" ", screenWidth-endX)
-	}
-	return left + widget.PadOrTrim(panel, panelW) + right
+	return widget.OverlayPanel(background, panelLines, panelW, screenWidth)
 }
 
 func splitNonEmptyLines(content string) []string {

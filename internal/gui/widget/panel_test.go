@@ -57,6 +57,18 @@ func TestFramePanel_ActiveUsesConfiguredColors(t *testing.T) {
 	}
 }
 
+func TestOverlayPanel(t *testing.T) {
+	// screenW=10, panelW=2 → startX=(10-2)/2=4
+	// left="abcd"(4), panel="XY"(2), right="    "(4)
+	bg := []string{"abcdefghij"}
+	panel := []string{"XY"}
+	got := OverlayPanel(bg, panel, 2, 10)
+	want := "abcdXY    "
+	if got[0] != want {
+		t.Fatalf("got %q, want %q", got[0], want)
+	}
+}
+
 func TestResolveColorName_InvalidFallsBack(t *testing.T) {
 	tests := []struct {
 		color    string

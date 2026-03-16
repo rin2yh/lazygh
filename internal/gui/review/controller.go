@@ -142,13 +142,9 @@ func (c *Controller) HandleDeleteComment() tea.Cmd {
 }
 
 func (c *Controller) BeginEditComment() bool {
-	comment, ok := c.pending.state.SelectedComment()
-	if !ok {
+	if !c.pending.BeginEditComment() {
 		return false
 	}
-	c.pending.state.BeginEditComment()
-	c.comment.editor.SetValue(comment.Body)
-	c.comment.editor.Focus()
 	c.setFocus(FocusDiffContent)
 	return true
 }
@@ -166,15 +162,15 @@ func (c *Controller) ApplyEditCommentResult(msg CommentUpdatedMsg) {
 }
 
 func (c *Controller) SelectNextComment() {
-	c.pending.state.SelectNextComment()
+	c.pending.SelectNextComment()
 }
 
 func (c *Controller) SelectPrevComment() {
-	c.pending.state.SelectPrevComment()
+	c.pending.SelectPrevComment()
 }
 
 func (c *Controller) IsEditingComment() bool {
-	return c.pending.state.Review.EditingCommentIdx != core.NoEditingComment
+	return c.pending.IsEditingComment()
 }
 
 func (c *Controller) IsIndexWithinPendingRange(path string, commentable bool, idx int) bool {
