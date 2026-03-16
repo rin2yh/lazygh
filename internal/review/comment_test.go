@@ -7,7 +7,6 @@ import (
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/model"
-	appstate "github.com/rin2yh/lazygh/internal/state"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 	reviewstub "github.com/rin2yh/lazygh/pkg/test/stub/review"
 )
@@ -112,8 +111,8 @@ func TestBuildDraft(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			state := appstate.NewState()
-			c := newComment(defaultTestConfig(), state, func(FocusTarget) {})
+			rs := newReviewState()
+			c := newComment(defaultTestConfig(), rs, func(FocusTarget) {})
 			c.bindSelection(tt.selection)
 
 			got, err := c.BuildDraft(tt.body, tt.rangePtr)
@@ -140,28 +139,28 @@ func TestBuildDraft(t *testing.T) {
 }
 
 func TestHandleEditorKey_EscCancelsCommentAndClearsRange(t *testing.T) {
-	state := appstate.NewState()
-	state.SwitchToDiff()
-	state.BeginReviewCommentInput()
-	state.MarkReviewRangeStart(model.ReviewRange{Path: "a.txt", Index: 3, Line: 10})
+	host := &fakeHost{diffMode: true}
+	c := NewController(config.Default(), host, &testmock.GHClient{}, reviewstub.Selection{}, func(target FocusTarget) {})
+	c.rs.BeginCommentInput()
+	c.rs.MarkRangeStart(model.ReviewRange{Path: "a.txt", Index: 3, Line: 10})
 	focus := FocusReviewDrawer
-	controller := NewController(config.Default(), state, &testmock.GHClient{}, reviewstub.Selection{}, func(target FocusTarget) {
-		focus = target
-	})
-	controller.SetCommentValue("draft")
+	c.setFocus = func(target FocusTarget) { focus = target }
+	c.comment.setFocus = c.setFocus
+	c.view.setFocus = c.setFocus
+	c.SetCommentValue("draft")
 
-	_, handled := controller.HandleEditorKey(tea.KeyMsg{Type: tea.KeyEsc})
+	_, handled := c.HandleEditorKey(tea.KeyMsg{Type: tea.KeyEsc})
 	if !handled {
 		t.Fatal("expected key handled")
 	}
-	if state.Review.RangeStart != nil {
+	if c.rs.RangeStart != nil {
 		t.Fatal("expected range cleared")
 	}
-	if state.Review.InputMode != model.ReviewInputNone {
-		t.Fatalf("got %v, want %v", state.Review.InputMode, model.ReviewInputNone)
+	if c.rs.InputMode != model.ReviewInputNone {
+		t.Fatalf("got %v, want %v", c.rs.InputMode, model.ReviewInputNone)
 	}
-	if controller.CurrentCommentValue() != "" {
-		t.Fatalf("got %q, want empty", controller.CurrentCommentValue())
+	if c.CurrentCommentValue() != "" {
+		t.Fatalf("got %q, want empty", c.CurrentCommentValue())
 	}
 	if focus != FocusDiffContent {
 		t.Fatalf("got %v, want %v", focus, FocusDiffContent)

@@ -2,8 +2,7 @@ package gui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	guireview "github.com/rin2yh/lazygh/internal/gui/review"
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/review"
 )
 
 type screen struct {
@@ -29,19 +28,19 @@ func (s *screen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case detailLoadedMsg:
 		s.gui.applyDetailResult(msg)
 		return s, nil
-	case guireview.CommentSavedMsg:
+	case review.CommentSavedMsg:
 		s.gui.review.ApplyCommentResult(msg)
 		return s, nil
-	case guireview.CommentDeletedMsg:
+	case review.CommentDeletedMsg:
 		s.gui.review.ApplyDeleteCommentResult(msg)
 		return s, nil
-	case guireview.CommentUpdatedMsg:
+	case review.CommentUpdatedMsg:
 		s.gui.review.ApplyEditCommentResult(msg)
 		return s, nil
-	case guireview.SubmittedMsg:
+	case review.SubmittedMsg:
 		s.gui.review.ApplySubmitResult(msg)
 		return s, nil
-	case guireview.DiscardedMsg:
+	case review.DiscardedMsg:
 		s.gui.review.ApplyDiscardResult(msg)
 		return s, nil
 	case tea.KeyMsg:
@@ -52,7 +51,7 @@ func (s *screen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if s.gui.state.List.FilterOpen {
 			return s, s.handleFilterKey(msg)
 		}
-		if s.gui.state.Review.InputMode != model.ReviewInputNone {
+		if s.gui.review.IsInInputMode() {
 			if cmd, handled := s.handleReviewInputKey(msg); handled {
 				return s, cmd
 			}

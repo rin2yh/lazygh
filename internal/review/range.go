@@ -1,37 +1,34 @@
 package review
 
-import (
-	"github.com/rin2yh/lazygh/internal/model"
-	appstate "github.com/rin2yh/lazygh/internal/state"
-)
+import "github.com/rin2yh/lazygh/internal/model"
 
 type rangeState struct {
-	state     *appstate.State
+	rs        *ReviewState
 	selection Selection
 	setFocus  func(FocusTarget)
 }
 
-func newRange(state *appstate.State, selection Selection, setFocus func(FocusTarget)) *rangeState {
+func newRange(rs *ReviewState, selection Selection, setFocus func(FocusTarget)) *rangeState {
 	return &rangeState{
-		state:     state,
+		rs:        rs,
 		selection: selection,
 		setFocus:  setFocus,
 	}
 }
 
 func (f *rangeState) RangeStart() *model.ReviewRange {
-	return f.state.Review.RangeStart
+	return f.rs.RangeStart
 }
 
 func (f *rangeState) ToggleSelection() {
 	line, ok := f.selection.CurrentDiffLine()
 	if !ok || !line.Commentable {
-		f.state.SetReviewNotice("Current diff line cannot be reviewed.")
+		f.rs.SetNotice("Current diff line cannot be reviewed.")
 		return
 	}
-	if f.state.Review.RangeStart != nil {
-		f.state.ClearReviewRangeStart()
-		f.state.SetReviewNotice("Range selection cleared.")
+	if f.rs.RangeStart != nil {
+		f.rs.ClearRangeStart()
+		f.rs.SetNotice("Range selection cleared.")
 		f.setFocus(FocusDiffContent)
 		return
 	}
@@ -45,13 +42,13 @@ func (f *rangeState) ToggleSelection() {
 	} else {
 		anchor.Line = line.OldLine
 	}
-	f.state.MarkReviewRangeStart(anchor)
-	f.state.SetReviewNotice("Range selection started.")
+	f.rs.MarkRangeStart(anchor)
+	f.rs.SetNotice("Range selection started.")
 	f.setFocus(FocusDiffContent)
 }
 
 func (f *rangeState) IsIndexWithinPendingRange(path string, commentable bool, idx int) bool {
-	start := f.state.Review.RangeStart
+	start := f.rs.RangeStart
 	if start == nil || start.Path != path || !commentable {
 		return false
 	}

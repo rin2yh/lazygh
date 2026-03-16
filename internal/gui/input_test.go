@@ -6,8 +6,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
-	guireview "github.com/rin2yh/lazygh/internal/gui/review"
 	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/review"
 	testfactory "github.com/rin2yh/lazygh/pkg/test/factory"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 )
@@ -35,12 +35,12 @@ func TestModelUpdate_VKeyTogglesRangeSelection(t *testing.T) {
 	if cmd != nil {
 		t.Fatal("did not expect command")
 	}
-	if g.state.Review.RangeStart == nil {
+	if g.review.RangeStart() == nil {
 		t.Fatal("expected range start")
 	}
 
 	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'v'}})
-	if g.state.Review.RangeStart != nil {
+	if g.review.RangeStart() != nil {
 		t.Fatal("expected range selection cleared")
 	}
 }
@@ -68,7 +68,7 @@ func TestModelUpdate_EnterKeyUsesRangeFlowAfterV(t *testing.T) {
 	if cmd != nil {
 		t.Fatal("did not expect command")
 	}
-	if g.state.Review.RangeStart == nil {
+	if g.review.RangeStart() == nil {
 		t.Fatal("expected range start")
 	}
 
@@ -76,8 +76,8 @@ func TestModelUpdate_EnterKeyUsesRangeFlowAfterV(t *testing.T) {
 	if cmd != nil {
 		t.Fatal("did not expect command")
 	}
-	if g.state.Review.InputMode != model.ReviewInputComment {
-		t.Fatalf("got %v, want %v", g.state.Review.InputMode, model.ReviewInputComment)
+	if g.review.InputMode() != model.ReviewInputComment {
+		t.Fatalf("got %v, want %v", g.review.InputMode(), model.ReviewInputComment)
 	}
 }
 
@@ -101,7 +101,7 @@ func TestModelUpdate_EscCancelsCommentAndClearsRangeHighlight(t *testing.T) {
 	m := &screen{gui: g}
 	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'v'}})
 	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	if g.state.Review.RangeStart == nil {
+	if g.review.RangeStart() == nil {
 		t.Fatal("expected range start before cancel")
 	}
 
@@ -109,11 +109,11 @@ func TestModelUpdate_EscCancelsCommentAndClearsRangeHighlight(t *testing.T) {
 	if cmd != nil {
 		t.Fatal("did not expect command")
 	}
-	if g.state.Review.RangeStart != nil {
+	if g.review.RangeStart() != nil {
 		t.Fatal("expected range start cleared after cancel")
 	}
-	if g.state.Review.InputMode != model.ReviewInputNone {
-		t.Fatalf("got %v, want %v", g.state.Review.InputMode, model.ReviewInputNone)
+	if g.review.InputMode() != model.ReviewInputNone {
+		t.Fatalf("got %v, want %v", g.review.InputMode(), model.ReviewInputNone)
 	}
 	if g.focus != panelDiffContent {
 		t.Fatalf("got %v, want %v", g.focus, panelDiffContent)
@@ -140,7 +140,7 @@ func TestModelUpdate_EscClearsRangeSelectionWithoutLeavingDiff(t *testing.T) {
 
 	m := &screen{gui: g}
 	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'v'}})
-	if g.state.Review.RangeStart == nil {
+	if g.review.RangeStart() == nil {
 		t.Fatal("expected range start before esc")
 	}
 
@@ -148,7 +148,7 @@ func TestModelUpdate_EscClearsRangeSelectionWithoutLeavingDiff(t *testing.T) {
 	if cmd != nil {
 		t.Fatal("did not expect command")
 	}
-	if g.state.Review.RangeStart != nil {
+	if g.review.RangeStart() != nil {
 		t.Fatal("expected range start cleared")
 	}
 	if g.focus != panelDiffContent {
@@ -164,8 +164,8 @@ func TestModelUpdate_InputModeSubmitShortcutBypassesEditor(t *testing.T) {
 	}
 	g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
 	g.switchToDiff()
-	g.state.SetReviewContext(1, "PR_kwDO123", "deadbeef", "PRR_kwDO456")
-	g.state.BeginReviewCommentInput()
+	g.review.SetContext(1, "PR_kwDO123", "deadbeef", "PRR_kwDO456")
+	g.review.BeginCommentInput()
 	g.review.SetCommentValue("draft")
 
 	m := &screen{gui: g}
@@ -176,7 +176,7 @@ func TestModelUpdate_InputModeSubmitShortcutBypassesEditor(t *testing.T) {
 	if got := g.review.CurrentCommentValue(); got != "draft" {
 		t.Fatalf("got %q, want %q", got, "draft")
 	}
-	msg := cmd().(guireview.SubmittedMsg)
+	msg := cmd().(review.SubmittedMsg)
 	if msg.ReviewID != "PRR_kwDO456" {
 		t.Fatalf("got %q, want %q", msg.ReviewID, "PRR_kwDO456")
 	}
@@ -193,8 +193,8 @@ func TestModelUpdate_InputModeDiscardShortcutBypassesEditor(t *testing.T) {
 	}
 	g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
 	g.switchToDiff()
-	g.state.SetReviewContext(1, "PR_kwDO123", "deadbeef", "PRR_kwDO456")
-	g.state.BeginReviewCommentInput()
+	g.review.SetContext(1, "PR_kwDO123", "deadbeef", "PRR_kwDO456")
+	g.review.BeginCommentInput()
 	g.review.SetCommentValue("draft")
 
 	m := &screen{gui: g}
@@ -205,7 +205,7 @@ func TestModelUpdate_InputModeDiscardShortcutBypassesEditor(t *testing.T) {
 	if got := g.review.CurrentCommentValue(); got != "draft" {
 		t.Fatalf("got %q, want %q", got, "draft")
 	}
-	_ = cmd().(guireview.DiscardedMsg)
+	_ = cmd().(review.DiscardedMsg)
 	if len(mc.DeletedReviews) != 1 {
 		t.Fatalf("got %d discards, want 1", len(mc.DeletedReviews))
 	}
@@ -228,10 +228,10 @@ func TestModelUpdate_ReviewKeysIgnoredOutsideDiff(t *testing.T) {
 		if cmd != nil {
 			t.Fatal("did not expect command")
 		}
-		if g.state.Review.InputMode != model.ReviewInputNone {
-			t.Fatalf("got %v, want %v", g.state.Review.InputMode, model.ReviewInputNone)
+		if g.review.InputMode() != model.ReviewInputNone {
+			t.Fatalf("got %v, want %v", g.review.InputMode(), model.ReviewInputNone)
 		}
-		if g.state.Review.RangeStart != nil {
+		if g.review.RangeStart() != nil {
 			t.Fatal("expected no range selection outside diff")
 		}
 	}

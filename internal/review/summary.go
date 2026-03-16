@@ -3,18 +3,17 @@ package review
 import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
-	appstate "github.com/rin2yh/lazygh/internal/state"
 )
 
 type summary struct {
-	state    *appstate.State
+	rs       *ReviewState
 	setFocus func(FocusTarget)
 	editor   textarea.Model
 }
 
-func newSummary(state *appstate.State, setFocus func(FocusTarget)) *summary {
+func newSummary(rs *ReviewState, setFocus func(FocusTarget)) *summary {
 	return &summary{
-		state:    state,
+		rs:       rs,
 		setFocus: setFocus,
 		editor:   newEditor("Review summary"),
 	}
@@ -29,7 +28,7 @@ func (f *summary) InputLines() []string {
 }
 
 func (f *summary) BeginInput() {
-	beginInput(f.state, f.setFocus, &f.editor, f.state.BeginReviewSummaryInput, f.state.Review.Summary)
+	beginInput(f.rs, f.setFocus, &f.editor, f.rs.BeginSummaryInput, f.rs.Summary)
 }
 
 func (f *summary) StopInput() {
@@ -43,7 +42,7 @@ func (f *summary) HandleKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 }
 
 func (f *summary) Save() {
-	f.state.SetReviewSummary(f.editor.Value())
+	f.rs.SetSummary(f.editor.Value())
 }
 
 func (f *summary) Clear() {

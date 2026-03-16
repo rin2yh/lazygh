@@ -9,21 +9,20 @@ import (
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/model"
-	appstate "github.com/rin2yh/lazygh/internal/state"
 )
 
 type comment struct {
 	keys      config.KeyBindings
-	state     *appstate.State
+	rs        *ReviewState
 	selection Selection
 	setFocus  func(FocusTarget)
 	editor    textarea.Model
 }
 
-func newComment(cfg *config.Config, state *appstate.State, setFocus func(FocusTarget)) *comment {
+func newComment(cfg *config.Config, rs *ReviewState, setFocus func(FocusTarget)) *comment {
 	return &comment{
 		keys:     cfg.KeyBindings,
-		state:    state,
+		rs:       rs,
 		setFocus: setFocus,
 		editor:   newEditor("Add review comment"),
 	}
@@ -46,12 +45,12 @@ func (f *comment) InputLines() []string {
 }
 
 func (f *comment) BeginInput() {
-	beginInput(f.state, f.setFocus, &f.editor, f.state.BeginReviewCommentInput, "")
+	beginInput(f.rs, f.setFocus, &f.editor, f.rs.BeginCommentInput, "")
 }
 
 func (f *comment) Clear() {
 	f.editor.SetValue("")
-	f.state.SetReviewNotice("Comment input cleared.")
+	f.rs.SetNotice("Comment input cleared.")
 }
 
 func (f *comment) StartEdit(body string) {
@@ -84,34 +83,34 @@ func (f *comment) BuildDraft(body string, start *model.ReviewRange) (gh.ReviewCo
 	if !ok || !line.Commentable {
 		return gh.ReviewComment{}, fmt.Errorf("current line is not commentable")
 	}
-	comment := gh.ReviewComment{
+	c := gh.ReviewComment{
 		Path: line.Path,
 		Body: body,
 		Side: line.Side,
 	}
 	if line.NewLine > 0 && line.Side != gh.DiffSideLeft {
-		comment.Line = line.NewLine
+		c.Line = line.NewLine
 	} else {
-		comment.Line = line.OldLine
+		c.Line = line.OldLine
 	}
-	if comment.Line <= 0 {
+	if c.Line <= 0 {
 		return gh.ReviewComment{}, fmt.Errorf("comment line is invalid")
 	}
 	if start == nil {
-		return comment, nil
+		return c, nil
 	}
-	if start.Path != comment.Path {
+	if start.Path != c.Path {
 		return gh.ReviewComment{}, fmt.Errorf("range must stay within one file")
 	}
 	if start.Index != f.selection.CurrentLineIndex() {
-		comment.StartLine = start.Line
-		comment.StartSide = gh.DiffSide(start.Side)
+		c.StartLine = start.Line
+		c.StartSide = gh.DiffSide(start.Side)
 		if start.Index > f.selection.CurrentLineIndex() {
-			comment.StartLine, comment.Line = comment.Line, comment.StartLine
-			comment.StartSide, comment.Side = comment.Side, comment.StartSide
+			c.StartLine, c.Line = c.Line, c.StartLine
+			c.StartSide, c.Side = c.Side, c.StartSide
 		}
 	}
-	return comment, nil
+	return c, nil
 }
 
 func (f *comment) ApplySaved() {
