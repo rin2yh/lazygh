@@ -1,6 +1,8 @@
 package review
 
 import (
+	"strings"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
@@ -9,17 +11,31 @@ import (
 type PendingReviewClient interface {
 	GetReviewContext(repo string, number int) (gh.ReviewContext, error)
 	StartPendingReview(repo string, number int, ctx gh.ReviewContext) (string, error)
-	AddReviewComment(repo string, reviewID string, comment gh.ReviewComment) error
+	AddReviewComment(repo string, reviewID string, comment gh.ReviewComment) (string, error)
 	SubmitReview(repo string, reviewID string, event gh.ReviewEvent, body string) error
 	DeletePendingReview(repo string, reviewID string) error
+	DeletePendingReviewComment(commentID string) error
+	UpdatePendingReviewComment(commentID string, body string) error
 }
 
 type CommentSavedMsg struct {
-	PRNumber int
-	Context  gh.ReviewContext
-	ReviewID string
-	Comment  gh.ReviewComment
-	Err      error
+	PRNumber  int
+	Context   gh.ReviewContext
+	ReviewID  string
+	Comment   gh.ReviewComment
+	CommentID string
+	Err       error
+}
+
+type CommentDeletedMsg struct {
+	CommentID string
+	Err       error
+}
+
+type CommentUpdatedMsg struct {
+	Idx  int
+	Body string
+	Err  error
 }
 
 type SubmittedMsg struct {
@@ -83,14 +99,58 @@ func (f *pending) HandleCommentSave() tea.Cmd {
 				return CommentSavedMsg{Err: runErr}
 			}
 		}
-		runErr = f.client.AddReviewComment(repo, reviewID, comment)
+		commentID, runErr := f.client.AddReviewComment(repo, reviewID, comment)
 		return CommentSavedMsg{
-			PRNumber: item.Number,
-			Context:  ctx,
-			ReviewID: reviewID,
-			Comment:  comment,
-			Err:      runErr,
+			PRNumber:  item.Number,
+			Context:   ctx,
+			ReviewID:  reviewID,
+			Comment:   comment,
+			CommentID: commentID,
+			Err:       runErr,
 		}
+	}
+}
+
+func (f *pending) HandleDeleteComment() tea.Cmd {
+	comment, ok := f.state.DeleteSelectedComment()
+	if !ok {
+		f.state.SetReviewNotice("No comment selected.")
+		return nil
+	}
+	if comment.CommentID == "" {
+		f.state.SetReviewNotice("Comment deleted.")
+		return nil
+	}
+	commentID := comment.CommentID
+	f.state.BeginReviewLoad()
+	return func() tea.Msg {
+		err := f.client.DeletePendingReviewComment(commentID)
+		return CommentDeletedMsg{CommentID: commentID, Err: err}
+	}
+}
+
+func (f *pending) HandleEditCommentSave() tea.Cmd {
+	idx := f.state.Review.EditingCommentIdx
+	if idx < 0 || idx >= len(f.state.Review.Comments) {
+		f.state.SetReviewNotice("No comment being edited.")
+		return nil
+	}
+	body := strings.TrimSpace(f.comment.CurrentValue())
+	if body == "" {
+		f.state.SetReviewNotice("Comment body is empty.")
+		return nil
+	}
+	comment := f.state.Review.Comments[idx]
+	if comment.CommentID == "" {
+		f.state.ApplyEditComment(body)
+		f.comment.StopInput()
+		return nil
+	}
+	commentID := comment.CommentID
+	f.state.BeginReviewLoad()
+	return func() tea.Msg {
+		err := f.client.UpdatePendingReviewComment(commentID, body)
+		return CommentUpdatedMsg{Idx: idx, Body: body, Err: err}
 	}
 }
 
@@ -154,6 +214,7 @@ func (f *pending) ApplyCommentResult(msg CommentSavedMsg) {
 		return
 	}
 	f.state.AddReviewComment(core.ReviewComment{
+		CommentID: msg.CommentID,
 		Path:      msg.Comment.Path,
 		Body:      msg.Comment.Body,
 		Side:      string(msg.Comment.Side),
@@ -162,6 +223,26 @@ func (f *pending) ApplyCommentResult(msg CommentSavedMsg) {
 		StartLine: msg.Comment.StartLine,
 	})
 	f.comment.ApplySaved()
+}
+
+func (f *pending) ApplyDeleteCommentResult(msg CommentDeletedMsg) {
+	f.state.ClearLoading()
+	if msg.Err != nil {
+		f.state.SetReviewNotice(msg.Err.Error())
+		return
+	}
+	f.state.SetReviewNotice("Comment deleted.")
+}
+
+func (f *pending) ApplyEditCommentResult(msg CommentUpdatedMsg) {
+	f.state.ClearLoading()
+	if msg.Err != nil {
+		f.state.SetReviewNotice(msg.Err.Error())
+		return
+	}
+	f.state.ApplyEditComment(msg.Body)
+	f.comment.StopInput()
+	f.setFocus(FocusReviewDrawer)
 }
 
 func (f *pending) ApplySubmitResult(msg SubmittedMsg) {

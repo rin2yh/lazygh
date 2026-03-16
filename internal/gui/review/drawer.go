@@ -49,14 +49,15 @@ func (c DrawerComment) sanitize() string {
 }
 
 type DrawerInput struct {
-	SummaryLines      []string
-	CommentModeLabel  string
-	EventLabel        string
-	RangeStart        *DrawerRange
-	Comments          []DrawerComment
-	Notice            string
-	CommentInputLines []string
-	SummaryInputLines []string
+	SummaryLines       []string
+	CommentModeLabel   string
+	EventLabel         string
+	RangeStart         *DrawerRange
+	Comments           []DrawerComment
+	SelectedCommentIdx int
+	Notice             string
+	CommentInputLines  []string
+	SummaryInputLines  []string
 }
 
 func RenderDrawer(input DrawerInput, style widget.PanelStyle, width, height int) []string {
@@ -86,8 +87,12 @@ func RenderDrawer(input DrawerInput, style widget.PanelStyle, width, height int)
 		lines = append(lines, "Comments: none")
 	} else {
 		lines = append(lines, "Comments:")
-		for _, comment := range input.Comments {
-			lines = append(lines, "  - "+comment.Summary())
+		for i, comment := range input.Comments {
+			prefix := "  - "
+			if i == input.SelectedCommentIdx {
+				prefix = "  > "
+			}
+			lines = append(lines, prefix+comment.Summary())
 		}
 	}
 	if notice := strings.TrimSpace(input.Notice); notice != "" {

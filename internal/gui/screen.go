@@ -32,6 +32,12 @@ func (s *screen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case guireview.CommentSavedMsg:
 		s.gui.review.ApplyCommentResult(msg)
 		return s, nil
+	case guireview.CommentDeletedMsg:
+		s.gui.review.ApplyDeleteCommentResult(msg)
+		return s, nil
+	case guireview.CommentUpdatedMsg:
+		s.gui.review.ApplyEditCommentResult(msg)
+		return s, nil
 	case guireview.SubmittedMsg:
 		s.gui.review.ApplySubmitResult(msg)
 		return s, nil

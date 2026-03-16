@@ -205,6 +205,7 @@ func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *guireview.DrawerInput {
 			Body:      comment.Body,
 		})
 	}
+	input.SelectedCommentIdx = gui.state.Review.SelectedCommentIdx
 	if gui.state.Review.InputMode == core.ReviewInputComment {
 		input.CommentInputLines = gui.review.CommentInputLines()
 	}

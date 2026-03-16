@@ -50,6 +50,66 @@ func TestApplyCommentResult_PersistsPendingReviewContextOnError(t *testing.T) {
 	}
 }
 
+func TestHandleDeleteComment_WithCommentID(t *testing.T) {
+	mc := &testmock.GHClient{}
+	c, state, _ := setupControllerWithPR(mc, reviewstub.Selection{})
+	state.SetReviewContext(1, "PR_1", "abc", "PRR_1")
+	state.AddReviewComment(core.ReviewComment{CommentID: "IC_1", Path: "a.go", Body: "hi", Line: 1})
+	state.Review.SelectedCommentIdx = 0
+
+	cmd := c.HandleDeleteComment()
+	if cmd == nil {
+		t.Fatal("expected non-nil cmd")
+	}
+	msg := cmd().(CommentDeletedMsg)
+	if msg.Err != nil {
+		t.Fatalf("unexpected error: %v", msg.Err)
+	}
+	if len(mc.DeletedComments) != 1 || mc.DeletedComments[0] != "IC_1" {
+		t.Errorf("got deleted %v, want [IC_1]", mc.DeletedComments)
+	}
+}
+
+func TestHandleDeleteComment_WithoutCommentID(t *testing.T) {
+	mc := &testmock.GHClient{}
+	c, state, _ := setupControllerWithPR(mc, reviewstub.Selection{})
+	state.SetReviewContext(1, "PR_1", "abc", "PRR_1")
+	state.AddReviewComment(core.ReviewComment{Path: "a.go", Body: "hi", Line: 1})
+	state.Review.SelectedCommentIdx = 0
+
+	cmd := c.HandleDeleteComment()
+	if cmd != nil {
+		t.Fatal("expected nil cmd for local-only comment")
+	}
+	if len(state.Review.Comments) != 0 {
+		t.Errorf("expected comment deleted locally, got %d", len(state.Review.Comments))
+	}
+}
+
+func TestApplyDeleteCommentResult_Error(t *testing.T) {
+	mc := &testmock.GHClient{}
+	c, state, _ := setupControllerWithPR(mc, reviewstub.Selection{})
+	state.BeginReviewLoad()
+
+	c.ApplyDeleteCommentResult(CommentDeletedMsg{CommentID: "IC_1", Err: errors.New("network error")})
+
+	if state.Review.Notice != "network error" {
+		t.Errorf("got %q, want %q", state.Review.Notice, "network error")
+	}
+}
+
+func TestApplyDeleteCommentResult_Success(t *testing.T) {
+	mc := &testmock.GHClient{}
+	c, state, _ := setupControllerWithPR(mc, reviewstub.Selection{})
+	state.BeginReviewLoad()
+
+	c.ApplyDeleteCommentResult(CommentDeletedMsg{CommentID: "IC_1"})
+
+	if state.Review.Notice != "Comment deleted." {
+		t.Errorf("got %q, want %q", state.Review.Notice, "Comment deleted.")
+	}
+}
+
 func TestHandleSubmit_PassesReviewEventToClient(t *testing.T) {
 	tests := []struct {
 		name      string

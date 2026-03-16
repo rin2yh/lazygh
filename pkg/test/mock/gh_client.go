@@ -13,9 +13,12 @@ type GHClient struct {
 	PRDiff           string
 	ReviewContext    gh.ReviewContext
 	PendingReviewID  string
+	PendingCommentID string
 	ReviewComments   []gh.ReviewComment
 	SubmittedReviews []string
 	DeletedReviews   []string
+	DeletedComments  []string
+	UpdatedComments  []string
 	Err              error
 }
 
@@ -43,11 +46,27 @@ func (m *GHClient) StartPendingReview(_ string, _ int, _ gh.ReviewContext) (stri
 	return m.PendingReviewID, m.Err
 }
 
-func (m *GHClient) AddReviewComment(_ string, _ string, comment gh.ReviewComment) error {
+func (m *GHClient) AddReviewComment(_ string, _ string, comment gh.ReviewComment) (string, error) {
+	if m.Err != nil {
+		return "", m.Err
+	}
+	m.ReviewComments = append(m.ReviewComments, comment)
+	return m.PendingCommentID, nil
+}
+
+func (m *GHClient) DeletePendingReviewComment(commentID string) error {
 	if m.Err != nil {
 		return m.Err
 	}
-	m.ReviewComments = append(m.ReviewComments, comment)
+	m.DeletedComments = append(m.DeletedComments, commentID)
+	return nil
+}
+
+func (m *GHClient) UpdatePendingReviewComment(commentID string, body string) error {
+	if m.Err != nil {
+		return m.Err
+	}
+	m.UpdatedComments = append(m.UpdatedComments, commentID+":"+body)
 	return nil
 }
 
@@ -163,7 +182,15 @@ func (c *ControlledGHClient) StartPendingReview(_ string, _ int, _ gh.ReviewCont
 	return c.PendingReviewID, nil
 }
 
-func (c *ControlledGHClient) AddReviewComment(_ string, _ string, _ gh.ReviewComment) error {
+func (c *ControlledGHClient) AddReviewComment(_ string, _ string, _ gh.ReviewComment) (string, error) {
+	return "", c.Err
+}
+
+func (c *ControlledGHClient) DeletePendingReviewComment(_ string) error {
+	return c.Err
+}
+
+func (c *ControlledGHClient) UpdatePendingReviewComment(_ string, _ string) error {
 	return c.Err
 }
 

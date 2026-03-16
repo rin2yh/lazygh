@@ -337,6 +337,114 @@ func TestCycleReviewEvent(t *testing.T) {
 	}
 }
 
+func TestDeleteSelectedComment(t *testing.T) {
+	tests := []struct {
+		name            string
+		comments        []ReviewComment
+		selectedIdx     int
+		wantDeleted     string
+		wantCount       int
+		wantSelectedIdx int
+	}{
+		{
+			name:            "delete middle comment",
+			comments:        []ReviewComment{{CommentID: "c1", Body: "a"}, {CommentID: "c2", Body: "b"}, {CommentID: "c3", Body: "c"}},
+			selectedIdx:     1,
+			wantDeleted:     "c2",
+			wantCount:       2,
+			wantSelectedIdx: 1,
+		},
+		{
+			name:            "delete last comment",
+			comments:        []ReviewComment{{CommentID: "c1", Body: "a"}, {CommentID: "c2", Body: "b"}},
+			selectedIdx:     1,
+			wantDeleted:     "c2",
+			wantCount:       1,
+			wantSelectedIdx: 0,
+		},
+		{
+			name:            "delete only comment",
+			comments:        []ReviewComment{{CommentID: "c1", Body: "a"}},
+			selectedIdx:     0,
+			wantDeleted:     "c1",
+			wantCount:       0,
+			wantSelectedIdx: 0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewState()
+			s.Review.Comments = tt.comments
+			s.Review.SelectedCommentIdx = tt.selectedIdx
+
+			deleted, ok := s.DeleteSelectedComment()
+			if !ok {
+				t.Fatal("expected ok=true")
+			}
+			if deleted.CommentID != tt.wantDeleted {
+				t.Errorf("got deleted %q, want %q", deleted.CommentID, tt.wantDeleted)
+			}
+			if len(s.Review.Comments) != tt.wantCount {
+				t.Errorf("got %d comments, want %d", len(s.Review.Comments), tt.wantCount)
+			}
+			if s.Review.SelectedCommentIdx != tt.wantSelectedIdx {
+				t.Errorf("got selectedIdx=%d, want %d", s.Review.SelectedCommentIdx, tt.wantSelectedIdx)
+			}
+		})
+	}
+}
+
+func TestSelectComment(t *testing.T) {
+	s := NewState()
+	s.Review.Comments = []ReviewComment{{Body: "a"}, {Body: "b"}, {Body: "c"}}
+	s.Review.SelectedCommentIdx = 0
+
+	s.SelectNextComment()
+	if s.Review.SelectedCommentIdx != 1 {
+		t.Errorf("got %d, want 1", s.Review.SelectedCommentIdx)
+	}
+	s.SelectNextComment()
+	s.SelectNextComment() // at boundary
+	if s.Review.SelectedCommentIdx != 2 {
+		t.Errorf("got %d, want 2", s.Review.SelectedCommentIdx)
+	}
+	s.SelectPrevComment()
+	if s.Review.SelectedCommentIdx != 1 {
+		t.Errorf("got %d, want 1", s.Review.SelectedCommentIdx)
+	}
+	s.SelectPrevComment()
+	s.SelectPrevComment() // at boundary
+	if s.Review.SelectedCommentIdx != 0 {
+		t.Errorf("got %d, want 0", s.Review.SelectedCommentIdx)
+	}
+}
+
+func TestApplyEditComment(t *testing.T) {
+	s := NewState()
+	s.Review.Comments = []ReviewComment{{CommentID: "c1", Body: "original"}}
+	s.Review.SelectedCommentIdx = 0
+	s.BeginEditComment()
+
+	if s.Review.EditingCommentIdx != 0 {
+		t.Fatalf("got EditingCommentIdx=%d, want 0", s.Review.EditingCommentIdx)
+	}
+	if s.Review.InputMode != ReviewInputComment {
+		t.Fatalf("expected ReviewInputComment mode")
+	}
+
+	s.ApplyEditComment("updated body")
+
+	if s.Review.Comments[0].Body != "updated body" {
+		t.Errorf("got %q, want %q", s.Review.Comments[0].Body, "updated body")
+	}
+	if s.Review.EditingCommentIdx != -1 {
+		t.Errorf("got EditingCommentIdx=%d, want -1", s.Review.EditingCommentIdx)
+	}
+	if s.Review.InputMode != ReviewInputNone {
+		t.Errorf("expected ReviewInputNone mode after edit")
+	}
+}
+
 func TestReviewEventLabel(t *testing.T) {
 	tests := []struct {
 		event ReviewEvent
