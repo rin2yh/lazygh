@@ -16,7 +16,7 @@ func TestCycleFocus_DiffMode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.CoreItem(1, "x")}, nil)
+	g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
 	g.switchToDiff()
 	g.diff.SetFiles([]gh.DiffFile{{Path: "a.txt", Content: "x"}})
 
@@ -135,7 +135,7 @@ func TestModelUpdateFocusKeysInDiffMode(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.CoreItem(1, "x")}, nil)
+			g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
 			g.switchToDiff()
 			g.diff.SetFiles(tt.files)
 			g.focus = tt.start
@@ -204,7 +204,7 @@ func TestModelUpdateFocusKeysInOverviewMode(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.CoreItem(1, "x")}, nil)
+			g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
 			g.focus = tt.start
 			m := &screen{gui: g}
 

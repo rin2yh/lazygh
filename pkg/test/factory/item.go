@@ -5,7 +5,7 @@ import (
 	"github.com/rin2yh/lazygh/internal/model"
 )
 
-func CoreItem(number int, title string) model.Item {
+func NewItem(number int, title string) model.Item {
 	return model.Item{
 		Number: number,
 		Title:  title,

@@ -49,7 +49,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 		},
 	}
 
-	prs := []model.Item{testfactory.CoreItem(1, "one"), testfactory.CoreItem(2, "two")}
+	prs := []model.Item{testfactory.NewItem(1, "one"), testfactory.NewItem(2, "two")}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := mustNewGui(t, &testmock.GHClient{})
@@ -74,7 +74,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 }
 
 func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
-	prs := []model.Item{testfactory.CoreItem(1, "one"), testfactory.CoreItem(2, "two")}
+	prs := []model.Item{testfactory.NewItem(1, "one"), testfactory.NewItem(2, "two")}
 
 	t.Run("j on prs returns reload command", func(t *testing.T) {
 		client := &testmock.GHClient{PRDiff: "diff for two"}

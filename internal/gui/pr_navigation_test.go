@@ -10,7 +10,7 @@ import (
 
 func TestNavigatePRList(t *testing.T) {
 	g := mustNewGui(t, &testmock.GHClient{})
-	g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.CoreItem(1, "a"), testfactory.CoreItem(2, "b")}, nil)
+	g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "a"), testfactory.NewItem(2, "b")}, nil)
 
 	g.navigateDown()
 	if g.state.List.PRsSelected != 1 {

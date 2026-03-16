@@ -51,7 +51,7 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 		{
 			name:        "overview",
 			client:      &testmock.GHClient{PRView: "detail"},
-			pr:          testfactory.CoreItem(1, "x"),
+			pr:          testfactory.NewItem(1, "x"),
 			wantMode:    model.DetailModeOverview,
 			wantContent: "detail",
 			wantNumber:  1,
@@ -59,7 +59,7 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 		{
 			name:         "diff",
 			client:       &testmock.GHClient{PRDiff: "diff"},
-			pr:           testfactory.CoreItem(2, "x"),
+			pr:           testfactory.NewItem(2, "x"),
 			switchToDiff: true,
 			wantMode:     model.DetailModeDiff,
 			wantContent:  "diff",
