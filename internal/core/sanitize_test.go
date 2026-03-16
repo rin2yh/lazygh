@@ -43,7 +43,7 @@ func TestFormatPROverview(t *testing.T) {
 	pr := FormatPROverview(Item{
 		Number:    3,
 		Title:     "bad\x00title",
-		Status:    "DRAFT",
+		Status:    PRStatusDraft,
 		Assignees: []string{"alice", "bob"},
 	})
 	want := "PR #3 badtitle\nStatus: DRAFT\nAssignee: alice (+1)"
