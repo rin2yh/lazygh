@@ -39,6 +39,7 @@ const (
 	ActionReviewDeleteComment
 	ActionReviewEditComment
 	ActionShowHelp
+	ActionFilterPRs
 )
 
 type ActionSpec struct {
@@ -73,6 +74,7 @@ var actionSpecs = []ActionSpec{
 	{Action: ActionReviewDeleteComment, Name: "Review Delete Comment", DefaultKeys: []string{"D"}},
 	{Action: ActionReviewEditComment, Name: "Review Edit Comment", DefaultKeys: []string{"i"}},
 	{Action: ActionShowHelp, Name: "Show Help", DefaultKeys: []string{"?"}},
+	{Action: ActionFilterPRs, Name: "Filter PRs", DefaultKeys: []string{"/"}},
 }
 
 type KeyBinding struct {

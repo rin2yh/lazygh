@@ -157,9 +157,9 @@ func (c *Client) ResolveCurrentRepo() (string, error) {
 	return repo, nil
 }
 
-func (c *Client) ListPRs(repo string) ([]PRItem, error) {
+func (c *Client) ListPRs(repo string, state string) ([]PRItem, error) {
 	var items []PRItem
-	if err := c.api.RunJSON(&items, "pr", "list", "--repo", repo, "--state", "open", "--json", "number,title,state,isDraft,assignees", "--limit", "100"); err != nil {
+	if err := c.api.RunJSON(&items, "pr", "list", "--repo", repo, "--state", state, "--json", "number,title,state,isDraft,assignees", "--limit", "100"); err != nil {
 		return nil, err
 	}
 	return items, nil

@@ -89,25 +89,25 @@ func FramePanel(title string, content []string, width int, height int, style Pan
 	innerWidth := width - 2
 	innerHeight := height - 2
 	lines := make([]string, 0, height)
-	top := colorizeByName(strings.Repeat("─", innerWidth), style.BorderColor)
+	top := Colorize(strings.Repeat("─", innerWidth), style.BorderColor)
 	if strings.TrimSpace(title) != "" {
 		rawLabel := formatPanelTitle(title)
 		topLabel := rawLabel
 		if strings.TrimSpace(style.TitleColor) != "" {
-			topLabel = colorizeByName(topLabel, style.TitleColor)
+			topLabel = Colorize(topLabel, style.TitleColor)
 		}
 		labelWidth := xansi.StringWidth(rawLabel)
 		if labelWidth > 0 {
 			if labelWidth >= innerWidth {
 				top = PadOrTrim(topLabel, innerWidth)
 			} else {
-				top = topLabel + colorizeByName(strings.Repeat("─", innerWidth-labelWidth), style.BorderColor)
+				top = topLabel + Colorize(strings.Repeat("─", innerWidth-labelWidth), style.BorderColor)
 			}
 		}
 	}
-	leftBorder := colorizeByName("│", style.BorderColor)
-	rightBorder := colorizeByName("│", style.BorderColor)
-	lines = append(lines, colorizeByName("┌", style.BorderColor)+top+colorizeByName("┐", style.BorderColor))
+	leftBorder := Colorize("│", style.BorderColor)
+	rightBorder := Colorize("│", style.BorderColor)
+	lines = append(lines, Colorize("┌", style.BorderColor)+top+Colorize("┐", style.BorderColor))
 	for i := 0; i < innerHeight; i++ {
 		row := ""
 		if i < len(content) {
@@ -115,7 +115,7 @@ func FramePanel(title string, content []string, width int, height int, style Pan
 		}
 		lines = append(lines, leftBorder+PadOrTrim(row, innerWidth)+rightBorder)
 	}
-	lines = append(lines, colorizeByName("└", style.BorderColor)+colorizeByName(strings.Repeat("─", innerWidth), style.BorderColor)+colorizeByName("┘", style.BorderColor))
+	lines = append(lines, Colorize("└", style.BorderColor)+Colorize(strings.Repeat("─", innerWidth), style.BorderColor)+Colorize("┘", style.BorderColor))
 	return lines
 }
 
@@ -130,7 +130,8 @@ func formatPanelTitle(base string) string {
 	return " " + base + " "
 }
 
-func colorizeByName(s string, colorName string) string {
+// Colorize applies a named color to s.
+func Colorize(s string, colorName string) string {
 	code := ansiCodeForColor(colorName)
 	if code == "" || s == "" {
 		return s

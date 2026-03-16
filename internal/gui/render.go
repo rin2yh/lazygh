@@ -3,6 +3,7 @@ package gui
 import (
 	"strings"
 
+	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/rin2yh/lazygh/internal/core"
 	"github.com/rin2yh/lazygh/internal/gh"
 	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
@@ -31,6 +32,7 @@ func (gui *Gui) render() string {
 		PRsLoading: gui.state.List.PRsLoading,
 		PRs:        gui.renderPRItems(),
 		PRSelected: gui.state.List.PRsSelected,
+		Filter:     gui.state.List.Filter.Label(),
 	}
 
 	var rightLines []string
@@ -67,6 +69,9 @@ func (gui *Gui) render() string {
 	}
 	lines = append(lines, widget.PadOrTrim(statusLine, screen.Width))
 
+	if gui.state.List.FilterOpen {
+		lines = applyFilterOverlay(lines, gui.state.List.Filter, gui.state.List.FilterCursor, screen.Width)
+	}
 	if gui.showHelp {
 		lines = help.RenderOverlay(lines, gui.config.KeyBindings, screen.Width)
 	}
@@ -135,9 +140,29 @@ func (gui *Gui) renderFocus() layout.Focus {
 func (gui *Gui) renderPRItems() []string {
 	items := make([]string, 0, len(gui.state.List.PRs))
 	for _, pr := range gui.state.List.PRs {
-		items = append(items, core.FormatPRItem(pr))
+		items = append(items, prStatusPrefix(pr.Status)+" "+core.FormatPRItem(pr))
 	}
 	return items
+}
+
+var (
+	prPrefixOpen   = widget.Colorize("O", "green")
+	prPrefixDraft  = widget.Colorize("D", "gray")
+	prPrefixClosed = widget.Colorize("C", "red")
+	prPrefixMerged = widget.Colorize("M", "purple")
+)
+
+func prStatusPrefix(status string) string {
+	switch status {
+	case core.PRStatusDraft:
+		return prPrefixDraft
+	case core.PRStatusClosed:
+		return prPrefixClosed
+	case core.PRStatusMerged:
+		return prPrefixMerged
+	default:
+		return prPrefixOpen
+	}
 }
 
 func (gui *Gui) currentDetailLines(dims layout.Screen, content string) []string {
@@ -213,6 +238,33 @@ func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *guireview.DrawerInput {
 		input.SummaryInputLines = gui.review.SummaryInputLines()
 	}
 	return input
+}
+
+func applyFilterOverlay(background []string, filter core.PRFilterMask, cursor int, screenWidth int) []string {
+	panelLines, panelW := prs.FilterPanelLines(filter, cursor)
+	panelH := len(panelLines)
+
+	startY := max(0, (len(background)-panelH)/2)
+	startX := max(0, (screenWidth-panelW)/2)
+
+	result := make([]string, len(background))
+	copy(result, background)
+	for i, line := range panelLines {
+		y := startY + i
+		if y >= 0 && y < len(result) {
+			result[y] = overlayLine(result[y], line, startX, panelW, screenWidth)
+		}
+	}
+	return result
+}
+
+func overlayLine(bg, panel string, startX, panelW, screenWidth int) string {
+	left := widget.PadOrTrim(xansi.Truncate(bg, startX, ""), startX)
+	right := ""
+	if endX := startX + panelW; endX < screenWidth {
+		right = strings.Repeat(" ", screenWidth-endX)
+	}
+	return left + widget.PadOrTrim(panel, panelW) + right
 }
 
 func splitNonEmptyLines(content string) []string {

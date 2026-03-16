@@ -87,7 +87,7 @@ func TestListPRs(t *testing.T) {
 	c := newTestClient(t)
 	fx := fixture.NewGHSuccess()
 
-	prs, err := c.ListPRs(fx.Repo)
+	prs, err := c.ListPRs(fx.Repo, "open")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -181,7 +181,7 @@ func TestListPRs_InvalidJSON(t *testing.T) {
 	}}
 	c := &Client{runner: runner, api: &apiClient{runner: runner}}
 
-	_, err := c.ListPRs("owner/repo1")
+	_, err := c.ListPRs("owner/repo1", "open")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
