@@ -79,7 +79,7 @@ func (f *comment) BuildDraft(body string, start *model.ReviewRange) (gh.ReviewCo
 	if body == "" {
 		return gh.ReviewComment{}, fmt.Errorf("comment body is empty")
 	}
-	line, ok := f.selection.CurrentDiffLine()
+	line, ok := f.selection.CurrentLine()
 	if !ok || !line.Commentable {
 		return gh.ReviewComment{}, fmt.Errorf("current line is not commentable")
 	}
@@ -102,10 +102,10 @@ func (f *comment) BuildDraft(body string, start *model.ReviewRange) (gh.ReviewCo
 	if start.Path != c.Path {
 		return gh.ReviewComment{}, fmt.Errorf("range must stay within one file")
 	}
-	if start.Index != f.selection.CurrentLineIndex() {
+	if start.Index != f.selection.LineSelected() {
 		c.StartLine = start.Line
 		c.StartSide = gh.DiffSide(start.Side)
-		if start.Index > f.selection.CurrentLineIndex() {
+		if start.Index > f.selection.LineSelected() {
 			c.StartLine, c.Line = c.Line, c.StartLine
 			c.StartSide, c.Side = c.Side, c.StartSide
 		}

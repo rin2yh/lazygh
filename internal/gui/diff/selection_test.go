@@ -91,7 +91,7 @@ func TestSelectionCurrentDiffAccessors(t *testing.T) {
 	})
 	selection.SetLineSelected(1)
 
-	file, ok := selection.CurrentDiffFile()
+	file, ok := selection.CurrentFile()
 	if !ok {
 		t.Fatal("expected current file")
 	}
@@ -99,15 +99,15 @@ func TestSelectionCurrentDiffAccessors(t *testing.T) {
 		t.Fatalf("got %q, want %q", file.Path, "a.txt")
 	}
 
-	line, ok := selection.CurrentDiffLine()
+	line, ok := selection.CurrentLine()
 	if !ok {
 		t.Fatal("expected current line")
 	}
 	if line.Text != "y" {
 		t.Fatalf("got %q, want %q", line.Text, "y")
 	}
-	if selection.CurrentLineIndex() != 1 {
-		t.Fatalf("got %d, want %d", selection.CurrentLineIndex(), 1)
+	if selection.LineSelected() != 1 {
+		t.Fatalf("got %d, want %d", selection.LineSelected(), 1)
 	}
 }
 

@@ -21,7 +21,7 @@ func (f *rangeState) RangeStart() *model.ReviewRange {
 }
 
 func (f *rangeState) ToggleSelection() {
-	line, ok := f.selection.CurrentDiffLine()
+	line, ok := f.selection.CurrentLine()
 	if !ok || !line.Commentable {
 		f.rs.SetNotice("Current diff line cannot be reviewed.")
 		return
@@ -34,7 +34,7 @@ func (f *rangeState) ToggleSelection() {
 	}
 	anchor := model.ReviewRange{
 		Path:  line.Path,
-		Index: f.selection.CurrentLineIndex(),
+		Index: f.selection.LineSelected(),
 		Side:  string(line.Side),
 	}
 	if line.NewLine > 0 {
@@ -53,7 +53,7 @@ func (f *rangeState) IsIndexWithinPendingRange(path string, commentable bool, id
 		return false
 	}
 	minIndex := start.Index
-	maxIndex := f.selection.CurrentLineIndex()
+	maxIndex := f.selection.LineSelected()
 	if minIndex > maxIndex {
 		minIndex, maxIndex = maxIndex, minIndex
 	}
