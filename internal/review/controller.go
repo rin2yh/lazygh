@@ -17,9 +17,9 @@ const (
 
 // Selection provides the currently selected diff line/file to the review workflow.
 type Selection interface {
-	CurrentDiffFile() (gh.DiffFile, bool)
-	CurrentDiffLine() (gh.DiffLine, bool)
-	CurrentLineIndex() int
+	CurrentFile() (gh.DiffFile, bool)
+	CurrentLine() (gh.DiffLine, bool)
+	LineSelected() int
 }
 
 // AppState is the minimal interface the review package needs from the host

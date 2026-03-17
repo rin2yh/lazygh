@@ -195,8 +195,8 @@ func TestApplyPRsResult(t *testing.T) {
 			if g.state.Fetching {
 				t.Fatal("expected PRsLoading=false")
 			}
-			if g.state.Detail.Fetching != model.FetchNone {
-				t.Fatalf("got %v, want %v", g.state.Detail.Fetching, model.FetchNone)
+			if g.state.Overview.Fetching != model.FetchNone {
+				t.Fatalf("got %v, want %v", g.state.Overview.Fetching, model.FetchNone)
 			}
 			if g.state.Repo != tt.want.repo {
 				t.Fatalf("got %q, want %q", g.state.Repo, tt.want.repo)
@@ -204,8 +204,8 @@ func TestApplyPRsResult(t *testing.T) {
 			if diff := cmp.Diff(tt.want.prs, g.state.Items, cmpopts.EquateEmpty()); diff != "" {
 				t.Fatalf("prs mismatch (-want +got)\n%s", diff)
 			}
-			if g.state.Detail.Content != tt.want.detail {
-				t.Fatalf("got %q, want %q", g.state.Detail.Content, tt.want.detail)
+			if g.state.Overview.Content != tt.want.detail {
+				t.Fatalf("got %q, want %q", g.state.Overview.Content, tt.want.detail)
 			}
 		})
 	}
@@ -252,15 +252,15 @@ func TestApplyDetailResult(t *testing.T) {
 				t.Fatalf("NewGui failed: %v", err)
 			}
 			g.state.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "Fix bug"}}, nil)
-			g.state.Detail.Fetching = model.FetchingDetail
+			g.state.Overview.Fetching = model.FetchingDetail
 
 			g.applyDetailResult(tt.msg)
 
-			if g.state.Detail.Fetching != model.FetchNone {
-				t.Fatalf("got %v, want %v", g.state.Detail.Fetching, model.FetchNone)
+			if g.state.Overview.Fetching != model.FetchNone {
+				t.Fatalf("got %v, want %v", g.state.Overview.Fetching, model.FetchNone)
 			}
-			if g.state.Detail.Content != tt.want.detail {
-				t.Fatalf("got %q, want %q", g.state.Detail.Content, tt.want.detail)
+			if g.state.Overview.Content != tt.want.detail {
+				t.Fatalf("got %q, want %q", g.state.Overview.Content, tt.want.detail)
 			}
 		})
 	}
@@ -273,7 +273,7 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 	}
 	g.state.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "Fix bug"}}, nil)
 	g.switchToDiff()
-	g.state.Detail.Fetching = model.FetchingDetail
+	g.state.Overview.Fetching = model.FetchingDetail
 
 	raw := strings.Join([]string{
 		"diff --git a/a.txt b/a.txt",
@@ -290,8 +290,8 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 		content: raw,
 	})
 
-	if strings.Contains(g.state.Detail.Content, "\x1b") {
-		t.Fatalf("detail content should be sanitized: %q", g.state.Detail.Content)
+	if strings.Contains(g.state.Overview.Content, "\x1b") {
+		t.Fatalf("detail content should be sanitized: %q", g.state.Overview.Content)
 	}
 	if len(g.diff.Files()) != 1 {
 		t.Fatalf("got %d, want %d", len(g.diff.Files()), 1)

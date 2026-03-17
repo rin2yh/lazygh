@@ -4,15 +4,9 @@ import (
 	"fmt"
 
 	"github.com/rin2yh/lazygh/internal/model"
-	"github.com/rin2yh/lazygh/internal/pr"
+	"github.com/rin2yh/lazygh/internal/pr/list"
+	"github.com/rin2yh/lazygh/internal/pr/overview"
 )
-
-// DetailState holds detail panel display and fetching state.
-type DetailState struct {
-	Mode     model.DetailMode
-	Content  string
-	Fetching model.FetchKind
-}
 
 type EnterAction struct {
 	Kind   model.EnterActionKind
@@ -21,9 +15,9 @@ type EnterAction struct {
 }
 
 type State struct {
-	pr.ListState
+	list.ListState
 
-	Detail DetailState
+	Overview overview.State
 
 	Width  int
 	Height int
@@ -31,11 +25,11 @@ type State struct {
 
 func NewState() *State {
 	return &State{
-		ListState: pr.ListState{
+		ListState: list.ListState{
 			Items:  []model.Item{},
 			Filter: model.PRFilterOpen,
 		},
-		Detail: DetailState{
+		Overview: overview.State{
 			Mode: model.DetailModeOverview,
 		},
 	}
@@ -48,22 +42,22 @@ func (s *State) SetWindowSize(width int, height int) {
 
 func (s *State) BeginFetchPRs() {
 	s.Fetching = true
-	s.Detail.Fetching = model.FetchingPRs
+	s.Overview.Fetching = model.FetchingPRs
 }
 
 // BeginFetchReview marks a review operation as in-progress.
 func (s *State) BeginFetchReview() {
-	s.Detail.Fetching = model.FetchingReview
+	s.Overview.Fetching = model.FetchingReview
 }
 
 // ClearFetching clears any in-progress fetching indicator.
 func (s *State) ClearFetching() {
-	s.Detail.Fetching = model.FetchNone
+	s.Overview.Fetching = model.FetchNone
 }
 
 func (s *State) ApplyPRsResult(repo string, items []model.Item, err error) {
 	s.Fetching = false
-	s.Detail.Fetching = model.FetchNone
+	s.Overview.Fetching = model.FetchNone
 	if err != nil {
 		s.showError("Error loading PRs", err)
 		return
@@ -72,13 +66,13 @@ func (s *State) ApplyPRsResult(repo string, items []model.Item, err error) {
 	s.Repo = repo
 	s.Items = items
 	s.Selected = 0
-	s.Detail.Mode = model.DetailModeOverview
+	s.Overview.Mode = model.DetailModeOverview
 	if len(items) == 0 {
-		s.Detail.Content = "No pull requests"
+		s.Overview.Content = "No pull requests"
 		return
 	}
-	if overview, ok := s.SelectedOverview(); ok {
-		s.Detail.Content = overview
+	if content, ok := s.SelectedOverview(); ok {
+		s.Overview.Content = content
 	}
 }
 
@@ -87,8 +81,8 @@ func (s *State) ApplyDetailResult(content string, err error) {
 		s.showError("Error loading detail", err)
 		return
 	}
-	s.Detail.Fetching = model.FetchNone
-	s.Detail.Content = model.SanitizeMultiline(content)
+	s.Overview.Fetching = model.FetchNone
+	s.Overview.Content = model.SanitizeMultiline(content)
 }
 
 func (s *State) ApplyDiffResult(content string, err error) {
@@ -96,8 +90,8 @@ func (s *State) ApplyDiffResult(content string, err error) {
 		s.showError("Error loading diff", err)
 		return
 	}
-	s.Detail.Fetching = model.FetchNone
-	s.Detail.Content = model.SanitizeMultiline(content)
+	s.Overview.Fetching = model.FetchNone
+	s.Overview.Content = model.SanitizeMultiline(content)
 }
 
 func (s *State) NavigateDown() bool {
@@ -106,8 +100,8 @@ func (s *State) NavigateDown() bool {
 		s.Selected++
 		changed = true
 	}
-	if changed && s.Detail.Mode == model.DetailModeOverview {
-		s.refreshDetailPreview()
+	if changed && s.Overview.Mode == model.DetailModeOverview {
+		s.refreshOverviewPreview()
 	}
 	return changed
 }
@@ -118,37 +112,37 @@ func (s *State) NavigateUp() bool {
 		s.Selected--
 		changed = true
 	}
-	if changed && s.Detail.Mode == model.DetailModeOverview {
-		s.refreshDetailPreview()
+	if changed && s.Overview.Mode == model.DetailModeOverview {
+		s.refreshOverviewPreview()
 	}
 	return changed
 }
 
 func (s *State) SwitchToOverview() bool {
-	if s.Detail.Mode == model.DetailModeOverview {
+	if s.Overview.Mode == model.DetailModeOverview {
 		return false
 	}
-	s.Detail.Mode = model.DetailModeOverview
-	s.Detail.Fetching = model.FetchNone
-	s.refreshDetailPreview()
+	s.Overview.Mode = model.DetailModeOverview
+	s.Overview.Fetching = model.FetchNone
+	s.refreshOverviewPreview()
 	return true
 }
 
 func (s *State) SwitchToDiff() bool {
-	if s.Detail.Mode == model.DetailModeDiff {
+	if s.Overview.Mode == model.DetailModeDiff {
 		return false
 	}
-	s.Detail.Mode = model.DetailModeDiff
-	s.Detail.Fetching = model.FetchNone
+	s.Overview.Mode = model.DetailModeDiff
+	s.Overview.Fetching = model.FetchNone
 	return true
 }
 
 func (s *State) IsDiffMode() bool {
-	return s.Detail.Mode == model.DetailModeDiff
+	return s.Overview.Mode == model.DetailModeDiff
 }
 
 func (s *State) ShouldApplyDetailResult(mode model.DetailMode, number int) bool {
-	if s.Detail.Mode != mode {
+	if s.Overview.Mode != mode {
 		return false
 	}
 	item, ok := s.selectedPR()
@@ -167,20 +161,20 @@ func (s *State) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
 		return EnterAction{}
 	}
 	if forcedDetailText != "" {
-		s.Detail.Fetching = model.FetchNone
-		s.Detail.Content = forcedDetailText
+		s.Overview.Fetching = model.FetchNone
+		s.Overview.Content = forcedDetailText
 		return EnterAction{}
 	}
-	s.Detail.Fetching = model.FetchingDetail
-	if s.Detail.Mode == model.DetailModeDiff {
+	s.Overview.Fetching = model.FetchingDetail
+	if s.Overview.Mode == model.DetailModeDiff {
 		return EnterAction{Kind: model.EnterLoadPRDiff, Repo: s.Repo, Number: item.Number}
 	}
 	return EnterAction{Kind: model.EnterLoadPRDetail, Repo: s.Repo, Number: item.Number}
 }
 
-func (s *State) refreshDetailPreview() {
-	if overview, ok := s.SelectedOverview(); ok {
-		s.Detail.Content = overview
+func (s *State) refreshOverviewPreview() {
+	if content, ok := s.SelectedOverview(); ok {
+		s.Overview.Content = content
 	}
 }
 
@@ -195,8 +189,8 @@ func (s *State) selectedPR() (model.Item, bool) {
 }
 
 func (s *State) showError(msg string, err error) {
-	s.Detail.Fetching = model.FetchNone
-	s.Detail.Content = model.SanitizeMultiline(fmt.Sprintf("%s: %v", msg, err))
+	s.Overview.Fetching = model.FetchNone
+	s.Overview.Content = model.SanitizeMultiline(fmt.Sprintf("%s: %v", msg, err))
 }
 
 func (s *State) SelectedPR() (model.Item, bool) {

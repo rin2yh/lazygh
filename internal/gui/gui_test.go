@@ -63,7 +63,7 @@ func TestGuiRun_LoadsPRsAndDetail(t *testing.T) {
 	waitChan(t, client.DetailCalled, "ViewPR was not called")
 	close(releaseDetail)
 	waitUntil(t, func() bool {
-		return g.state.Detail.Content == "PR detail"
+		return g.state.Overview.Content == "PR detail"
 	}, "detail content was not updated")
 
 	p.Send(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
