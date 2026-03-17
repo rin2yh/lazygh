@@ -7,8 +7,8 @@ import (
 	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
 	"github.com/rin2yh/lazygh/internal/gui/help"
 	"github.com/rin2yh/lazygh/internal/gui/layout"
-	"github.com/rin2yh/lazygh/internal/gui/prs"
 	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr"
 	"github.com/rin2yh/lazygh/internal/review"
 	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
@@ -26,12 +26,12 @@ func (gui *Gui) render() string {
 		Keys:      gui.config.KeyBindings,
 	}.String()
 
-	leftInput := prs.Input{
-		Repo:       gui.state.List.Repo,
-		PRsLoading: gui.state.List.PRsLoading,
-		PRs:        gui.renderPRItems(),
-		PRSelected: gui.state.List.PRsSelected,
-		Filter:     gui.state.List.Filter.Label(),
+	leftInput := pr.PanelInput{
+		Repo:     gui.state.Repo,
+		Fetching: gui.state.Fetching,
+		Items:    gui.state.Items,
+		Selected: gui.state.Selected,
+		Filter:   gui.state.Filter.Label(),
 	}
 
 	var rightLines []string
@@ -51,7 +51,7 @@ func (gui *Gui) render() string {
 		rightInput.DiffContentLines = gui.renderDiffContentLines()
 	}
 
-	leftLines := prs.RenderLeft(leftInput, screen.RepoHeight, screen.PRHeight,
+	leftLines := pr.RenderLeft(leftInput, screen.RepoHeight, screen.PRHeight,
 		func(f layout.Focus) bool { return focus == f },
 		gui.style,
 		screen.LeftWidth,
@@ -68,8 +68,8 @@ func (gui *Gui) render() string {
 	}
 	lines = append(lines, widget.PadOrTrim(statusLine, screen.Width))
 
-	if gui.state.List.FilterOpen {
-		lines = applyFilterOverlay(lines, gui.state.List.Filter, gui.state.List.FilterCursor, screen.Width)
+	if gui.state.FilterOpen {
+		lines = applyFilterOverlay(lines, gui.state.Filter, gui.state.FilterCursor, screen.Width)
 	}
 	if gui.showHelp {
 		lines = help.RenderOverlay(lines, gui.config.KeyBindings, screen.Width)
@@ -133,34 +133,6 @@ func (gui *Gui) renderFocus() layout.Focus {
 		return layout.FocusReviewDrawer
 	default:
 		return layout.FocusDiffContent
-	}
-}
-
-func (gui *Gui) renderPRItems() []string {
-	items := make([]string, 0, len(gui.state.List.PRs))
-	for _, pr := range gui.state.List.PRs {
-		items = append(items, prStatusPrefix(pr.Status)+" "+model.FormatPRItem(pr))
-	}
-	return items
-}
-
-var (
-	prPrefixOpen   = widget.Colorize("O", "green")
-	prPrefixDraft  = widget.Colorize("D", "gray")
-	prPrefixClosed = widget.Colorize("C", "red")
-	prPrefixMerged = widget.Colorize("M", "purple")
-)
-
-func prStatusPrefix(status string) string {
-	switch status {
-	case model.PRStatusDraft:
-		return prPrefixDraft
-	case model.PRStatusClosed:
-		return prPrefixClosed
-	case model.PRStatusMerged:
-		return prPrefixMerged
-	default:
-		return prPrefixOpen
 	}
 }
 
@@ -242,7 +214,7 @@ func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *review.DrawerInput {
 }
 
 func applyFilterOverlay(background []string, filter model.PRFilterMask, cursor int, screenWidth int) []string {
-	panelLines, panelW := prs.FilterPanelLines(filter, cursor)
+	panelLines, panelW := pr.FilterPanelLines(filter, cursor)
 	return widget.OverlayPanel(background, panelLines, panelW, screenWidth)
 }
 

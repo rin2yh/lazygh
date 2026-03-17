@@ -50,7 +50,7 @@ func toCorePRs(prs []gh.PRItem, filter model.PRFilterMask) []model.Item {
 }
 
 func (s *screen) loadPRsCmd() tea.Cmd {
-	filter := s.gui.state.List.Filter
+	filter := s.gui.state.Filter
 	return func() tea.Msg {
 		repo, err := s.gui.client.ResolveCurrentRepo()
 		if err != nil {
