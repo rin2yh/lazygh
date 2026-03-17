@@ -1,33 +1,26 @@
 package app
 
-import "github.com/rin2yh/lazygh/internal/review"
-
-type panelFocus int
-
-const (
-	panelRepo panelFocus = iota
-	panelPRs
-	panelDiffFiles
-	panelDiffContent
-	panelReviewDrawer
+import (
+	"github.com/rin2yh/lazygh/internal/app/layout"
+	"github.com/rin2yh/lazygh/internal/review"
 )
 
 func (gui *Gui) switchToOverview() bool {
 	changed := gui.coord.SwitchToOverview()
 	if changed {
-		gui.focus = panelPRs
+		gui.focus = layout.FocusPRs
 	}
 	return changed
 }
 
 func (gui *Gui) focusPRs() {
-	gui.focus = panelPRs
+	gui.focus = layout.FocusPRs
 }
 
 func (gui *Gui) switchToDiff() bool {
 	changed := gui.coord.SwitchToDiff()
 	if changed {
-		gui.focus = panelDiffFiles
+		gui.focus = layout.FocusDiffFiles
 		gui.diff.Reset()
 	}
 	return changed
@@ -35,13 +28,13 @@ func (gui *Gui) switchToDiff() bool {
 
 func (gui *Gui) cycleFocus() {
 	if !gui.coord.IsDiffMode() {
-		gui.focus = panelPRs
+		gui.focus = layout.FocusPRs
 		return
 	}
 
 	order := gui.focusOrder()
 	if len(order) == 0 {
-		gui.focus = panelPRs
+		gui.focus = layout.FocusPRs
 		return
 	}
 	for i, focus := range order {
@@ -76,23 +69,30 @@ func (gui *Gui) moveFocus(delta int) bool {
 	return false
 }
 
-func (gui *Gui) focusOrder() []panelFocus {
-	order := []panelFocus{panelRepo, panelPRs}
+func (gui *Gui) focusOrder() []layout.Focus {
+	order := []layout.Focus{layout.FocusRepo, layout.FocusPRs}
 	if len(gui.diff.Files()) > 0 {
-		order = append(order, panelDiffFiles)
+		order = append(order, layout.FocusDiffFiles)
 	}
-	order = append(order, panelDiffContent)
+	order = append(order, layout.FocusDiffContent)
 	if gui.review.ShouldShowDrawer() {
-		order = append(order, panelReviewDrawer)
+		order = append(order, layout.FocusReviewDrawer)
 	}
 	return order
+}
+
+// resetDiffFocusIfOnFiles moves focus off the files panel when there are no files to show.
+func (gui *Gui) resetDiffFocusIfOnFiles() {
+	if gui.focus == layout.FocusDiffFiles {
+		gui.focus = layout.FocusDiffContent
+	}
 }
 
 func (gui *Gui) setReviewFocus(target review.FocusTarget) {
 	switch target {
 	case review.FocusReviewDrawer:
-		gui.focus = panelReviewDrawer
+		gui.focus = layout.FocusReviewDrawer
 	default:
-		gui.focus = panelDiffContent
+		gui.focus = layout.FocusDiffContent
 	}
 }

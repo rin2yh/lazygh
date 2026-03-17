@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rin2yh/lazygh/internal/app/layout"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/model"
@@ -27,7 +29,7 @@ func TestModelUpdate_VKeyTogglesRangeSelection(t *testing.T) {
 		"-old",
 		"+new",
 	}, "\n"))
-	g.focus = panelDiffContent
+	g.focus = layout.FocusDiffContent
 	g.diff.SetLineSelected(5)
 
 	m := &screen{gui: g}
@@ -60,7 +62,7 @@ func TestModelUpdate_EnterKeyUsesRangeFlowAfterV(t *testing.T) {
 		"-old",
 		"+new",
 	}, "\n"))
-	g.focus = panelDiffContent
+	g.focus = layout.FocusDiffContent
 	g.diff.SetLineSelected(5)
 
 	m := &screen{gui: g}
@@ -96,7 +98,7 @@ func TestModelUpdate_EscCancelsCommentAndClearsRangeHighlight(t *testing.T) {
 		"-old",
 		"+new",
 	}, "\n"))
-	g.focus = panelDiffContent
+	g.focus = layout.FocusDiffContent
 	g.diff.SetLineSelected(5)
 	m := &screen{gui: g}
 	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'v'}})
@@ -115,8 +117,8 @@ func TestModelUpdate_EscCancelsCommentAndClearsRangeHighlight(t *testing.T) {
 	if g.review.InputMode() != model.ReviewInputNone {
 		t.Fatalf("got %v, want %v", g.review.InputMode(), model.ReviewInputNone)
 	}
-	if g.focus != panelDiffContent {
-		t.Fatalf("got %v, want %v", g.focus, panelDiffContent)
+	if g.focus != layout.FocusDiffContent {
+		t.Fatalf("got %v, want %v", g.focus, layout.FocusDiffContent)
 	}
 }
 
@@ -135,7 +137,7 @@ func TestModelUpdate_EscClearsRangeSelectionWithoutLeavingDiff(t *testing.T) {
 		"-old",
 		"+new",
 	}, "\n"))
-	g.focus = panelDiffContent
+	g.focus = layout.FocusDiffContent
 	g.diff.SetLineSelected(5)
 
 	m := &screen{gui: g}
@@ -151,8 +153,8 @@ func TestModelUpdate_EscClearsRangeSelectionWithoutLeavingDiff(t *testing.T) {
 	if g.review.RangeStart() != nil {
 		t.Fatal("expected range start cleared")
 	}
-	if g.focus != panelDiffContent {
-		t.Fatalf("got %v, want %v", g.focus, panelDiffContent)
+	if g.focus != layout.FocusDiffContent {
+		t.Fatalf("got %v, want %v", g.focus, layout.FocusDiffContent)
 	}
 }
 

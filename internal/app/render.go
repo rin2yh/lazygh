@@ -53,7 +53,7 @@ func (gui *Gui) render() string {
 	}
 
 	leftLines := list.RenderLeft(leftInput, screen.RepoHeight, screen.PRHeight,
-		func(f layout.Focus) bool { return focus == panelFocus(f) },
+		func(f layout.Focus) bool { return focus == f },
 		gui.style,
 		screen.LeftWidth,
 	)
@@ -62,7 +62,7 @@ func (gui *Gui) render() string {
 	lines := widget.JoinColumns(leftLines, screen.LeftWidth, rightPanelLines, screen.RightWidth, screen.MainHeight)
 	drawerInput := gui.buildReviewDrawerInput(showDrawer)
 	if drawerInput != nil && screen.DrawerHeight > 0 {
-		drawerActive := focus == panelReviewDrawer
+		drawerActive := focus == layout.FocusReviewDrawer
 		for _, line := range review.RenderDrawer(*drawerInput, gui.style(drawerActive), screen.Width, screen.DrawerHeight) {
 			lines = append(lines, widget.PadOrTrim(line, screen.Width))
 		}
@@ -85,8 +85,8 @@ func (gui *Gui) render() string {
 	return b.String()
 }
 
-func (gui *Gui) renderRight(input diff.PanelInput, screen layout.Screen, focus panelFocus) []string {
-	diffActive := focus == panelDiffContent
+func (gui *Gui) renderRight(input diff.PanelInput, screen layout.Screen, focus layout.Focus) []string {
+	diffActive := focus == layout.FocusDiffContent
 	if !input.DiffMode {
 		return widget.FramePanel(input.OverviewTitle, input.OverviewLines, screen.RightWidth, screen.MainHeight, gui.style(diffActive))
 	}
@@ -98,7 +98,7 @@ func (gui *Gui) renderRight(input diff.PanelInput, screen layout.Screen, focus p
 		}
 		return widget.FramePanel("Diff", lines, screen.RightWidth, screen.MainHeight, gui.style(diffActive))
 	}
-	filesActive := focus == panelDiffFiles
+	filesActive := focus == layout.FocusDiffFiles
 	filesLines := diff.RenderFiles(input, gui.style(filesActive), filesWidth, screen.MainHeight)
 	diffLines := diff.RenderContent(input, gui.style(diffActive), diffWidth, screen.MainHeight)
 	return widget.JoinColumns(filesLines, filesWidth, diffLines, diffWidth, screen.MainHeight)

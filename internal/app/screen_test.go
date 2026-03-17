@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rin2yh/lazygh/internal/app/layout"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/model"
 	testfactory "github.com/rin2yh/lazygh/pkg/test/factory"
@@ -14,7 +16,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 	tests := []struct {
 		name       string
 		key        tea.KeyMsg
-		startFocus panelFocus
+		startFocus layout.Focus
 		startIndex int
 		wantIndex  int
 		wantCmd    bool
@@ -23,7 +25,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 		{
 			name:       "j on prs moves selection without reload",
 			key:        tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}},
-			startFocus: panelPRs,
+			startFocus: layout.FocusPRs,
 			startIndex: 0,
 			wantIndex:  1,
 			wantCmd:    false,
@@ -32,7 +34,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 		{
 			name:       "j on repo does nothing",
 			key:        tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}},
-			startFocus: panelRepo,
+			startFocus: layout.FocusRepo,
 			startIndex: 0,
 			wantIndex:  0,
 			wantCmd:    false,
@@ -41,7 +43,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 		{
 			name:       "j on overview does nothing",
 			key:        tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}},
-			startFocus: panelDiffContent,
+			startFocus: layout.FocusDiffContent,
 			startIndex: 0,
 			wantIndex:  0,
 			wantCmd:    false,
@@ -81,7 +83,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 		g := mustNewGui(t, client)
 		g.coord.ApplyPRsResult("owner/repo", prs, nil)
 		g.switchToDiff()
-		g.focus = panelPRs
+		g.focus = layout.FocusPRs
 		m := &screen{gui: g}
 
 		_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
@@ -108,7 +110,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 		g := mustNewGui(t, &testmock.GHClient{PRDiff: "diff for two"})
 		g.coord.ApplyPRsResult("owner/repo", prs, nil)
 		g.switchToDiff()
-		g.focus = panelRepo
+		g.focus = layout.FocusRepo
 		m := &screen{gui: g}
 
 		_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
@@ -132,7 +134,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 			"-old",
 			"+new",
 		}, "\n"))
-		g.focus = panelDiffContent
+		g.focus = layout.FocusDiffContent
 		g.diff.SetLineSelected(0)
 		m := &screen{gui: g}
 

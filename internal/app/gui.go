@@ -2,6 +2,7 @@ package app
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rin2yh/lazygh/internal/app/layout"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/model"
@@ -82,7 +83,7 @@ type Gui struct {
 	coord  *Coordinator
 	client PRClient
 
-	focus    panelFocus
+	focus    layout.Focus
 	showHelp bool
 
 	diff   diff.Selection
@@ -97,7 +98,7 @@ func NewGui(cfg *config.Config, coord *Coordinator, prClient PRClient, reviewCli
 		config: cfg,
 		coord:  coord,
 		client: prClient,
-		focus:  panelPRs,
+		focus:  layout.FocusPRs,
 		detail: &vp,
 	}
 	revCtrl := review.NewController(cfg, coord, reviewClient, &g.diff, g.setReviewFocus)

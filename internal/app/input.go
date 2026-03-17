@@ -4,6 +4,7 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rin2yh/lazygh/internal/app/layout"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/model"
 )
@@ -113,11 +114,11 @@ func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
 			s.gui.review.CycleReviewEvent()
 		}
 	case config.ActionReviewDeleteComment:
-		if s.gui.focus == panelReviewDrawer {
+		if s.gui.focus == layout.FocusReviewDrawer {
 			return s.gui.review.HandleDeleteComment()
 		}
 	case config.ActionReviewEditComment:
-		if s.gui.focus == panelReviewDrawer {
+		if s.gui.focus == layout.FocusReviewDrawer {
 			s.gui.review.BeginEditComment()
 		}
 	}
@@ -150,12 +151,12 @@ func (s *screen) handleCancel() tea.Cmd {
 	if s.gui.review.InputMode() == model.ReviewInputNone && s.gui.review.HasRangeStart() {
 		s.gui.review.ClearRangeStart()
 		s.gui.review.SetNotice("Range selection cleared.")
-		s.gui.focus = panelDiffContent
+		s.gui.focus = layout.FocusDiffContent
 		return nil
 	}
-	if s.gui.focus == panelReviewDrawer {
+	if s.gui.focus == layout.FocusReviewDrawer {
 		s.gui.review.StopInput()
-		s.gui.focus = panelDiffContent
+		s.gui.focus = layout.FocusDiffContent
 		return nil
 	}
 	s.gui.focusPRs()
@@ -176,7 +177,7 @@ func (s *screen) moveUp() tea.Cmd   { return s.moveCursor(-1) }
 func (s *screen) moveCursor(dir int) tea.Cmd {
 	if s.gui.coord.IsDiffMode() {
 		switch s.gui.focus {
-		case panelPRs:
+		case layout.FocusPRs:
 			navigate := s.gui.navigateDown
 			if dir < 0 {
 				navigate = s.gui.navigateUp
@@ -185,21 +186,21 @@ func (s *screen) moveCursor(dir int) tea.Cmd {
 				return s.openSelectedPR()
 			}
 			return nil
-		case panelDiffFiles:
+		case layout.FocusDiffFiles:
 			if dir > 0 {
 				s.gui.diff.SelectNextFile()
 			} else {
 				s.gui.diff.SelectPrevFile()
 			}
 			return nil
-		case panelDiffContent:
+		case layout.FocusDiffContent:
 			if dir > 0 {
 				s.scrollDetailDown()
 			} else {
 				s.scrollDetailUp()
 			}
 			return nil
-		case panelReviewDrawer:
+		case layout.FocusReviewDrawer:
 			if dir > 0 {
 				s.gui.review.SelectNextComment()
 			} else {
@@ -210,7 +211,7 @@ func (s *screen) moveCursor(dir int) tea.Cmd {
 		return nil
 	}
 
-	if s.gui.focus == panelPRs {
+	if s.gui.focus == layout.FocusPRs {
 		if dir > 0 {
 			s.gui.navigateDown()
 		} else {
@@ -233,7 +234,7 @@ func (s *screen) openSelectedPR() tea.Cmd {
 }
 
 func (s *screen) handleDetailScrollAction(action config.Action) tea.Cmd {
-	if s.gui.focus != panelDiffContent {
+	if s.gui.focus != layout.FocusDiffContent {
 		return nil
 	}
 
@@ -299,29 +300,23 @@ func (s *screen) scrollDetailUp() {
 	s.gui.detail.ScrollUp(1)
 }
 
-func (s *screen) startReviewRange() tea.Cmd {
+func (s *screen) requireDiffMode(notice string, fn func()) tea.Cmd {
 	if !s.gui.coord.IsDiffMode() {
-		s.gui.review.SetNotice("Review range selection is only available in diff view.")
+		s.gui.review.SetNotice(notice)
 		return nil
 	}
-	s.gui.review.ToggleRangeSelection()
+	fn()
 	return nil
+}
+
+func (s *screen) startReviewRange() tea.Cmd {
+	return s.requireDiffMode("Review range selection is only available in diff view.", s.gui.review.ToggleRangeSelection)
 }
 
 func (s *screen) startReviewComment() tea.Cmd {
-	if !s.gui.coord.IsDiffMode() {
-		s.gui.review.SetNotice("Review comments are only available in diff view.")
-		return nil
-	}
-	s.gui.review.BeginCommentFlow()
-	return nil
+	return s.requireDiffMode("Review comments are only available in diff view.", s.gui.review.BeginCommentFlow)
 }
 
 func (s *screen) startReviewSummary() tea.Cmd {
-	if !s.gui.coord.IsDiffMode() {
-		s.gui.review.SetNotice("Review summary is only available in diff view.")
-		return nil
-	}
-	s.gui.review.BeginSummaryInput()
-	return nil
+	return s.requireDiffMode("Review summary is only available in diff view.", s.gui.review.BeginSummaryInput)
 }

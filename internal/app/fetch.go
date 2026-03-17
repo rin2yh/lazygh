@@ -2,6 +2,7 @@ package app
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rin2yh/lazygh/internal/app/layout"
 	"github.com/rin2yh/lazygh/internal/model"
 	"github.com/rin2yh/lazygh/internal/pr/diff"
 	"github.com/rin2yh/lazygh/internal/pr/list"
@@ -53,7 +54,7 @@ func (s *screen) loadDetailCmd(repo string, number int, mode model.DetailMode) t
 
 func (gui *Gui) applyPRsResult(msg prsLoadedMsg) {
 	gui.coord.ApplyPRsResult(msg.repo, msg.prs, msg.err)
-	gui.focus = panelPRs
+	gui.focus = layout.FocusPRs
 }
 
 func (gui *Gui) applyDetailResult(msg detailLoadedMsg) {
@@ -64,9 +65,7 @@ func (gui *Gui) applyDetailResult(msg detailLoadedMsg) {
 		gui.coord.ApplyDiffResult(msg.content, msg.err)
 		if msg.err != nil {
 			gui.diff.Reset()
-			if gui.focus == panelDiffFiles {
-				gui.focus = panelDiffContent
-			}
+			gui.resetDiffFocusIfOnFiles()
 			return
 		}
 		gui.updateDiffFiles(gui.coord.Overview.Content)
@@ -91,9 +90,7 @@ func (gui *Gui) updateDiffFiles(content string) {
 	files, selected, lineSelected := diff.ParseFiles(gui.diff.Files(), gui.diff.FileSelected(), content)
 	if len(files) == 0 {
 		gui.diff.Reset()
-		if gui.focus == panelDiffFiles {
-			gui.focus = panelDiffContent
-		}
+		gui.resetDiffFocusIfOnFiles()
 		return
 	}
 
