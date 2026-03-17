@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rin2yh/lazygh/internal/app"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/model"
@@ -12,11 +13,11 @@ import (
 )
 
 func TestCycleFocus_DiffMode(t *testing.T) {
-	g, err := NewGui(config.Default(), &testmock.GHClient{}, &testmock.GHClient{})
+	g, err := NewGui(config.Default(), app.NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
+	g.coord.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
 	g.switchToDiff()
 	g.diff.SetFiles([]gh.DiffFile{{Path: "a.txt", Content: "x"}})
 
@@ -131,11 +132,11 @@ func TestModelUpdateFocusKeysInDiffMode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), &testmock.GHClient{}, &testmock.GHClient{})
+			g, err := NewGui(config.Default(), app.NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
+			g.coord.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
 			g.switchToDiff()
 			g.diff.SetFiles(tt.files)
 			g.focus = tt.start
@@ -200,11 +201,11 @@ func TestModelUpdateFocusKeysInOverviewMode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), &testmock.GHClient{}, &testmock.GHClient{})
+			g, err := NewGui(config.Default(), app.NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
+			g.coord.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
 			g.focus = tt.start
 			m := &screen{gui: g}
 

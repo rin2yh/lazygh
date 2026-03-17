@@ -13,7 +13,7 @@ const (
 )
 
 func (gui *Gui) switchToOverview() bool {
-	changed := gui.state.SwitchToOverview()
+	changed := gui.coord.SwitchToOverview()
 	if changed {
 		gui.focus = panelPRs
 	}
@@ -25,7 +25,7 @@ func (gui *Gui) focusPRs() {
 }
 
 func (gui *Gui) switchToDiff() bool {
-	changed := gui.state.SwitchToDiff()
+	changed := gui.coord.SwitchToDiff()
 	if changed {
 		gui.focus = panelDiffFiles
 		gui.diff.Reset()
@@ -34,7 +34,7 @@ func (gui *Gui) switchToDiff() bool {
 }
 
 func (gui *Gui) cycleFocus() {
-	if !gui.state.IsDiffMode() {
+	if !gui.coord.IsDiffMode() {
 		gui.focus = panelPRs
 		return
 	}

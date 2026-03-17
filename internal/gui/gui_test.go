@@ -7,6 +7,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rin2yh/lazygh/internal/app"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
@@ -28,7 +29,7 @@ func TestGuiRun_LoadsPRsAndDetail(t *testing.T) {
 		ReleasePRs:     releasePRs,
 		ReleaseDetail:  releaseDetail,
 	}
-	g, err := NewGui(config.Default(), client, client)
+	g, err := NewGui(config.Default(), app.NewCoordinator(), client, client)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
@@ -47,7 +48,7 @@ func TestGuiRun_LoadsPRsAndDetail(t *testing.T) {
 	}()
 
 	waitChan(t, client.ResolveCalled, "ResolveCurrentRepo was not called")
-	if !g.state.Fetching {
+	if !g.coord.Fetching {
 		t.Fatal("prs panel should stay loading before release")
 	}
 	close(releaseResolve)
@@ -56,14 +57,14 @@ func TestGuiRun_LoadsPRsAndDetail(t *testing.T) {
 	close(releasePRs)
 
 	waitUntil(t, func() bool {
-		return g.state.Repo == "owner/repo1" && len(g.state.Items) == 1
+		return g.coord.Repo == "owner/repo1" && len(g.coord.Items) == 1
 	}, "prs were not loaded")
 
 	p.Send(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
 	waitChan(t, client.DetailCalled, "ViewPR was not called")
 	close(releaseDetail)
 	waitUntil(t, func() bool {
-		return g.state.Overview.Content == "PR detail"
+		return g.coord.Overview.Content == "PR detail"
 	}, "detail content was not updated")
 
 	p.Send(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})

@@ -2,12 +2,12 @@ package gui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rin2yh/lazygh/internal/app"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
 	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
 	"github.com/rin2yh/lazygh/internal/model"
 	"github.com/rin2yh/lazygh/internal/review"
-	appstate "github.com/rin2yh/lazygh/internal/state"
 )
 
 type PRClient interface {
@@ -79,7 +79,7 @@ type DetailViewport interface {
 
 type Gui struct {
 	config *config.Config
-	state  *appstate.State
+	coord  *app.Coordinator
 	client PRClient
 
 	focus    panelFocus
@@ -91,17 +91,19 @@ type Gui struct {
 	review ReviewController
 }
 
-func NewGui(cfg *config.Config, prClient PRClient, reviewClient review.PendingReviewClient) (*Gui, error) {
+func NewGui(cfg *config.Config, coord *app.Coordinator, prClient PRClient, reviewClient review.PendingReviewClient) (*Gui, error) {
 	vp := newViewportState()
-	gui := &Gui{
+	g := &Gui{
 		config: cfg,
-		state:  appstate.NewState(),
+		coord:  coord,
 		client: prClient,
 		focus:  panelPRs,
 		detail: &vp,
 	}
-	gui.review = review.NewController(cfg, gui.state, reviewClient, &gui.diff, gui.setReviewFocus)
-	return gui, nil
+	revCtrl := review.NewController(cfg, coord, reviewClient, &g.diff, g.setReviewFocus)
+	g.review = revCtrl
+	coord.SetReviewHook(revCtrl)
+	return g, nil
 }
 
 func (gui *Gui) Run() error {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/rin2yh/lazygh/internal/app"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/model"
@@ -16,7 +17,7 @@ import (
 
 func TestModelInitLoadsPRs(t *testing.T) {
 	mc := &testmock.GHClient{Repo: "owner/repo", PRs: []gh.PRItem{testfactory.NewGHPRItem(2, "p")}}
-	g, err := NewGui(config.Default(), mc, mc)
+	g, err := NewGui(config.Default(), app.NewCoordinator(), mc, mc)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
@@ -69,11 +70,11 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), tt.client, tt.client)
+			g, err := NewGui(config.Default(), app.NewCoordinator(), tt.client, tt.client)
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.state.ApplyPRsResult("owner/repo", []model.Item{tt.pr}, nil)
+			g.coord.ApplyPRsResult("owner/repo", []model.Item{tt.pr}, nil)
 			if tt.switchToDiff {
 				g.switchToDiff()
 			}
@@ -184,28 +185,28 @@ func TestApplyPRsResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), &testmock.GHClient{}, &testmock.GHClient{})
+			g, err := NewGui(config.Default(), app.NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.state.BeginFetchPRs()
+			g.coord.BeginFetchPRs()
 
 			g.applyPRsResult(tt.msg)
 
-			if g.state.Fetching {
+			if g.coord.Fetching {
 				t.Fatal("expected PRsLoading=false")
 			}
-			if g.state.Overview.Fetching != model.FetchNone {
-				t.Fatalf("got %v, want %v", g.state.Overview.Fetching, model.FetchNone)
+			if g.coord.Overview.Fetching != model.FetchNone {
+				t.Fatalf("got %v, want %v", g.coord.Overview.Fetching, model.FetchNone)
 			}
-			if g.state.Repo != tt.want.repo {
-				t.Fatalf("got %q, want %q", g.state.Repo, tt.want.repo)
+			if g.coord.Repo != tt.want.repo {
+				t.Fatalf("got %q, want %q", g.coord.Repo, tt.want.repo)
 			}
-			if diff := cmp.Diff(tt.want.prs, g.state.Items, cmpopts.EquateEmpty()); diff != "" {
+			if diff := cmp.Diff(tt.want.prs, g.coord.Items, cmpopts.EquateEmpty()); diff != "" {
 				t.Fatalf("prs mismatch (-want +got)\n%s", diff)
 			}
-			if g.state.Overview.Content != tt.want.detail {
-				t.Fatalf("got %q, want %q", g.state.Overview.Content, tt.want.detail)
+			if g.coord.Overview.Content != tt.want.detail {
+				t.Fatalf("got %q, want %q", g.coord.Overview.Content, tt.want.detail)
 			}
 		})
 	}
@@ -247,33 +248,33 @@ func TestApplyDetailResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), &testmock.GHClient{}, &testmock.GHClient{})
+			g, err := NewGui(config.Default(), app.NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.state.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "Fix bug"}}, nil)
-			g.state.Overview.Fetching = model.FetchingDetail
+			g.coord.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "Fix bug"}}, nil)
+			g.coord.Overview.Fetching = model.FetchingDetail
 
 			g.applyDetailResult(tt.msg)
 
-			if g.state.Overview.Fetching != model.FetchNone {
-				t.Fatalf("got %v, want %v", g.state.Overview.Fetching, model.FetchNone)
+			if g.coord.Overview.Fetching != model.FetchNone {
+				t.Fatalf("got %v, want %v", g.coord.Overview.Fetching, model.FetchNone)
 			}
-			if g.state.Overview.Content != tt.want.detail {
-				t.Fatalf("got %q, want %q", g.state.Overview.Content, tt.want.detail)
+			if g.coord.Overview.Content != tt.want.detail {
+				t.Fatalf("got %q, want %q", g.coord.Overview.Content, tt.want.detail)
 			}
 		})
 	}
 }
 
 func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
-	g, err := NewGui(config.Default(), &testmock.GHClient{}, &testmock.GHClient{})
+	g, err := NewGui(config.Default(), app.NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.state.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "Fix bug"}}, nil)
+	g.coord.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "Fix bug"}}, nil)
 	g.switchToDiff()
-	g.state.Overview.Fetching = model.FetchingDetail
+	g.coord.Overview.Fetching = model.FetchingDetail
 
 	raw := strings.Join([]string{
 		"diff --git a/a.txt b/a.txt",
@@ -290,8 +291,8 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 		content: raw,
 	})
 
-	if strings.Contains(g.state.Overview.Content, "\x1b") {
-		t.Fatalf("detail content should be sanitized: %q", g.state.Overview.Content)
+	if strings.Contains(g.coord.Overview.Content, "\x1b") {
+		t.Fatalf("detail content should be sanitized: %q", g.coord.Overview.Content)
 	}
 	if len(g.diff.Files()) != 1 {
 		t.Fatalf("got %d, want %d", len(g.diff.Files()), 1)
@@ -305,7 +306,7 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 }
 
 func TestUpdateDiffFiles(t *testing.T) {
-	g, err := NewGui(config.Default(), &testmock.GHClient{}, &testmock.GHClient{})
+	g, err := NewGui(config.Default(), app.NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}

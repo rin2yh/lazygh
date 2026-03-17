@@ -13,14 +13,14 @@ func (s *screen) Init() tea.Cmd {
 	if s.gui.client == nil {
 		return nil
 	}
-	s.gui.state.BeginFetchPRs()
+	s.gui.coord.BeginFetchPRs()
 	return s.loadPRsCmd()
 }
 
 func (s *screen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		s.gui.state.SetWindowSize(msg.Width, msg.Height)
+		s.gui.coord.SetWindowSize(msg.Width, msg.Height)
 		return s, nil
 	case prsLoadedMsg:
 		s.gui.applyPRsResult(msg)
@@ -48,7 +48,7 @@ func (s *screen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			s.gui.showHelp = false
 			return s, nil
 		}
-		if s.gui.state.FilterOpen {
+		if s.gui.coord.FilterOpen {
 			return s, s.handleFilterKey(msg)
 		}
 		if s.gui.review.IsInInputMode() {
