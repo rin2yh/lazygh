@@ -21,11 +21,10 @@ func editorLines(e textarea.Model) []string {
 }
 
 // beginInput performs the shared steps to start a review input form:
-// transition state, open drawer, set focus, populate editor, and focus it.
-func beginInput(rs *ReviewState, setFocus func(FocusTarget), editor *textarea.Model, transitionState func(), initialValue string) {
+// transition state, open drawer, populate editor, and focus it.
+func beginInput(rs *ReviewState, editor *textarea.Model, transitionState func(), initialValue string) {
 	transitionState()
 	rs.OpenDrawer()
-	setFocus(FocusReviewDrawer)
 	editor.SetValue(initialValue)
 	editor.Focus()
 }

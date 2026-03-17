@@ -5,14 +5,12 @@ import "github.com/rin2yh/lazygh/internal/model"
 type rangeState struct {
 	rs        *ReviewState
 	selection Selection
-	setFocus  func(FocusTarget)
 }
 
-func newRange(rs *ReviewState, selection Selection, setFocus func(FocusTarget)) *rangeState {
+func newRange(rs *ReviewState, selection Selection) *rangeState {
 	return &rangeState{
 		rs:        rs,
 		selection: selection,
-		setFocus:  setFocus,
 	}
 }
 
@@ -20,17 +18,18 @@ func (f *rangeState) RangeStart() *model.ReviewRange {
 	return f.rs.RangeStart
 }
 
-func (f *rangeState) ToggleSelection() {
+// ToggleSelection toggles range selection and returns true if focus should
+// move to FocusDiffContent.
+func (f *rangeState) ToggleSelection() bool {
 	line, ok := f.selection.CurrentLine()
 	if !ok || !line.Commentable {
 		f.rs.SetNotice("Current diff line cannot be reviewed.")
-		return
+		return false
 	}
 	if f.rs.RangeStart != nil {
 		f.rs.ClearRangeStart()
 		f.rs.SetNotice("Range selection cleared.")
-		f.setFocus(FocusDiffContent)
-		return
+		return true
 	}
 	anchor := model.ReviewRange{
 		Path:  line.Path,
@@ -44,7 +43,7 @@ func (f *rangeState) ToggleSelection() {
 	}
 	f.rs.MarkRangeStart(anchor)
 	f.rs.SetNotice("Range selection started.")
-	f.setFocus(FocusDiffContent)
+	return true
 }
 
 func (f *rangeState) IsIndexWithinPendingRange(path string, commentable bool, idx int) bool {
