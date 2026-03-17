@@ -8,7 +8,7 @@ import (
 	"github.com/rin2yh/lazygh/internal/gui/help"
 	"github.com/rin2yh/lazygh/internal/gui/layout"
 	"github.com/rin2yh/lazygh/internal/model"
-	"github.com/rin2yh/lazygh/internal/prs"
+	"github.com/rin2yh/lazygh/internal/pr"
 	"github.com/rin2yh/lazygh/internal/review"
 	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
@@ -26,12 +26,12 @@ func (gui *Gui) render() string {
 		Keys:      gui.config.KeyBindings,
 	}.String()
 
-	leftInput := prs.PanelInput{
-		Repo:       gui.state.Repo,
-		PRsLoading: gui.state.PRsLoading,
-		PRs:        gui.renderPRItems(),
-		PRSelected: gui.state.PRsSelected,
-		Filter:     gui.state.Filter.Label(),
+	leftInput := pr.PanelInput{
+		Repo:     gui.state.Repo,
+		Loading:  gui.state.Loading,
+		Items:    gui.renderPRItems(),
+		Selected: gui.state.Selected,
+		Filter:   gui.state.Filter.Label(),
 	}
 
 	var rightLines []string
@@ -51,7 +51,7 @@ func (gui *Gui) render() string {
 		rightInput.DiffContentLines = gui.renderDiffContentLines()
 	}
 
-	leftLines := prs.RenderLeft(leftInput, screen.RepoHeight, screen.PRHeight,
+	leftLines := pr.RenderLeft(leftInput, screen.RepoHeight, screen.PRHeight,
 		func(f layout.Focus) bool { return focus == f },
 		gui.style,
 		screen.LeftWidth,
@@ -137,9 +137,9 @@ func (gui *Gui) renderFocus() layout.Focus {
 }
 
 func (gui *Gui) renderPRItems() []string {
-	items := make([]string, 0, len(gui.state.PRs))
-	for _, pr := range gui.state.PRs {
-		items = append(items, prStatusPrefix(pr.Status)+" "+prs.FormatPRItem(pr))
+	items := make([]string, 0, len(gui.state.Items))
+	for _, item := range gui.state.Items {
+		items = append(items, prStatusPrefix(item.Status)+" "+pr.FormatItem(item))
 	}
 	return items
 }
@@ -242,7 +242,7 @@ func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *review.DrawerInput {
 }
 
 func applyFilterOverlay(background []string, filter model.PRFilterMask, cursor int, screenWidth int) []string {
-	panelLines, panelW := prs.FilterPanelLines(filter, cursor)
+	panelLines, panelW := pr.FilterPanelLines(filter, cursor)
 	return widget.OverlayPanel(background, panelLines, panelW, screenWidth)
 }
 

@@ -1,4 +1,4 @@
-package prs
+package pr
 
 import (
 	"strings"
@@ -12,10 +12,10 @@ import (
 func TestRenderLeftPanelsSeparated(t *testing.T) {
 	screen := layout.New(80, 10, false, false)
 	input := PanelInput{
-		Repo:       "owner/repo",
-		PRs:        []string{"PR #1 Fix bug"},
-		PRSelected: 0,
-		Filter:     "Open",
+		Repo:     "owner/repo",
+		Items:    []string{"PR #1 Fix bug"},
+		Selected: 0,
+		Filter:   "Open",
 	}
 	active := func(f layout.Focus) bool { return f == layout.FocusRepo }
 	style := func(a bool) widget.PanelStyle {

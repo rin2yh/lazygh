@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/rin2yh/lazygh/internal/model"
-	"github.com/rin2yh/lazygh/internal/prs"
+	"github.com/rin2yh/lazygh/internal/pr"
 )
 
 // DetailState holds detail panel display and loading state.
@@ -21,7 +21,7 @@ type EnterAction struct {
 }
 
 type State struct {
-	prs.ListState
+	pr.ListState
 
 	Detail DetailState
 
@@ -31,8 +31,8 @@ type State struct {
 
 func NewState() *State {
 	return &State{
-		ListState: prs.ListState{
-			PRs:    []model.Item{},
+		ListState: pr.ListState{
+			Items:  []model.Item{},
 			Filter: model.PRFilterOpen,
 		},
 		Detail: DetailState{
@@ -47,7 +47,7 @@ func (s *State) SetWindowSize(width int, height int) {
 }
 
 func (s *State) BeginLoadPRs() {
-	s.PRsLoading = true
+	s.Loading = true
 	s.Detail.Loading = model.LoadingPRs
 }
 
@@ -62,7 +62,7 @@ func (s *State) ClearLoading() {
 }
 
 func (s *State) ApplyPRsResult(repo string, items []model.Item, err error) {
-	s.PRsLoading = false
+	s.Loading = false
 	s.Detail.Loading = model.LoadingNone
 	if err != nil {
 		s.showError("Error loading PRs", err)
@@ -70,14 +70,14 @@ func (s *State) ApplyPRsResult(repo string, items []model.Item, err error) {
 	}
 
 	s.Repo = repo
-	s.PRs = items
-	s.PRsSelected = 0
+	s.Items = items
+	s.Selected = 0
 	s.Detail.Mode = model.DetailModeOverview
 	if len(items) == 0 {
 		s.Detail.Content = "No pull requests"
 		return
 	}
-	s.Detail.Content = prs.FormatPROverview(items[s.PRsSelected])
+	s.Detail.Content = pr.FormatOverview(items[s.Selected])
 }
 
 func (s *State) ApplyDetailResult(content string, err error) {
@@ -100,8 +100,8 @@ func (s *State) ApplyDiffResult(content string, err error) {
 
 func (s *State) NavigateDown() bool {
 	changed := false
-	if s.PRsSelected < len(s.PRs)-1 {
-		s.PRsSelected++
+	if s.Selected < len(s.Items)-1 {
+		s.Selected++
 		changed = true
 	}
 	if changed && s.Detail.Mode == model.DetailModeOverview {
@@ -112,8 +112,8 @@ func (s *State) NavigateDown() bool {
 
 func (s *State) NavigateUp() bool {
 	changed := false
-	if s.PRsSelected > 0 {
-		s.PRsSelected--
+	if s.Selected > 0 {
+		s.Selected--
 		changed = true
 	}
 	if changed && s.Detail.Mode == model.DetailModeOverview {
@@ -157,7 +157,7 @@ func (s *State) ShouldApplyDetailResult(mode model.DetailMode, number int) bool 
 }
 
 func (s *State) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
-	if !hasClient || s.PRsLoading {
+	if !hasClient || s.Loading {
 		return EnterAction{}
 	}
 	item, ok := s.selectedPR()
@@ -181,17 +181,17 @@ func (s *State) refreshDetailPreview() {
 	if !ok {
 		return
 	}
-	s.Detail.Content = prs.FormatPROverview(item)
+	s.Detail.Content = pr.FormatOverview(item)
 }
 
 func (s *State) selectedPR() (model.Item, bool) {
-	if len(s.PRs) == 0 {
+	if len(s.Items) == 0 {
 		return model.Item{}, false
 	}
-	if s.PRsSelected < 0 || s.PRsSelected >= len(s.PRs) {
+	if s.Selected < 0 || s.Selected >= len(s.Items) {
 		return model.Item{}, false
 	}
-	return s.PRs[s.PRsSelected], true
+	return s.Items[s.Selected], true
 }
 
 func (s *State) showError(msg string, err error) {

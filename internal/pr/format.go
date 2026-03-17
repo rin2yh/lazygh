@@ -1,4 +1,4 @@
-package prs
+package pr
 
 import (
 	"fmt"
@@ -6,13 +6,13 @@ import (
 	"github.com/rin2yh/lazygh/internal/model"
 )
 
-// FormatPRItem formats a PR for display in the list panel.
-func FormatPRItem(item model.Item) string {
+// FormatItem formats a PR for display in the list panel.
+func FormatItem(item model.Item) string {
 	return fmt.Sprintf("#%d %s", item.Number, model.SanitizeSingleLine(item.Title))
 }
 
-// FormatPROverview formats a PR for display in the overview panel.
-func FormatPROverview(item model.Item) string {
+// FormatOverview formats a PR for display in the overview panel.
+func FormatOverview(item model.Item) string {
 	status := model.SanitizeSingleLine(item.Status)
 	if status == "" {
 		status = model.PRStatusOpen

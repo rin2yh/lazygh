@@ -1,4 +1,4 @@
-package prs
+package pr
 
 import (
 	"github.com/rin2yh/lazygh/internal/gui/layout"
@@ -7,11 +7,11 @@ import (
 
 // PanelInput holds the data needed to render the left PR list panels.
 type PanelInput struct {
-	Repo       string
-	PRsLoading bool
-	PRs        []string
-	PRSelected int
-	Filter     string
+	Repo     string
+	Loading  bool
+	Items    []string
+	Selected int
+	Filter   string
 }
 
 // RenderLeft renders the Repository and PRs panels on the left side.
@@ -31,15 +31,15 @@ func renderRepo(input PanelInput) []string {
 }
 
 func renderPRs(input PanelInput) []string {
-	if input.PRsLoading {
+	if input.Loading {
 		return nil
 	}
-	if len(input.PRs) == 0 {
+	if len(input.Items) == 0 {
 		return []string{"No pull requests"}
 	}
-	lines := make([]string, 0, len(input.PRs))
-	for i, pr := range input.PRs {
-		line := widget.ListItem(pr, i == input.PRSelected)
+	lines := make([]string, 0, len(input.Items))
+	for i, item := range input.Items {
+		line := widget.ListItem(item, i == input.Selected)
 		lines = append(lines, line)
 	}
 	return lines
