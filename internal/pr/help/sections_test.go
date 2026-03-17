@@ -31,35 +31,30 @@ func TestSections_Titles(t *testing.T) {
 	}
 }
 
-func TestSections_ViewContainsExpectedRows(t *testing.T) {
+func TestSections_ContainsExpectedRows(t *testing.T) {
 	keys := config.Default().KeyBindings
 	sections := Sections(keys)
-	viewSection := sections[0]
 
-	wantDescriptions := []string{"Show Diff", "Show Overview", "Reload PR", "Quit"}
-	for i, want := range wantDescriptions {
-		if i >= len(viewSection.Rows) {
-			t.Fatalf("View section has only %d rows, want at least %d", len(viewSection.Rows), i+1)
-		}
-		if viewSection.Rows[i][1] != want {
-			t.Errorf("View row[%d] description = %q, want %q", i, viewSection.Rows[i][1], want)
-		}
+	tests := []struct {
+		name  string
+		index int
+		want  []string
+	}{
+		{"View", 0, []string{"Show Diff", "Show Overview", "Reload PR", "Quit"}},
+		{"Review", 1, []string{"Select Range", "Add Comment", "Edit Summary", "Save Comment", "Submit Review", "Discard Review"}},
 	}
-}
-
-func TestSections_ReviewContainsExpectedRows(t *testing.T) {
-	keys := config.Default().KeyBindings
-	sections := Sections(keys)
-	reviewSection := sections[1]
-
-	wantDescriptions := []string{"Select Range", "Add Comment", "Edit Summary", "Save Comment", "Submit Review", "Discard Review"}
-	for i, want := range wantDescriptions {
-		if i >= len(reviewSection.Rows) {
-			t.Fatalf("Review section has only %d rows, want at least %d", len(reviewSection.Rows), i+1)
-		}
-		if reviewSection.Rows[i][1] != want {
-			t.Errorf("Review row[%d] description = %q, want %q", i, reviewSection.Rows[i][1], want)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sec := sections[tt.index]
+			for i, wantDesc := range tt.want {
+				if i >= len(sec.Rows) {
+					t.Fatalf("section has only %d rows, want at least %d", len(sec.Rows), i+1)
+				}
+				if sec.Rows[i][1] != wantDesc {
+					t.Errorf("row[%d] description = %q, want %q", i, sec.Rows[i][1], wantDesc)
+				}
+			}
+		})
 	}
 }
 
