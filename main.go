@@ -7,7 +7,6 @@ import (
 	"github.com/rin2yh/lazygh/internal/app"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/gui"
 )
 
 func main() {
@@ -18,7 +17,7 @@ func main() {
 		os.Exit(1)
 	}
 	client := gh.NewClient()
-	g, err := gui.NewGui(cfg, a.Coordinator, client, client)
+	g, err := app.NewGui(cfg, a.Coordinator, client, client)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)

@@ -1,13 +1,14 @@
-package gui
+package app
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/rin2yh/lazygh/internal/app"
+	"github.com/rin2yh/lazygh/internal/app/layout"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
-	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
 	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr/diff"
 	"github.com/rin2yh/lazygh/internal/review"
+	"github.com/rin2yh/lazygh/pkg/gui/viewport"
 )
 
 type PRClient interface {
@@ -17,7 +18,7 @@ type PRClient interface {
 	DiffPR(repo string, number int) (string, error)
 }
 
-// ReviewController は gui/ レイヤーが review 機能に要求するインターフェース。
+// ReviewController は app/ レイヤーが review 機能に要求するインターフェース。
 type ReviewController interface {
 	ShouldShowDrawer() bool
 	IsIndexWithinPendingRange(path string, commentable bool, idx int) bool
@@ -67,7 +68,7 @@ type ReviewController interface {
 	BeginCommentInput()
 }
 
-// DetailViewport は gui/ レイヤーが detail 機能に要求するインターフェース。
+// DetailViewport は app/ レイヤーが detail 機能に要求するインターフェース。
 type DetailViewport interface {
 	Sync(width, height int, body string)
 	Height() int
@@ -79,25 +80,25 @@ type DetailViewport interface {
 
 type Gui struct {
 	config *config.Config
-	coord  *app.Coordinator
+	coord  *Coordinator
 	client PRClient
 
-	focus    panelFocus
+	focus    layout.Focus
 	showHelp bool
 
-	diff   guidiff.Selection
+	diff   diff.Selection
 	detail DetailViewport
 
 	review ReviewController
 }
 
-func NewGui(cfg *config.Config, coord *app.Coordinator, prClient PRClient, reviewClient review.PendingReviewClient) (*Gui, error) {
-	vp := newViewportState()
+func NewGui(cfg *config.Config, coord *Coordinator, prClient PRClient, reviewClient review.PendingReviewClient) (*Gui, error) {
+	vp := viewport.New()
 	g := &Gui{
 		config: cfg,
 		coord:  coord,
 		client: prClient,
-		focus:  panelPRs,
+		focus:  layout.FocusPRs,
 		detail: &vp,
 	}
 	revCtrl := review.NewController(cfg, coord, reviewClient, &g.diff, g.setReviewFocus)

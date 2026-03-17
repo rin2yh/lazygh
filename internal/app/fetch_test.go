@@ -1,4 +1,4 @@
-package gui
+package app
 
 import (
 	"errors"
@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/rin2yh/lazygh/internal/app"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/model"
@@ -17,7 +16,7 @@ import (
 
 func TestModelInitLoadsPRs(t *testing.T) {
 	mc := &testmock.GHClient{Repo: "owner/repo", PRs: []gh.PRItem{testfactory.NewGHPRItem(2, "p")}}
-	g, err := NewGui(config.Default(), app.NewCoordinator(), mc, mc)
+	g, err := NewGui(config.Default(), NewCoordinator(), mc, mc)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
@@ -70,7 +69,7 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), app.NewCoordinator(), tt.client, tt.client)
+			g, err := NewGui(config.Default(), NewCoordinator(), tt.client, tt.client)
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
@@ -101,41 +100,7 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 	}
 }
 
-func TestToCorePRsMapsStatusAndAssignees(t *testing.T) {
-	items := toCorePRs([]gh.PRItem{
-		{
-			Number:  1,
-			Title:   "open",
-			State:   "OPEN",
-			IsDraft: false,
-			Assignees: []gh.GHUser{
-				{Login: "alice"},
-				{Login: "bob"},
-			},
-		},
-		{
-			Number:  2,
-			Title:   "draft",
-			State:   "OPEN",
-			IsDraft: true,
-		},
-	}, model.PRFilterOpen)
-
-	if len(items) != 2 {
-		t.Fatalf("got %d, want %d", len(items), 2)
-	}
-	if items[0].Status != model.PRStatusOpen {
-		t.Fatalf("got %q, want %q", items[0].Status, model.PRStatusOpen)
-	}
-	if strings.Join(items[0].Assignees, ",") != "alice,bob" {
-		t.Fatalf("got %q, want %q", strings.Join(items[0].Assignees, ","), "alice,bob")
-	}
-	if items[1].Status != model.PRStatusDraft {
-		t.Fatalf("got %q, want %q", items[1].Status, model.PRStatusDraft)
-	}
-}
-
-func TestApplyPRsResult(t *testing.T) {
+func TestGuiApplyPRsResult(t *testing.T) {
 	type want struct {
 		repo   string
 		prs    []model.Item
@@ -185,7 +150,7 @@ func TestApplyPRsResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), app.NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+			g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
@@ -212,7 +177,7 @@ func TestApplyPRsResult(t *testing.T) {
 	}
 }
 
-func TestApplyDetailResult(t *testing.T) {
+func TestGuiApplyDetailResult(t *testing.T) {
 	type want struct {
 		detail string
 	}
@@ -248,7 +213,7 @@ func TestApplyDetailResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), app.NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+			g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
@@ -268,7 +233,7 @@ func TestApplyDetailResult(t *testing.T) {
 }
 
 func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
-	g, err := NewGui(config.Default(), app.NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
@@ -306,11 +271,11 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 }
 
 func TestUpdateDiffFiles(t *testing.T) {
-	g, err := NewGui(config.Default(), app.NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	diff := strings.Join([]string{
+	diffContent := strings.Join([]string{
 		"diff --git a/a.txt b/a.txt",
 		"--- a/a.txt",
 		"+++ b/a.txt",
@@ -325,7 +290,7 @@ func TestUpdateDiffFiles(t *testing.T) {
 		"+y",
 	}, "\n")
 
-	g.updateDiffFiles(diff)
+	g.updateDiffFiles(diffContent)
 	want := []gh.DiffFile{
 		{Path: "a.txt", Content: strings.Join([]string{
 			"diff --git a/a.txt b/a.txt",
@@ -344,12 +309,12 @@ func TestUpdateDiffFiles(t *testing.T) {
 			"+y",
 		}, "\n"), Status: gh.DiffFileStatusModified, Additions: 1, Deletions: 1},
 	}
-	if diff := cmp.Diff(want, g.diff.Files(), cmpopts.IgnoreFields(gh.DiffFile{}, "Lines")); diff != "" {
-		t.Fatalf("diffFiles mismatch (-want +got)\n%s", diff)
+	if d := cmp.Diff(want, g.diff.Files(), cmpopts.IgnoreFields(gh.DiffFile{}, "Lines")); d != "" {
+		t.Fatalf("diffFiles mismatch (-want +got)\n%s", d)
 	}
 
 	g.diff.SetFileSelected(1)
-	g.updateDiffFiles(diff)
+	g.updateDiffFiles(diffContent)
 	if g.diff.FileSelected() != 1 {
 		t.Fatalf("got %d, want %d", g.diff.FileSelected(), 1)
 	}

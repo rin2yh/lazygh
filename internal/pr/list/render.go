@@ -1,7 +1,7 @@
 package list
 
 import (
-	"github.com/rin2yh/lazygh/internal/gui/layout"
+	"github.com/rin2yh/lazygh/internal/app/layout"
 	"github.com/rin2yh/lazygh/internal/model"
 	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )

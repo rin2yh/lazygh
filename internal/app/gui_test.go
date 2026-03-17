@@ -1,4 +1,4 @@
-package gui
+package app
 
 import (
 	"bytes"
@@ -7,7 +7,6 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/rin2yh/lazygh/internal/app"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
@@ -29,7 +28,7 @@ func TestGuiRun_LoadsPRsAndDetail(t *testing.T) {
 		ReleasePRs:     releasePRs,
 		ReleaseDetail:  releaseDetail,
 	}
-	g, err := NewGui(config.Default(), app.NewCoordinator(), client, client)
+	g, err := NewGui(config.Default(), NewCoordinator(), client, client)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}

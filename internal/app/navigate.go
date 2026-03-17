@@ -1,4 +1,4 @@
-package gui
+package app
 
 const pendingReviewBlockNotice = "Pending review exists. Submit with S or discard with X."
 
