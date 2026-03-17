@@ -109,17 +109,16 @@ func (c *Coordinator) SetWindowSize(width int, height int) {
 }
 
 func (c *Coordinator) ApplyDetailResult(content string, err error) {
-	if err != nil {
-		c.showError("Error loading detail", err)
-		return
-	}
-	c.Overview.Loading = model.LoadingNone
-	c.Overview.Content = model.SanitizeMultiline(content)
+	c.applyLoadedContent("Error loading detail", content, err)
 }
 
 func (c *Coordinator) ApplyDiffResult(content string, err error) {
+	c.applyLoadedContent("Error loading diff", content, err)
+}
+
+func (c *Coordinator) applyLoadedContent(errPrefix, content string, err error) {
 	if err != nil {
-		c.showError("Error loading diff", err)
+		c.showError(errPrefix, err)
 		return
 	}
 	c.Overview.Loading = model.LoadingNone
