@@ -3,9 +3,9 @@ package overview
 
 import "github.com/rin2yh/lazygh/internal/model"
 
-// State holds overview panel display and loading state.
+// State holds overview panel display and fetching state.
 type State struct {
-	Mode    model.DetailMode
-	Content string
-	Loading model.LoadingKind
+	Mode     model.DetailMode
+	Content  string
+	Fetching model.FetchKind
 }

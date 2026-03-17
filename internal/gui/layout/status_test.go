@@ -10,7 +10,7 @@ import (
 func TestFormatStatusLine(t *testing.T) {
 	tests := []struct {
 		name      string
-		loading   bool
+		fetching  bool
 		diffMode  bool
 		focus     Focus
 		inputMode model.ReviewInputMode
@@ -28,11 +28,11 @@ func TestFormatStatusLine(t *testing.T) {
 			want:     "[q]Quit [?]Help | [h/l]Panels [o]Overview",
 		},
 		{
-			name:     "loading",
-			loading:  true,
+			name:     "fetching",
+			fetching: true,
 			diffMode: true,
 			focus:    FocusDiffContent,
-			want:     "Loading... | [q]Quit [?]Help | [h/l]Panels [o]Overview",
+			want:     "Fetching... | [q]Quit [?]Help | [h/l]Panels [o]Overview",
 		},
 		{
 			name:      "review input comment",
@@ -59,7 +59,7 @@ func TestFormatStatusLine(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := Status{
-				Loading:   tt.loading,
+				Fetching:  tt.fetching,
 				DiffMode:  tt.diffMode,
 				Focus:     tt.focus,
 				InputMode: tt.inputMode,

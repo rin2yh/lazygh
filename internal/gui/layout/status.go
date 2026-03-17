@@ -18,7 +18,7 @@ const (
 )
 
 type Status struct {
-	Loading   bool
+	Fetching  bool
 	DiffMode  bool
 	Focus     Focus
 	InputMode model.ReviewInputMode
@@ -43,8 +43,8 @@ func (s Status) String() string {
 	}
 
 	line := fmt.Sprintf("%s | %s", base, ctx)
-	if s.Loading {
-		return fmt.Sprintf("Loading... | %s", line)
+	if s.Fetching {
+		return fmt.Sprintf("Fetching... | %s", line)
 	}
 	return line
 }

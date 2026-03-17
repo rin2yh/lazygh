@@ -7,11 +7,11 @@ const (
 	DetailModeDiff
 )
 
-type LoadingKind int
+type FetchKind int
 
 const (
-	LoadingNone LoadingKind = iota
-	LoadingPRs
-	LoadingDetail
-	LoadingReview
+	FetchNone FetchKind = iota
+	FetchingPRs
+	FetchingDetail
+	FetchingReview
 )

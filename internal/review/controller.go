@@ -27,8 +27,8 @@ type Selection interface {
 type AppState interface {
 	SelectedPR() (model.Item, bool)
 	ListRepo() string
-	BeginReviewLoad()
-	ClearLoading()
+	BeginFetchReview()
+	ClearFetching()
 	IsDiffMode() bool
 }
 
