@@ -52,18 +52,18 @@ func (c *Coordinator) SetReviewHook(h ReviewHook) {
 
 // --- 機能間協調メソッド（app/ に集約）---
 
-// BeginLoadPRs は PR 一覧ロード開始時にリスト・詳細の両状態を更新する。
-func (c *Coordinator) BeginLoadPRs() {
+// BeginFetchPRs は PR 一覧ロード開始時にリスト・詳細の両状態を更新する。
+func (c *Coordinator) BeginFetchPRs() {
 	c.Fetching = true
-	c.Overview.Loading = model.LoadingPRs
+	c.Overview.Fetching = model.FetchingPRs
 }
 
 // ApplyPRsResult は PR 一覧結果を反映し、review をリセットする。
 func (c *Coordinator) ApplyPRsResult(repo string, items []model.Item, err error) {
 	c.Fetching = false
-	c.Overview.Loading = model.LoadingNone
+	c.Overview.Fetching = model.FetchNone
 	if err != nil {
-		c.showError("Error loading PRs", err)
+		c.showError("Error fetching PRs", err)
 		if c.review != nil {
 			c.review.Reset()
 		}
@@ -97,8 +97,8 @@ func (c *Coordinator) BlocksPRSelectionChange() bool {
 
 func (c *Coordinator) SelectedPR() (model.Item, bool) { return c.selectedPR() }
 func (c *Coordinator) ListRepo() string               { return c.Repo }
-func (c *Coordinator) BeginReviewLoad()               { c.Overview.Loading = model.LoadingReview }
-func (c *Coordinator) ClearLoading()                  { c.Overview.Loading = model.LoadingNone }
+func (c *Coordinator) BeginFetchReview()              { c.Overview.Fetching = model.FetchingReview }
+func (c *Coordinator) ClearFetching()                 { c.Overview.Fetching = model.FetchNone }
 func (c *Coordinator) IsDiffMode() bool               { return c.Overview.Mode == model.DetailModeDiff }
 
 // --- その他の state メソッド ---
@@ -109,11 +109,11 @@ func (c *Coordinator) SetWindowSize(width int, height int) {
 }
 
 func (c *Coordinator) ApplyDetailResult(content string, err error) {
-	c.applyLoadedContent("Error loading detail", content, err)
+	c.applyLoadedContent("Error fetching detail", content, err)
 }
 
 func (c *Coordinator) ApplyDiffResult(content string, err error) {
-	c.applyLoadedContent("Error loading diff", content, err)
+	c.applyLoadedContent("Error fetching diff", content, err)
 }
 
 func (c *Coordinator) applyLoadedContent(errPrefix, content string, err error) {
@@ -121,7 +121,7 @@ func (c *Coordinator) applyLoadedContent(errPrefix, content string, err error) {
 		c.showError(errPrefix, err)
 		return
 	}
-	c.Overview.Loading = model.LoadingNone
+	c.Overview.Fetching = model.FetchNone
 	c.Overview.Content = model.SanitizeMultiline(content)
 }
 
@@ -154,7 +154,7 @@ func (c *Coordinator) SwitchToOverview() bool {
 		return false
 	}
 	c.Overview.Mode = model.DetailModeOverview
-	c.Overview.Loading = model.LoadingNone
+	c.Overview.Fetching = model.FetchNone
 	c.refreshOverviewPreview()
 	return true
 }
@@ -164,7 +164,7 @@ func (c *Coordinator) SwitchToDiff() bool {
 		return false
 	}
 	c.Overview.Mode = model.DetailModeDiff
-	c.Overview.Loading = model.LoadingNone
+	c.Overview.Fetching = model.FetchNone
 	return true
 }
 
@@ -188,11 +188,11 @@ func (c *Coordinator) PlanEnter(hasClient bool, forcedDetailText string) EnterAc
 		return EnterAction{}
 	}
 	if forcedDetailText != "" {
-		c.Overview.Loading = model.LoadingNone
+		c.Overview.Fetching = model.FetchNone
 		c.Overview.Content = forcedDetailText
 		return EnterAction{}
 	}
-	c.Overview.Loading = model.LoadingDetail
+	c.Overview.Fetching = model.FetchingDetail
 	if c.Overview.Mode == model.DetailModeDiff {
 		return EnterAction{Kind: model.EnterLoadPRDiff, Repo: c.Repo, Number: item.Number}
 	}
@@ -243,6 +243,6 @@ func (c *Coordinator) selectedPR() (model.Item, bool) {
 }
 
 func (c *Coordinator) showError(msg string, err error) {
-	c.Overview.Loading = model.LoadingNone
+	c.Overview.Fetching = model.FetchNone
 	c.Overview.Content = model.SanitizeMultiline(fmt.Sprintf("%s: %v", msg, err))
 }

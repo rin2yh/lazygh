@@ -178,7 +178,7 @@ func TestApplyPRsResult(t *testing.T) {
 			want: want{
 				repo:   "",
 				prs:    nil,
-				detail: "Error loading PRs: boom",
+				detail: "Error fetching PRs: boom",
 			},
 		},
 	}
@@ -189,15 +189,15 @@ func TestApplyPRsResult(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.coord.BeginLoadPRs()
+			g.coord.BeginFetchPRs()
 
 			g.applyPRsResult(tt.msg)
 
 			if g.coord.Fetching {
 				t.Fatal("expected PRsLoading=false")
 			}
-			if g.coord.Overview.Loading != model.LoadingNone {
-				t.Fatalf("got %v, want %v", g.coord.Overview.Loading, model.LoadingNone)
+			if g.coord.Overview.Fetching != model.FetchNone {
+				t.Fatalf("got %v, want %v", g.coord.Overview.Fetching, model.FetchNone)
 			}
 			if g.coord.Repo != tt.want.repo {
 				t.Fatalf("got %q, want %q", g.coord.Repo, tt.want.repo)
@@ -241,7 +241,7 @@ func TestApplyDetailResult(t *testing.T) {
 				err:    errors.New("boom"),
 			},
 			want: want{
-				detail: "Error loading detail: boom",
+				detail: "Error fetching detail: boom",
 			},
 		},
 	}
@@ -253,12 +253,12 @@ func TestApplyDetailResult(t *testing.T) {
 				t.Fatalf("NewGui failed: %v", err)
 			}
 			g.coord.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "Fix bug"}}, nil)
-			g.coord.Overview.Loading = model.LoadingDetail
+			g.coord.Overview.Fetching = model.FetchingDetail
 
 			g.applyDetailResult(tt.msg)
 
-			if g.coord.Overview.Loading != model.LoadingNone {
-				t.Fatalf("got %v, want %v", g.coord.Overview.Loading, model.LoadingNone)
+			if g.coord.Overview.Fetching != model.FetchNone {
+				t.Fatalf("got %v, want %v", g.coord.Overview.Fetching, model.FetchNone)
 			}
 			if g.coord.Overview.Content != tt.want.detail {
 				t.Fatalf("got %q, want %q", g.coord.Overview.Content, tt.want.detail)
@@ -274,7 +274,7 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 	}
 	g.coord.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "Fix bug"}}, nil)
 	g.switchToDiff()
-	g.coord.Overview.Loading = model.LoadingDetail
+	g.coord.Overview.Fetching = model.FetchingDetail
 
 	raw := strings.Join([]string{
 		"diff --git a/a.txt b/a.txt",
