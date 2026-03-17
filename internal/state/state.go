@@ -3,6 +3,7 @@ package state
 import (
 	"fmt"
 
+	"github.com/rin2yh/lazygh/internal/detail"
 	"github.com/rin2yh/lazygh/internal/model"
 )
 
@@ -17,13 +18,6 @@ type ListState struct {
 	FilterCursor int
 }
 
-// DetailState holds detail panel display and loading state.
-type DetailState struct {
-	Mode    model.DetailMode
-	Content string
-	Loading model.LoadingKind
-}
-
 type EnterAction struct {
 	Kind   model.EnterActionKind
 	Repo   string
@@ -32,7 +26,7 @@ type EnterAction struct {
 
 type State struct {
 	List   ListState
-	Detail DetailState
+	Detail detail.State
 
 	Width  int
 	Height int
@@ -44,7 +38,7 @@ func NewState() *State {
 			PRs:    []model.Item{},
 			Filter: model.PRFilterOpen,
 		},
-		Detail: DetailState{
+		Detail: detail.State{
 			Mode: model.DetailModeOverview,
 		},
 	}
