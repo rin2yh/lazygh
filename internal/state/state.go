@@ -7,11 +7,11 @@ import (
 	"github.com/rin2yh/lazygh/internal/pr"
 )
 
-// DetailState holds detail panel display and loading state.
+// DetailState holds detail panel display and fetching state.
 type DetailState struct {
-	Mode    model.DetailMode
-	Content string
-	Loading model.LoadingKind
+	Mode     model.DetailMode
+	Content  string
+	Fetching model.FetchKind
 }
 
 type EnterAction struct {
@@ -46,24 +46,24 @@ func (s *State) SetWindowSize(width int, height int) {
 	s.Height = height
 }
 
-func (s *State) BeginLoadPRs() {
+func (s *State) BeginFetchPRs() {
 	s.Fetching = true
-	s.Detail.Loading = model.LoadingPRs
+	s.Detail.Fetching = model.FetchingPRs
 }
 
-// BeginReviewLoad marks a review operation as in-progress.
-func (s *State) BeginReviewLoad() {
-	s.Detail.Loading = model.LoadingReview
+// BeginFetchReview marks a review operation as in-progress.
+func (s *State) BeginFetchReview() {
+	s.Detail.Fetching = model.FetchingReview
 }
 
-// ClearLoading clears any in-progress loading indicator.
-func (s *State) ClearLoading() {
-	s.Detail.Loading = model.LoadingNone
+// ClearFetching clears any in-progress fetching indicator.
+func (s *State) ClearFetching() {
+	s.Detail.Fetching = model.FetchNone
 }
 
 func (s *State) ApplyPRsResult(repo string, items []model.Item, err error) {
 	s.Fetching = false
-	s.Detail.Loading = model.LoadingNone
+	s.Detail.Fetching = model.FetchNone
 	if err != nil {
 		s.showError("Error loading PRs", err)
 		return
@@ -87,7 +87,7 @@ func (s *State) ApplyDetailResult(content string, err error) {
 		s.showError("Error loading detail", err)
 		return
 	}
-	s.Detail.Loading = model.LoadingNone
+	s.Detail.Fetching = model.FetchNone
 	s.Detail.Content = model.SanitizeMultiline(content)
 }
 
@@ -96,7 +96,7 @@ func (s *State) ApplyDiffResult(content string, err error) {
 		s.showError("Error loading diff", err)
 		return
 	}
-	s.Detail.Loading = model.LoadingNone
+	s.Detail.Fetching = model.FetchNone
 	s.Detail.Content = model.SanitizeMultiline(content)
 }
 
@@ -129,7 +129,7 @@ func (s *State) SwitchToOverview() bool {
 		return false
 	}
 	s.Detail.Mode = model.DetailModeOverview
-	s.Detail.Loading = model.LoadingNone
+	s.Detail.Fetching = model.FetchNone
 	s.refreshDetailPreview()
 	return true
 }
@@ -139,7 +139,7 @@ func (s *State) SwitchToDiff() bool {
 		return false
 	}
 	s.Detail.Mode = model.DetailModeDiff
-	s.Detail.Loading = model.LoadingNone
+	s.Detail.Fetching = model.FetchNone
 	return true
 }
 
@@ -167,11 +167,11 @@ func (s *State) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
 		return EnterAction{}
 	}
 	if forcedDetailText != "" {
-		s.Detail.Loading = model.LoadingNone
+		s.Detail.Fetching = model.FetchNone
 		s.Detail.Content = forcedDetailText
 		return EnterAction{}
 	}
-	s.Detail.Loading = model.LoadingDetail
+	s.Detail.Fetching = model.FetchingDetail
 	if s.Detail.Mode == model.DetailModeDiff {
 		return EnterAction{Kind: model.EnterLoadPRDiff, Repo: s.Repo, Number: item.Number}
 	}
@@ -195,7 +195,7 @@ func (s *State) selectedPR() (model.Item, bool) {
 }
 
 func (s *State) showError(msg string, err error) {
-	s.Detail.Loading = model.LoadingNone
+	s.Detail.Fetching = model.FetchNone
 	s.Detail.Content = model.SanitizeMultiline(fmt.Sprintf("%s: %v", msg, err))
 }
 
