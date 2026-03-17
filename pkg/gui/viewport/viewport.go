@@ -1,26 +1,26 @@
-package gui
+package viewport
 
 import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type viewportState struct {
+type State struct {
 	vp     viewport.Model
 	width  int
 	height int
 	body   string
 }
 
-func newViewportState() viewportState {
-	return viewportState{
+func New() State {
+	return State{
 		vp:     viewport.New(1, 1),
 		width:  1,
 		height: 1,
 	}
 }
 
-func (s *viewportState) Sync(width int, height int, body string) {
+func (s *State) Sync(width int, height int, body string) {
 	if width < 1 {
 		width = 1
 	}
@@ -40,24 +40,24 @@ func (s *viewportState) Sync(width int, height int, body string) {
 	}
 }
 
-func (s *viewportState) Height() int {
+func (s *State) Height() int {
 	return s.height
 }
 
-func (s *viewportState) Update(msg tea.KeyMsg) (bool, tea.Cmd) {
+func (s *State) Update(msg tea.KeyMsg) (bool, tea.Cmd) {
 	updated, cmd := s.vp.Update(msg)
 	s.vp = updated
 	return true, cmd
 }
 
-func (s *viewportState) ScrollDown(lines int) {
+func (s *State) ScrollDown(lines int) {
 	s.vp.ScrollDown(lines)
 }
 
-func (s *viewportState) ScrollUp(lines int) {
+func (s *State) ScrollUp(lines int) {
 	s.vp.ScrollUp(lines)
 }
 
-func (s *viewportState) View() string {
+func (s *State) View() string {
 	return s.vp.View()
 }

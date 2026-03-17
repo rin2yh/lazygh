@@ -1,4 +1,4 @@
-package gui
+package app
 
 import "github.com/rin2yh/lazygh/internal/review"
 

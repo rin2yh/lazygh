@@ -1,12 +1,10 @@
-package gui
+package app
 
 import (
-	"strings"
-
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/rin2yh/lazygh/internal/gh"
-	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
+	"github.com/rin2yh/lazygh/internal/diff"
 	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr/list"
 )
 
 type prsLoadedMsg struct {
@@ -22,33 +20,6 @@ type detailLoadedMsg struct {
 	err     error
 }
 
-func toCorePRs(prs []gh.PRItem, filter model.PRFilterMask) []model.Item {
-	items := make([]model.Item, 0, len(prs))
-	for _, pr := range prs {
-		if !filter.Matches(pr.State) {
-			continue
-		}
-		status := pr.State
-		if pr.IsDraft {
-			status = model.PRStatusDraft
-		}
-		assignees := make([]string, 0, len(pr.Assignees))
-		for _, user := range pr.Assignees {
-			name := strings.TrimSpace(user.Login)
-			if name != "" {
-				assignees = append(assignees, name)
-			}
-		}
-		items = append(items, model.Item{
-			Number:    pr.Number,
-			Title:     pr.Title,
-			Status:    status,
-			Assignees: assignees,
-		})
-	}
-	return items
-}
-
 func (s *screen) loadPRsCmd() tea.Cmd {
 	filter := s.gui.coord.Filter
 	return func() tea.Msg {
@@ -60,7 +31,7 @@ func (s *screen) loadPRsCmd() tea.Cmd {
 		if err != nil {
 			return prsLoadedMsg{repo: repo, err: err}
 		}
-		return prsLoadedMsg{repo: repo, prs: toCorePRs(prs, filter)}
+		return prsLoadedMsg{repo: repo, prs: list.Convert(prs, filter)}
 	}
 }
 
@@ -117,7 +88,7 @@ func (gui *Gui) currentDiffContent() string {
 }
 
 func (gui *Gui) updateDiffFiles(content string) {
-	files, selected, lineSelected := guidiff.ParseFiles(gui.diff.Files(), gui.diff.FileSelected(), content)
+	files, selected, lineSelected := diff.ParseFiles(gui.diff.Files(), gui.diff.FileSelected(), content)
 	if len(files) == 0 {
 		gui.diff.Reset()
 		if gui.focus == panelDiffFiles {

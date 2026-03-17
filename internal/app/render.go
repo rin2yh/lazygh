@@ -1,11 +1,11 @@
-package gui
+package app
 
 import (
 	"strings"
 
+	"github.com/rin2yh/lazygh/internal/app/layout"
+	"github.com/rin2yh/lazygh/internal/diff"
 	"github.com/rin2yh/lazygh/internal/gh"
-	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
-	"github.com/rin2yh/lazygh/internal/gui/layout"
 	"github.com/rin2yh/lazygh/internal/help"
 	"github.com/rin2yh/lazygh/internal/model"
 	prhelp "github.com/rin2yh/lazygh/internal/pr/help"
@@ -18,11 +18,11 @@ func (gui *Gui) render() string {
 	isDiff := gui.coord.IsDiffMode()
 	showDrawer := gui.review.ShouldShowDrawer()
 	screen := layout.New(gui.coord.Width, gui.coord.Height, isDiff, showDrawer)
-	focus := gui.renderFocus()
+	focus := gui.focus
 	statusLine := layout.Status{
 		Fetching:  gui.coord.Overview.Fetching != model.FetchNone,
 		DiffMode:  isDiff,
-		Focus:     focus,
+		Focus:     layout.Focus(focus),
 		InputMode: gui.review.InputMode(),
 		Keys:      gui.config.KeyBindings,
 	}.String()
@@ -37,11 +37,11 @@ func (gui *Gui) render() string {
 
 	var rightLines []string
 	if isDiff {
-		rightLines = gui.currentDetailLines(screen, guidiff.ColorizeContent(gui.currentDiffContent()))
+		rightLines = gui.currentDetailLines(screen, diff.ColorizeContent(gui.currentDiffContent()))
 	} else {
 		rightLines = gui.currentDetailLines(screen, gui.coord.Overview.Content)
 	}
-	rightInput := guidiff.PanelInput{
+	rightInput := diff.PanelInput{
 		DiffMode:      isDiff,
 		OverviewTitle: "Overview",
 		OverviewLines: rightLines,
@@ -53,7 +53,7 @@ func (gui *Gui) render() string {
 	}
 
 	leftLines := list.RenderLeft(leftInput, screen.RepoHeight, screen.PRHeight,
-		func(f layout.Focus) bool { return focus == f },
+		func(f layout.Focus) bool { return focus == panelFocus(f) },
 		gui.style,
 		screen.LeftWidth,
 	)
@@ -62,7 +62,7 @@ func (gui *Gui) render() string {
 	lines := widget.JoinColumns(leftLines, screen.LeftWidth, rightPanelLines, screen.RightWidth, screen.MainHeight)
 	drawerInput := gui.buildReviewDrawerInput(showDrawer)
 	if drawerInput != nil && screen.DrawerHeight > 0 {
-		drawerActive := focus == layout.FocusReviewDrawer
+		drawerActive := focus == panelReviewDrawer
 		for _, line := range review.RenderDrawer(*drawerInput, gui.style(drawerActive), screen.Width, screen.DrawerHeight) {
 			lines = append(lines, widget.PadOrTrim(line, screen.Width))
 		}
@@ -85,22 +85,22 @@ func (gui *Gui) render() string {
 	return b.String()
 }
 
-func (gui *Gui) renderRight(input guidiff.PanelInput, screen layout.Screen, focus layout.Focus) []string {
-	diffActive := focus == layout.FocusDiffContent
+func (gui *Gui) renderRight(input diff.PanelInput, screen layout.Screen, focus panelFocus) []string {
+	diffActive := focus == panelDiffContent
 	if !input.DiffMode {
 		return widget.FramePanel(input.OverviewTitle, input.OverviewLines, screen.RightWidth, screen.MainHeight, gui.style(diffActive))
 	}
 	filesWidth, diffWidth := layout.DiffSplitWidths(screen.RightWidth)
 	if filesWidth == 0 {
-		lines := guidiff.ContentLines(input, screen.MainHeight)
+		lines := diff.ContentLines(input, screen.MainHeight)
 		if lines == nil {
 			lines = input.OverviewLines
 		}
 		return widget.FramePanel("Diff", lines, screen.RightWidth, screen.MainHeight, gui.style(diffActive))
 	}
-	filesActive := focus == layout.FocusDiffFiles
-	filesLines := guidiff.RenderFiles(input, gui.style(filesActive), filesWidth, screen.MainHeight)
-	diffLines := guidiff.RenderContent(input, gui.style(diffActive), diffWidth, screen.MainHeight)
+	filesActive := focus == panelDiffFiles
+	filesLines := diff.RenderFiles(input, gui.style(filesActive), filesWidth, screen.MainHeight)
+	diffLines := diff.RenderContent(input, gui.style(diffActive), diffWidth, screen.MainHeight)
 	return widget.JoinColumns(filesLines, filesWidth, diffLines, diffWidth, screen.MainHeight)
 }
 
@@ -123,21 +123,6 @@ func (gui *Gui) syncDetailViewport(width int, height int, content string) {
 	gui.detail.Sync(width, height, widget.WrapText(content, width))
 }
 
-func (gui *Gui) renderFocus() layout.Focus {
-	switch gui.focus {
-	case panelRepo:
-		return layout.FocusRepo
-	case panelPRs:
-		return layout.FocusPRs
-	case panelDiffFiles:
-		return layout.FocusDiffFiles
-	case panelReviewDrawer:
-		return layout.FocusReviewDrawer
-	default:
-		return layout.FocusDiffContent
-	}
-}
-
 func (gui *Gui) currentDetailLines(dims layout.Screen, content string) []string {
 	innerWidth := dims.RightWidth
 	if gui.coord.IsDiffMode() {
@@ -155,17 +140,17 @@ func (gui *Gui) currentDetailLines(dims layout.Screen, content string) []string 
 	return strings.Split(gui.detail.View(), "\n")
 }
 
-func (gui *Gui) renderDiffContentLines() []guidiff.ContentLine {
+func (gui *Gui) renderDiffContentLines() []diff.ContentLine {
 	file, ok := gui.diff.CurrentFile()
 	if !ok || len(file.Lines) == 0 {
 		return nil
 	}
 	lineSelected := gui.diff.LineSelected()
-	lines := make([]guidiff.ContentLine, 0, len(file.Lines))
+	lines := make([]diff.ContentLine, 0, len(file.Lines))
 	for idx, line := range file.Lines {
-		lines = append(lines, guidiff.ContentLine{
+		lines = append(lines, diff.ContentLine{
 			Location: gh.FormatDiffLineLocation(line),
-			Text:     guidiff.ColorizeLine(line.Text),
+			Text:     diff.ColorizeLine(line.Text),
 			Selected: idx == lineSelected,
 			InRange:  gui.review.IsIndexWithinPendingRange(line.Path, line.Commentable, idx),
 		})
