@@ -6,59 +6,19 @@ import (
 
 	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/rin2yh/lazygh/internal/config"
+	prhelp "github.com/rin2yh/lazygh/internal/pr/help"
 	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
-type section struct {
-	title string
-	rows  [][2]string // [key label, description]
-}
-
-func buildSections(keys config.KeyBindings) []section {
-	return []section{
-		{
-			title: "Navigation",
-			rows: [][2]string{
-				{keys.MoveLabel(), "Move Up/Down"},
-				{keys.PanelLabel(), "Panel Prev/Next"},
-				{keys.FocusLabel(), "Cycle Focus"},
-				{keys.PageLabel(), "Page Up/Down"},
-				{keys.TopBottomLabel(), "Go Top/Bottom"},
-				{keys.Label(config.ActionCancel), "Cancel / Close"},
-			},
-		},
-		{
-			title: "View",
-			rows: [][2]string{
-				{keys.DiffLabel(), "Show Diff"},
-				{keys.OverviewLabel(), "Show Overview"},
-				{keys.ReloadLabel(), "Reload PR"},
-				{keys.QuitLabel(), "Quit"},
-			},
-		},
-		{
-			title: "Review",
-			rows: [][2]string{
-				{keys.RangeLabel(), "Select Range"},
-				{keys.CommentLabel(), "Add Comment"},
-				{keys.SummaryLabel(), "Edit Summary"},
-				{keys.SaveLabel(), "Save Comment"},
-				{keys.SubmitLabel(), "Submit Review"},
-				{keys.DiscardLabel(), "Discard Review"},
-			},
-		},
-	}
-}
-
-func buildContent(sections []section) []string {
+func buildContent(sections []prhelp.Section) []string {
 	var lines []string
 	for i, sec := range sections {
 		if i > 0 {
 			lines = append(lines, "")
 		}
-		lines = append(lines, "  "+sec.title)
+		lines = append(lines, "  "+sec.Title)
 		lines = append(lines, "  "+strings.Repeat("─", 36))
-		for _, row := range sec.rows {
+		for _, row := range sec.Rows {
 			if row[0] == "" {
 				continue
 			}
@@ -70,7 +30,7 @@ func buildContent(sections []section) []string {
 }
 
 func buildPanelLines(keys config.KeyBindings, screenWidth int) ([]string, int) {
-	content := buildContent(buildSections(keys))
+	content := buildContent(prhelp.BuildSections(keys))
 	closeHint := fmt.Sprintf("Press [%s] or [%s] to close", keys.HelpLabel(), keys.Label(config.ActionCancel))
 
 	panelContent := make([]string, 0, len(content)+4)
