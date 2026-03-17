@@ -17,10 +17,10 @@ func defaultTestConfig() *config.Config { return config.Default() }
 type fakeHost struct {
 	repo string
 	pr   *model.Item
-	// loading call counts
-	beginReviewLoadCalls int
-	clearLoadingCalls    int
-	diffMode             bool
+	// fetching call counts
+	beginFetchReviewCalls int
+	clearFetchingCalls    int
+	diffMode              bool
 }
 
 func (h *fakeHost) SelectedPR() (model.Item, bool) {
@@ -29,10 +29,10 @@ func (h *fakeHost) SelectedPR() (model.Item, bool) {
 	}
 	return *h.pr, true
 }
-func (h *fakeHost) ListRepo() string { return h.repo }
-func (h *fakeHost) BeginReviewLoad() { h.beginReviewLoadCalls++ }
-func (h *fakeHost) ClearLoading()    { h.clearLoadingCalls++ }
-func (h *fakeHost) IsDiffMode() bool { return h.diffMode }
+func (h *fakeHost) ListRepo() string  { return h.repo }
+func (h *fakeHost) BeginFetchReview() { h.beginFetchReviewCalls++ }
+func (h *fakeHost) ClearFetching()    { h.clearFetchingCalls++ }
+func (h *fakeHost) IsDiffMode() bool  { return h.diffMode }
 
 func setupControllerWithPR(client *testmock.GHClient, sel reviewstub.Selection) (*Controller, *fakeHost, *FocusTarget) {
 	host := &fakeHost{
@@ -104,7 +104,7 @@ func TestHandleSubmit_NoPendingReview(t *testing.T) {
 
 func TestApplySubmitResult_ErrorPreservesState(t *testing.T) {
 	c, host, _ := setupControllerWithPR(&testmock.GHClient{}, reviewstub.Selection{})
-	host.beginReviewLoadCalls = 0
+	host.beginFetchReviewCalls = 0
 	c.rs.SetContext(1, "PR_1", "abc123", "PRR_1")
 	c.rs.AddComment(model.ReviewComment{Path: "a.go", Body: "hi", Line: 10})
 

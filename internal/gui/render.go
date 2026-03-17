@@ -19,7 +19,7 @@ func (gui *Gui) render() string {
 	screen := layout.New(gui.state.Width, gui.state.Height, isDiff, showDrawer)
 	focus := gui.renderFocus()
 	statusLine := layout.Status{
-		Loading:   gui.state.Overview.Loading != model.LoadingNone,
+		Fetching:  gui.state.Overview.Fetching != model.FetchNone,
 		DiffMode:  isDiff,
 		Focus:     focus,
 		InputMode: gui.review.InputMode(),

@@ -54,14 +54,14 @@ func TestApplyPRsResult(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewState()
-			s.BeginLoadPRs()
+			s.BeginFetchPRs()
 			s.ApplyPRsResult(tt.repo, tt.prs, tt.err)
 
 			if s.Fetching {
 				t.Fatal("prs should not be loading")
 			}
-			if s.Overview.Loading != model.LoadingNone {
-				t.Fatalf("got %v, want %v", s.Overview.Loading, model.LoadingNone)
+			if s.Overview.Fetching != model.FetchNone {
+				t.Fatalf("got %v, want %v", s.Overview.Fetching, model.FetchNone)
 			}
 			if s.Repo != tt.want.repo {
 				t.Fatalf("got %q, want %q", s.Repo, tt.want.repo)
@@ -79,17 +79,17 @@ func TestApplyPRsResult(t *testing.T) {
 	}
 }
 
-func TestBeginLoadPRs_OnlySetsLoadingState(t *testing.T) {
+func TestBeginFetchPRs_OnlySetsLoadingState(t *testing.T) {
 	s := NewState()
 	s.Overview.Content = "keep"
 
-	s.BeginLoadPRs()
+	s.BeginFetchPRs()
 
 	if !s.Fetching {
 		t.Fatal("expected PRsLoading to be true")
 	}
-	if s.Overview.Loading != model.LoadingPRs {
-		t.Fatalf("got %v, want %v", s.Overview.Loading, model.LoadingPRs)
+	if s.Overview.Fetching != model.FetchingPRs {
+		t.Fatalf("got %v, want %v", s.Overview.Fetching, model.FetchingPRs)
 	}
 	if s.Overview.Content != "keep" {
 		t.Fatalf("got %q, want %q", s.Overview.Content, "keep")
@@ -178,8 +178,8 @@ func TestPlanEnter_LoadPR(t *testing.T) {
 			if action.Number != 7 {
 				t.Fatalf("got %d, want %d", action.Number, 7)
 			}
-			if s.Overview.Loading != model.LoadingDetail {
-				t.Fatalf("got %v, want %v", s.Overview.Loading, model.LoadingDetail)
+			if s.Overview.Fetching != model.FetchingDetail {
+				t.Fatalf("got %v, want %v", s.Overview.Fetching, model.FetchingDetail)
 			}
 			if tt.wantKind == model.EnterLoadPRDetail {
 				if s.Overview.Content != before {
@@ -220,12 +220,12 @@ func TestApplyDetailResult(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewState()
-			s.Overview.Loading = model.LoadingDetail
+			s.Overview.Fetching = model.FetchingDetail
 
 			s.ApplyDetailResult(tt.content, tt.err)
 
-			if s.Overview.Loading != model.LoadingNone {
-				t.Fatalf("got %v, want %v", s.Overview.Loading, model.LoadingNone)
+			if s.Overview.Fetching != model.FetchNone {
+				t.Fatalf("got %v, want %v", s.Overview.Fetching, model.FetchNone)
 			}
 			if s.Overview.Content != tt.want.detail {
 				t.Fatalf("got %q, want %q", s.Overview.Content, tt.want.detail)
@@ -264,12 +264,12 @@ func TestApplyDiffResult(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewState()
-			s.Overview.Loading = model.LoadingDetail
+			s.Overview.Fetching = model.FetchingDetail
 
 			s.ApplyDiffResult(tt.content, tt.err)
 
-			if s.Overview.Loading != model.LoadingNone {
-				t.Fatalf("got %v, want %v", s.Overview.Loading, model.LoadingNone)
+			if s.Overview.Fetching != model.FetchNone {
+				t.Fatalf("got %v, want %v", s.Overview.Fetching, model.FetchNone)
 			}
 			if s.Overview.Content != tt.want.detail {
 				t.Fatalf("got %q, want %q", s.Overview.Content, tt.want.detail)

@@ -131,7 +131,7 @@ func (s *screen) handleFilterKey(msg tea.KeyMsg) tea.Cmd {
 		return nil
 	case "enter":
 		s.gui.state.CloseFilterSelect()
-		s.gui.state.BeginLoadPRs()
+		s.gui.state.BeginFetchPRs()
 		return s.loadPRsCmd()
 	case "j", "down":
 		s.gui.state.MoveFilterCursor(1)

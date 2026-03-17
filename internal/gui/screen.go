@@ -13,7 +13,7 @@ func (s *screen) Init() tea.Cmd {
 	if s.gui.client == nil {
 		return nil
 	}
-	s.gui.state.BeginLoadPRs()
+	s.gui.state.BeginFetchPRs()
 	return s.loadPRsCmd()
 }
 

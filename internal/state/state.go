@@ -40,24 +40,24 @@ func (s *State) SetWindowSize(width int, height int) {
 	s.Height = height
 }
 
-func (s *State) BeginLoadPRs() {
+func (s *State) BeginFetchPRs() {
 	s.Fetching = true
-	s.Overview.Loading = model.LoadingPRs
+	s.Overview.Fetching = model.FetchingPRs
 }
 
-// BeginReviewLoad marks a review operation as in-progress.
-func (s *State) BeginReviewLoad() {
-	s.Overview.Loading = model.LoadingReview
+// BeginFetchReview marks a review operation as in-progress.
+func (s *State) BeginFetchReview() {
+	s.Overview.Fetching = model.FetchingReview
 }
 
-// ClearLoading clears any in-progress loading indicator.
-func (s *State) ClearLoading() {
-	s.Overview.Loading = model.LoadingNone
+// ClearFetching clears any in-progress fetching indicator.
+func (s *State) ClearFetching() {
+	s.Overview.Fetching = model.FetchNone
 }
 
 func (s *State) ApplyPRsResult(repo string, items []model.Item, err error) {
 	s.Fetching = false
-	s.Overview.Loading = model.LoadingNone
+	s.Overview.Fetching = model.FetchNone
 	if err != nil {
 		s.showError("Error loading PRs", err)
 		return
@@ -81,7 +81,7 @@ func (s *State) ApplyDetailResult(content string, err error) {
 		s.showError("Error loading detail", err)
 		return
 	}
-	s.Overview.Loading = model.LoadingNone
+	s.Overview.Fetching = model.FetchNone
 	s.Overview.Content = model.SanitizeMultiline(content)
 }
 
@@ -90,7 +90,7 @@ func (s *State) ApplyDiffResult(content string, err error) {
 		s.showError("Error loading diff", err)
 		return
 	}
-	s.Overview.Loading = model.LoadingNone
+	s.Overview.Fetching = model.FetchNone
 	s.Overview.Content = model.SanitizeMultiline(content)
 }
 
@@ -123,7 +123,7 @@ func (s *State) SwitchToOverview() bool {
 		return false
 	}
 	s.Overview.Mode = model.DetailModeOverview
-	s.Overview.Loading = model.LoadingNone
+	s.Overview.Fetching = model.FetchNone
 	s.refreshOverviewPreview()
 	return true
 }
@@ -133,7 +133,7 @@ func (s *State) SwitchToDiff() bool {
 		return false
 	}
 	s.Overview.Mode = model.DetailModeDiff
-	s.Overview.Loading = model.LoadingNone
+	s.Overview.Fetching = model.FetchNone
 	return true
 }
 
@@ -161,11 +161,11 @@ func (s *State) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
 		return EnterAction{}
 	}
 	if forcedDetailText != "" {
-		s.Overview.Loading = model.LoadingNone
+		s.Overview.Fetching = model.FetchNone
 		s.Overview.Content = forcedDetailText
 		return EnterAction{}
 	}
-	s.Overview.Loading = model.LoadingDetail
+	s.Overview.Fetching = model.FetchingDetail
 	if s.Overview.Mode == model.DetailModeDiff {
 		return EnterAction{Kind: model.EnterLoadPRDiff, Repo: s.Repo, Number: item.Number}
 	}
@@ -189,7 +189,7 @@ func (s *State) selectedPR() (model.Item, bool) {
 }
 
 func (s *State) showError(msg string, err error) {
-	s.Overview.Loading = model.LoadingNone
+	s.Overview.Fetching = model.FetchNone
 	s.Overview.Content = model.SanitizeMultiline(fmt.Sprintf("%s: %v", msg, err))
 }
 
