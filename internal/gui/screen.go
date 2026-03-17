@@ -48,7 +48,7 @@ func (s *screen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			s.gui.showHelp = false
 			return s, nil
 		}
-		if s.gui.state.List.FilterOpen {
+		if s.gui.state.FilterOpen {
 			return s, s.handleFilterKey(msg)
 		}
 		if s.gui.review.IsInInputMode() {

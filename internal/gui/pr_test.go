@@ -192,16 +192,16 @@ func TestApplyPRsResult(t *testing.T) {
 
 			g.applyPRsResult(tt.msg)
 
-			if g.state.List.PRsLoading {
+			if g.state.Fetching {
 				t.Fatal("expected PRsLoading=false")
 			}
 			if g.state.Detail.Loading != model.LoadingNone {
 				t.Fatalf("got %v, want %v", g.state.Detail.Loading, model.LoadingNone)
 			}
-			if g.state.List.Repo != tt.want.repo {
-				t.Fatalf("got %q, want %q", g.state.List.Repo, tt.want.repo)
+			if g.state.Repo != tt.want.repo {
+				t.Fatalf("got %q, want %q", g.state.Repo, tt.want.repo)
 			}
-			if diff := cmp.Diff(tt.want.prs, g.state.List.PRs, cmpopts.EquateEmpty()); diff != "" {
+			if diff := cmp.Diff(tt.want.prs, g.state.Items, cmpopts.EquateEmpty()); diff != "" {
 				t.Fatalf("prs mismatch (-want +got)\n%s", diff)
 			}
 			if g.state.Detail.Content != tt.want.detail {

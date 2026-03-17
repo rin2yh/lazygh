@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -80,43 +79,4 @@ func (m PRFilterMask) Matches(state string) bool {
 	default:
 		return false
 	}
-}
-
-// FormatPRItem is used exclusively by internal/gui/render.go for PR list
-// rendering. If PR list rendering were moved into internal/gui/prs/, this
-// could move to internal/gui/prs/model.go.
-func FormatPRItem(item Item) string {
-	return fmt.Sprintf("#%d %s", item.Number, SanitizeSingleLine(item.Title))
-}
-
-func FormatPROverview(item Item) string {
-	status := SanitizeSingleLine(item.Status)
-	if status == "" {
-		status = PRStatusOpen
-	}
-
-	assignee := "unassigned"
-	if len(item.Assignees) > 0 {
-		list := make([]string, 0, len(item.Assignees))
-		for _, name := range item.Assignees {
-			n := SanitizeSingleLine(name)
-			if n != "" {
-				list = append(list, n)
-			}
-		}
-		if len(list) > 0 {
-			assignee = list[0]
-			if len(list) > 1 {
-				assignee = fmt.Sprintf("%s (+%d)", list[0], len(list)-1)
-			}
-		}
-	}
-
-	return fmt.Sprintf(
-		"PR #%d %s\nStatus: %s\nAssignee: %s",
-		item.Number,
-		SanitizeSingleLine(item.Title),
-		status,
-		assignee,
-	)
 }
