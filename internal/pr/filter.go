@@ -11,13 +11,7 @@ import (
 // FilterPanelLines builds the filter selection panel content and returns
 // the framed lines and the panel width.
 func FilterPanelLines(filter model.PRFilterMask, cursor int) ([]string, int) {
-	content := buildFilterContent(filter, cursor)
-	innerW := 0
-	for _, line := range content {
-		if w := xansi.StringWidth(line); w > innerW {
-			innerW = w
-		}
-	}
+	content, innerW := buildFilterContent(filter, cursor)
 	panelW := innerW + 4 // borders + padding
 	panelH := len(content) + 2
 	lines := widget.FramePanel("Filter",
@@ -29,8 +23,9 @@ func FilterPanelLines(filter model.PRFilterMask, cursor int) ([]string, int) {
 	return lines, panelW
 }
 
-func buildFilterContent(filter model.PRFilterMask, cursor int) []string {
+func buildFilterContent(filter model.PRFilterMask, cursor int) ([]string, int) {
 	lines := []string{""}
+	maxW := 0
 	for i, opt := range model.PRFilterOptions {
 		check := "[ ]"
 		if filter.Has(opt) {
@@ -42,10 +37,15 @@ func buildFilterContent(filter model.PRFilterMask, cursor int) []string {
 		} else {
 			line = fmt.Sprintf("    %s %s", check, opt.Label())
 		}
+		if w := xansi.StringWidth(line); w > maxW {
+			maxW = w
+		}
 		lines = append(lines, line)
 	}
-	lines = append(lines, "")
-	lines = append(lines, "  space:toggle  enter:apply  esc:cancel")
-	lines = append(lines, "")
-	return lines
+	footer := "  space:toggle  enter:apply  esc:cancel"
+	if w := xansi.StringWidth(footer); w > maxW {
+		maxW = w
+	}
+	lines = append(lines, "", footer, "")
+	return lines, maxW
 }

@@ -8,7 +8,7 @@ import (
 // PanelInput holds the data needed to render the left PR list panels.
 type PanelInput struct {
 	Repo     string
-	Loading  bool
+	Fetching bool
 	Items    []string
 	Selected int
 	Filter   string
@@ -31,7 +31,7 @@ func renderRepo(input PanelInput) []string {
 }
 
 func renderPRs(input PanelInput) []string {
-	if input.Loading {
+	if input.Fetching {
 		return nil
 	}
 	if len(input.Items) == 0 {

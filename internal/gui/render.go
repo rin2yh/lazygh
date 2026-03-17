@@ -28,7 +28,7 @@ func (gui *Gui) render() string {
 
 	leftInput := pr.PanelInput{
 		Repo:     gui.state.Repo,
-		Loading:  gui.state.Loading,
+		Fetching: gui.state.Fetching,
 		Items:    gui.renderPRItems(),
 		Selected: gui.state.Selected,
 		Filter:   gui.state.Filter.Label(),

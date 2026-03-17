@@ -57,7 +57,7 @@ func TestApplyPRsResult(t *testing.T) {
 			s.BeginLoadPRs()
 			s.ApplyPRsResult(tt.repo, tt.prs, tt.err)
 
-			if s.Loading {
+			if s.Fetching {
 				t.Fatal("prs should not be loading")
 			}
 			if s.Detail.Loading != model.LoadingNone {
@@ -85,7 +85,7 @@ func TestBeginLoadPRs_OnlySetsLoadingState(t *testing.T) {
 
 	s.BeginLoadPRs()
 
-	if !s.Loading {
+	if !s.Fetching {
 		t.Fatal("expected PRsLoading to be true")
 	}
 	if s.Detail.Loading != model.LoadingPRs {

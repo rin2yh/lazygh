@@ -47,7 +47,7 @@ func TestGuiRun_LoadsPRsAndDetail(t *testing.T) {
 	}()
 
 	waitChan(t, client.ResolveCalled, "ResolveCurrentRepo was not called")
-	if !g.state.Loading {
+	if !g.state.Fetching {
 		t.Fatal("prs panel should stay loading before release")
 	}
 	close(releaseResolve)

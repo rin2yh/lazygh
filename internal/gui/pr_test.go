@@ -192,7 +192,7 @@ func TestApplyPRsResult(t *testing.T) {
 
 			g.applyPRsResult(tt.msg)
 
-			if g.state.Loading {
+			if g.state.Fetching {
 				t.Fatal("expected PRsLoading=false")
 			}
 			if g.state.Detail.Loading != model.LoadingNone {

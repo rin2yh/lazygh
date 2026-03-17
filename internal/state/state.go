@@ -47,7 +47,7 @@ func (s *State) SetWindowSize(width int, height int) {
 }
 
 func (s *State) BeginLoadPRs() {
-	s.Loading = true
+	s.Fetching = true
 	s.Detail.Loading = model.LoadingPRs
 }
 
@@ -62,7 +62,7 @@ func (s *State) ClearLoading() {
 }
 
 func (s *State) ApplyPRsResult(repo string, items []model.Item, err error) {
-	s.Loading = false
+	s.Fetching = false
 	s.Detail.Loading = model.LoadingNone
 	if err != nil {
 		s.showError("Error loading PRs", err)
@@ -157,7 +157,7 @@ func (s *State) ShouldApplyDetailResult(mode model.DetailMode, number int) bool 
 }
 
 func (s *State) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
-	if !hasClient || s.Loading {
+	if !hasClient || s.Fetching {
 		return EnterAction{}
 	}
 	item, ok := s.selectedPR()

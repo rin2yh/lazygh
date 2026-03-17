@@ -6,7 +6,7 @@ import "github.com/rin2yh/lazygh/internal/model"
 type ListState struct {
 	Repo         string
 	Items        []model.Item
-	Loading      bool
+	Fetching     bool
 	Selected     int
 	Filter       model.PRFilterMask
 	FilterOpen   bool
