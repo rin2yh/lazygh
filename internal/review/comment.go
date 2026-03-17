@@ -15,16 +15,14 @@ type comment struct {
 	keys      config.KeyBindings
 	rs        *ReviewState
 	selection Selection
-	setFocus  func(FocusTarget)
 	editor    textarea.Model
 }
 
-func newComment(cfg *config.Config, rs *ReviewState, setFocus func(FocusTarget)) *comment {
+func newComment(cfg *config.Config, rs *ReviewState) *comment {
 	return &comment{
-		keys:     cfg.KeyBindings,
-		rs:       rs,
-		setFocus: setFocus,
-		editor:   newEditor("Add review comment"),
+		keys:   cfg.KeyBindings,
+		rs:     rs,
+		editor: newEditor("Add review comment"),
 	}
 }
 
@@ -45,7 +43,7 @@ func (f *comment) InputLines() []string {
 }
 
 func (f *comment) BeginInput() {
-	beginInput(f.rs, f.setFocus, &f.editor, f.rs.BeginCommentInput, "")
+	beginInput(f.rs, &f.editor, f.rs.BeginCommentInput, "")
 }
 
 func (f *comment) Clear() {
@@ -116,5 +114,4 @@ func (f *comment) BuildDraft(body string, start *model.ReviewRange) (gh.ReviewCo
 func (f *comment) ApplySaved() {
 	f.editor.SetValue("")
 	f.editor.Blur()
-	f.setFocus(FocusReviewDrawer)
 }

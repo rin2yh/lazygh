@@ -49,17 +49,17 @@ type Controller struct {
 // client handles GitHub API calls.
 func NewController(cfg *config.Config, host AppState, client PendingReviewClient, selection Selection, setFocus func(FocusTarget)) *Controller {
 	rs := newReviewState()
-	c := newComment(cfg, rs, setFocus)
-	s := newSummary(rs, setFocus)
-	rng := newRange(rs, selection, setFocus)
-	v := newView(rs, host, setFocus, c, s)
+	c := newComment(cfg, rs)
+	s := newSummary(rs)
+	rng := newRange(rs, selection)
+	v := newView(rs, host, c, s)
 	return &Controller{
 		rs:       rs,
 		keys:     cfg.KeyBindings,
 		comment:  c,
 		summary:  s,
 		rng:      rng,
-		pending:  newPending(rs, host, client, selection, setFocus, c, s),
+		pending:  newPending(rs, host, client, selection, c, s),
 		view:     v,
 		setFocus: setFocus,
 	}
@@ -125,10 +125,13 @@ func (c *Controller) SummaryInputLines() []string {
 
 func (c *Controller) BeginSummaryInput() {
 	c.summary.BeginInput()
+	c.setFocus(FocusReviewDrawer)
 }
 
 func (c *Controller) StopInput() {
-	c.view.StopInput()
+	if t := c.view.StopInput(); t != nil {
+		c.setFocus(*t)
+	}
 }
 
 func (c *Controller) ClearCommentInput() {
@@ -138,10 +141,18 @@ func (c *Controller) ClearCommentInput() {
 func (c *Controller) HandleEditorKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	switch msg.Type {
 	case tea.KeyEsc:
-		return nil, c.view.HandleEsc()
+		handled := c.view.HandleEsc()
+		if handled {
+			c.setFocus(FocusDiffContent)
+		}
+		return nil, handled
 	}
 	if c.keys.Matches(msg, config.ActionReviewSave) && c.view.InputMode() == model.ReviewInputSummary {
-		return nil, c.view.HandleSummarySave()
+		_, target := c.view.HandleSummarySave()
+		if target != nil {
+			c.setFocus(*target)
+		}
+		return nil, true
 	}
 
 	switch c.view.InputMode() {
@@ -157,7 +168,9 @@ func (c *Controller) HandleEditorKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 // --- range ---
 
 func (c *Controller) ToggleRangeSelection() {
-	c.rng.ToggleSelection()
+	if c.rng.ToggleSelection() {
+		c.setFocus(FocusDiffContent)
+	}
 }
 
 func (c *Controller) IsIndexWithinPendingRange(path string, commentable bool, idx int) bool {
@@ -183,15 +196,23 @@ func (c *Controller) HandleDiscard() tea.Cmd {
 }
 
 func (c *Controller) ApplyCommentResult(msg CommentSavedMsg) {
-	c.pending.ApplyCommentResult(msg)
+	if c.pending.ApplyCommentResult(msg) {
+		c.setFocus(FocusReviewDrawer)
+	}
 }
 
 func (c *Controller) ApplySubmitResult(msg SubmittedMsg) {
 	c.pending.ApplySubmitResult(msg)
+	if msg.Err == nil {
+		c.setFocus(FocusDiffContent)
+	}
 }
 
 func (c *Controller) ApplyDiscardResult(msg DiscardedMsg) {
 	c.pending.ApplyDiscardResult(msg)
+	if msg.Err == nil {
+		c.setFocus(FocusDiffContent)
+	}
 }
 
 func (c *Controller) HandleDeleteComment() tea.Cmd {
@@ -216,6 +237,9 @@ func (c *Controller) ApplyDeleteCommentResult(msg CommentDeletedMsg) {
 
 func (c *Controller) ApplyEditCommentResult(msg CommentUpdatedMsg) {
 	c.pending.ApplyEditCommentResult(msg)
+	if msg.Err == nil {
+		c.setFocus(FocusReviewDrawer)
+	}
 }
 
 func (c *Controller) SelectNextComment() {
@@ -236,4 +260,5 @@ func (c *Controller) CycleReviewEvent() {
 
 func (c *Controller) BeginCommentFlow() {
 	c.comment.BeginInput()
+	c.setFocus(FocusReviewDrawer)
 }

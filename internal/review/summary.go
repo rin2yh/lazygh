@@ -6,16 +6,14 @@ import (
 )
 
 type summary struct {
-	rs       *ReviewState
-	setFocus func(FocusTarget)
-	editor   textarea.Model
+	rs     *ReviewState
+	editor textarea.Model
 }
 
-func newSummary(rs *ReviewState, setFocus func(FocusTarget)) *summary {
+func newSummary(rs *ReviewState) *summary {
 	return &summary{
-		rs:       rs,
-		setFocus: setFocus,
-		editor:   newEditor("Review summary"),
+		rs:     rs,
+		editor: newEditor("Review summary"),
 	}
 }
 
@@ -28,7 +26,7 @@ func (f *summary) InputLines() []string {
 }
 
 func (f *summary) BeginInput() {
-	beginInput(f.rs, f.setFocus, &f.editor, f.rs.BeginSummaryInput, f.rs.Summary)
+	beginInput(f.rs, &f.editor, f.rs.BeginSummaryInput, f.rs.Summary)
 }
 
 func (f *summary) StopInput() {

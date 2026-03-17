@@ -112,7 +112,7 @@ func TestBuildDraft(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rs := newReviewState()
-			c := newComment(defaultTestConfig(), rs, func(FocusTarget) {})
+			c := newComment(defaultTestConfig(), rs)
 			c.bindSelection(tt.selection)
 
 			got, err := c.BuildDraft(tt.body, tt.rangePtr)
@@ -145,8 +145,6 @@ func TestHandleEditorKey_EscCancelsCommentAndClearsRange(t *testing.T) {
 	c.rs.MarkRangeStart(model.ReviewRange{Path: "a.txt", Index: 3, Line: 10})
 	focus := FocusReviewDrawer
 	c.setFocus = func(target FocusTarget) { focus = target }
-	c.comment.setFocus = c.setFocus
-	c.view.setFocus = c.setFocus
 	c.SetCommentValue("draft")
 
 	_, handled := c.HandleEditorKey(tea.KeyMsg{Type: tea.KeyEsc})

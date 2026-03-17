@@ -54,19 +54,17 @@ type pending struct {
 	host      AppState
 	client    PendingReviewClient
 	selection Selection
-	setFocus  func(FocusTarget)
 	comment   *comment
 	summary   *summary
 }
 
-func newPending(rs *ReviewState, host AppState, client PendingReviewClient, selection Selection, setFocus func(FocusTarget), comment *comment, summary *summary) *pending {
+func newPending(rs *ReviewState, host AppState, client PendingReviewClient, selection Selection, comment *comment, summary *summary) *pending {
 	comment.bindSelection(selection)
 	return &pending{
 		rs:        rs,
 		host:      host,
 		client:    client,
 		selection: selection,
-		setFocus:  setFocus,
 		comment:   comment,
 		summary:   summary,
 	}
@@ -231,14 +229,16 @@ func (f *pending) HandleDiscard() tea.Cmd {
 	}
 }
 
-func (f *pending) ApplyCommentResult(msg CommentSavedMsg) {
+// ApplyCommentResult applies the result of a comment save operation and returns
+// true if the comment was saved successfully (caller should set focus to FocusReviewDrawer).
+func (f *pending) ApplyCommentResult(msg CommentSavedMsg) bool {
 	f.host.ClearLoading()
 	if msg.ReviewID != "" || msg.Context.PullRequestID != "" || msg.Context.CommitOID != "" {
 		f.rs.SetContext(msg.PRNumber, msg.Context.PullRequestID, msg.Context.CommitOID, msg.ReviewID)
 	}
 	if msg.Err != nil {
 		f.rs.SetNotice(msg.Err.Error())
-		return
+		return false
 	}
 	f.rs.AddComment(model.ReviewComment{
 		CommentID: msg.CommentID,
@@ -250,6 +250,7 @@ func (f *pending) ApplyCommentResult(msg CommentSavedMsg) {
 		StartLine: msg.Comment.StartLine,
 	})
 	f.comment.ApplySaved()
+	return true
 }
 
 func (f *pending) ApplyDeleteCommentResult(msg CommentDeletedMsg) {
@@ -270,7 +271,6 @@ func (f *pending) ApplyEditCommentResult(msg CommentUpdatedMsg) {
 	}
 	f.rs.ApplyEditComment(msg.Body)
 	f.comment.StopInput()
-	f.setFocus(FocusReviewDrawer)
 }
 
 func (f *pending) ApplySubmitResult(msg SubmittedMsg) {
@@ -282,7 +282,6 @@ func (f *pending) ApplySubmitResult(msg SubmittedMsg) {
 	f.comment.StopInput()
 	f.summary.StopInput()
 	f.rs.ResetAfterSubmit("Review submitted.")
-	f.setFocus(FocusDiffContent)
 }
 
 func (f *pending) ApplyDiscardResult(msg DiscardedMsg) {
@@ -295,5 +294,4 @@ func (f *pending) ApplyDiscardResult(msg DiscardedMsg) {
 	f.summary.StopInput()
 	f.summary.Clear()
 	f.rs.ResetAfterDiscard("Review draft discarded.")
-	f.setFocus(FocusDiffContent)
 }
