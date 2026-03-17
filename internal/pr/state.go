@@ -14,10 +14,10 @@ type ListState struct {
 }
 
 // SelectedOverview returns the formatted overview string for the currently
-// selected PR, or empty string if no item is selected.
-func (ls *ListState) SelectedOverview() string {
+// selected PR. Returns false if no item is selected.
+func (ls *ListState) SelectedOverview() (string, bool) {
 	if ls.Selected < 0 || ls.Selected >= len(ls.Items) {
-		return ""
+		return "", false
 	}
-	return formatOverview(ls.Items[ls.Selected])
+	return formatOverview(ls.Items[ls.Selected]), true
 }
