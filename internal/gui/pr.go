@@ -99,7 +99,7 @@ func (gui *Gui) applyDetailResult(msg detailLoadedMsg) {
 			}
 			return
 		}
-		gui.updateDiffFiles(gui.state.Detail.Content)
+		gui.updateDiffFiles(gui.state.Overview.Content)
 		return
 	}
 	gui.state.ApplyDetailResult(msg.content, msg.err)
@@ -109,10 +109,10 @@ func (gui *Gui) currentDiffContent() string {
 	files := gui.diff.Files()
 	selected := gui.diff.FileSelected()
 	if len(files) == 0 {
-		return gui.state.Detail.Content
+		return gui.state.Overview.Content
 	}
 	if selected < 0 || selected >= len(files) {
-		return gui.state.Detail.Content
+		return gui.state.Overview.Content
 	}
 	return files[selected].Content
 }

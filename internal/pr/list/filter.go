@@ -1,4 +1,4 @@
-package pr
+package list
 
 import (
 	"fmt"

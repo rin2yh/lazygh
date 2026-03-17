@@ -3,9 +3,9 @@ package state
 import (
 	"fmt"
 
-	"github.com/rin2yh/lazygh/internal/detail"
 	"github.com/rin2yh/lazygh/internal/model"
-	"github.com/rin2yh/lazygh/internal/pr"
+	"github.com/rin2yh/lazygh/internal/pr/list"
+	"github.com/rin2yh/lazygh/internal/pr/overview"
 )
 
 type EnterAction struct {
@@ -15,9 +15,9 @@ type EnterAction struct {
 }
 
 type State struct {
-	pr.ListState
+	list.ListState
 
-	Detail detail.State
+	Overview overview.State
 
 	Width  int
 	Height int
@@ -25,11 +25,11 @@ type State struct {
 
 func NewState() *State {
 	return &State{
-		ListState: pr.ListState{
+		ListState: list.ListState{
 			Items:  []model.Item{},
 			Filter: model.PRFilterOpen,
 		},
-		Detail: detail.State{
+		Overview: overview.State{
 			Mode: model.DetailModeOverview,
 		},
 	}
@@ -42,22 +42,22 @@ func (s *State) SetWindowSize(width int, height int) {
 
 func (s *State) BeginLoadPRs() {
 	s.Fetching = true
-	s.Detail.Loading = model.LoadingPRs
+	s.Overview.Loading = model.LoadingPRs
 }
 
 // BeginReviewLoad marks a review operation as in-progress.
 func (s *State) BeginReviewLoad() {
-	s.Detail.Loading = model.LoadingReview
+	s.Overview.Loading = model.LoadingReview
 }
 
 // ClearLoading clears any in-progress loading indicator.
 func (s *State) ClearLoading() {
-	s.Detail.Loading = model.LoadingNone
+	s.Overview.Loading = model.LoadingNone
 }
 
 func (s *State) ApplyPRsResult(repo string, items []model.Item, err error) {
 	s.Fetching = false
-	s.Detail.Loading = model.LoadingNone
+	s.Overview.Loading = model.LoadingNone
 	if err != nil {
 		s.showError("Error loading PRs", err)
 		return
@@ -66,13 +66,13 @@ func (s *State) ApplyPRsResult(repo string, items []model.Item, err error) {
 	s.Repo = repo
 	s.Items = items
 	s.Selected = 0
-	s.Detail.Mode = model.DetailModeOverview
+	s.Overview.Mode = model.DetailModeOverview
 	if len(items) == 0 {
-		s.Detail.Content = "No pull requests"
+		s.Overview.Content = "No pull requests"
 		return
 	}
-	if overview, ok := s.SelectedOverview(); ok {
-		s.Detail.Content = overview
+	if content, ok := s.SelectedOverview(); ok {
+		s.Overview.Content = content
 	}
 }
 
@@ -81,8 +81,8 @@ func (s *State) ApplyDetailResult(content string, err error) {
 		s.showError("Error loading detail", err)
 		return
 	}
-	s.Detail.Loading = model.LoadingNone
-	s.Detail.Content = model.SanitizeMultiline(content)
+	s.Overview.Loading = model.LoadingNone
+	s.Overview.Content = model.SanitizeMultiline(content)
 }
 
 func (s *State) ApplyDiffResult(content string, err error) {
@@ -90,8 +90,8 @@ func (s *State) ApplyDiffResult(content string, err error) {
 		s.showError("Error loading diff", err)
 		return
 	}
-	s.Detail.Loading = model.LoadingNone
-	s.Detail.Content = model.SanitizeMultiline(content)
+	s.Overview.Loading = model.LoadingNone
+	s.Overview.Content = model.SanitizeMultiline(content)
 }
 
 func (s *State) NavigateDown() bool {
@@ -100,7 +100,7 @@ func (s *State) NavigateDown() bool {
 		s.Selected++
 		changed = true
 	}
-	if changed && s.Detail.Mode == model.DetailModeOverview {
+	if changed && s.Overview.Mode == model.DetailModeOverview {
 		s.refreshDetailPreview()
 	}
 	return changed
@@ -112,37 +112,37 @@ func (s *State) NavigateUp() bool {
 		s.Selected--
 		changed = true
 	}
-	if changed && s.Detail.Mode == model.DetailModeOverview {
+	if changed && s.Overview.Mode == model.DetailModeOverview {
 		s.refreshDetailPreview()
 	}
 	return changed
 }
 
 func (s *State) SwitchToOverview() bool {
-	if s.Detail.Mode == model.DetailModeOverview {
+	if s.Overview.Mode == model.DetailModeOverview {
 		return false
 	}
-	s.Detail.Mode = model.DetailModeOverview
-	s.Detail.Loading = model.LoadingNone
+	s.Overview.Mode = model.DetailModeOverview
+	s.Overview.Loading = model.LoadingNone
 	s.refreshDetailPreview()
 	return true
 }
 
 func (s *State) SwitchToDiff() bool {
-	if s.Detail.Mode == model.DetailModeDiff {
+	if s.Overview.Mode == model.DetailModeDiff {
 		return false
 	}
-	s.Detail.Mode = model.DetailModeDiff
-	s.Detail.Loading = model.LoadingNone
+	s.Overview.Mode = model.DetailModeDiff
+	s.Overview.Loading = model.LoadingNone
 	return true
 }
 
 func (s *State) IsDiffMode() bool {
-	return s.Detail.Mode == model.DetailModeDiff
+	return s.Overview.Mode == model.DetailModeDiff
 }
 
 func (s *State) ShouldApplyDetailResult(mode model.DetailMode, number int) bool {
-	if s.Detail.Mode != mode {
+	if s.Overview.Mode != mode {
 		return false
 	}
 	item, ok := s.selectedPR()
@@ -161,20 +161,20 @@ func (s *State) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
 		return EnterAction{}
 	}
 	if forcedDetailText != "" {
-		s.Detail.Loading = model.LoadingNone
-		s.Detail.Content = forcedDetailText
+		s.Overview.Loading = model.LoadingNone
+		s.Overview.Content = forcedDetailText
 		return EnterAction{}
 	}
-	s.Detail.Loading = model.LoadingDetail
-	if s.Detail.Mode == model.DetailModeDiff {
+	s.Overview.Loading = model.LoadingDetail
+	if s.Overview.Mode == model.DetailModeDiff {
 		return EnterAction{Kind: model.EnterLoadPRDiff, Repo: s.Repo, Number: item.Number}
 	}
 	return EnterAction{Kind: model.EnterLoadPRDetail, Repo: s.Repo, Number: item.Number}
 }
 
 func (s *State) refreshDetailPreview() {
-	if overview, ok := s.SelectedOverview(); ok {
-		s.Detail.Content = overview
+	if content, ok := s.SelectedOverview(); ok {
+		s.Overview.Content = content
 	}
 }
 
@@ -189,8 +189,8 @@ func (s *State) selectedPR() (model.Item, bool) {
 }
 
 func (s *State) showError(msg string, err error) {
-	s.Detail.Loading = model.LoadingNone
-	s.Detail.Content = model.SanitizeMultiline(fmt.Sprintf("%s: %v", msg, err))
+	s.Overview.Loading = model.LoadingNone
+	s.Overview.Content = model.SanitizeMultiline(fmt.Sprintf("%s: %v", msg, err))
 }
 
 func (s *State) SelectedPR() (model.Item, bool) {
