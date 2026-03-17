@@ -60,7 +60,6 @@ type ReviewHandler interface {
 	BeginSummaryInput()
 	SetNotice(msg string)
 	ClearRangeStart()
-	Reset()
 }
 
 // ReviewApplier は非同期操作の結果をレビュー状態に適用するインターフェース。
