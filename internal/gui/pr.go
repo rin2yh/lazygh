@@ -82,6 +82,7 @@ func (s *screen) loadDetailCmd(repo string, number int, mode model.DetailMode) t
 
 func (gui *Gui) applyPRsResult(msg prsLoadedMsg) {
 	gui.state.ApplyPRsResult(msg.repo, msg.prs, msg.err)
+	gui.review.Reset()
 	gui.focus = panelPRs
 }
 

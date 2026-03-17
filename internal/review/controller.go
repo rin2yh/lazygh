@@ -5,9 +5,9 @@ import (
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/model"
-	appstate "github.com/rin2yh/lazygh/internal/state"
 )
 
+// FocusTarget identifies which UI panel should receive focus.
 type FocusTarget int
 
 const (
@@ -15,13 +15,27 @@ const (
 	FocusReviewDrawer
 )
 
+// Selection provides the currently selected diff line/file to the review workflow.
 type Selection interface {
 	CurrentDiffFile() (gh.DiffFile, bool)
 	CurrentDiffLine() (gh.DiffLine, bool)
 	CurrentLineIndex() int
 }
 
+// AppState is the minimal interface the review package needs from the host
+// application state (list/detail state).
+type AppState interface {
+	SelectedPR() (model.Item, bool)
+	ListRepo() string
+	BeginReviewLoad()
+	ClearLoading()
+	IsDiffMode() bool
+}
+
+// Controller orchestrates the pending-review workflow and directly owns
+// ReviewState (no *state.State reference).
 type Controller struct {
+	rs       *ReviewState
 	keys     config.KeyBindings
 	comment  *comment
 	summary  *summary
@@ -31,25 +45,63 @@ type Controller struct {
 	setFocus func(FocusTarget)
 }
 
-func NewController(cfg *config.Config, state *appstate.State, client PendingReviewClient, selection Selection, setFocus func(FocusTarget)) *Controller {
-	comment := newComment(cfg, state, setFocus)
-	summary := newSummary(state, setFocus)
-	rng := newRange(state, selection, setFocus)
-	view := newView(state, setFocus, comment, summary)
+// NewController creates a Controller. host provides list/detail context;
+// client handles GitHub API calls.
+func NewController(cfg *config.Config, host AppState, client PendingReviewClient, selection Selection, setFocus func(FocusTarget)) *Controller {
+	rs := newReviewState()
+	c := newComment(cfg, rs, setFocus)
+	s := newSummary(rs, setFocus)
+	rng := newRange(rs, selection, setFocus)
+	v := newView(rs, host, setFocus, c, s)
 	return &Controller{
+		rs:       rs,
 		keys:     cfg.KeyBindings,
-		comment:  comment,
-		summary:  summary,
+		comment:  c,
+		summary:  s,
 		rng:      rng,
-		pending:  newPending(state, client, selection, setFocus, comment, summary),
-		view:     view,
+		pending:  newPending(rs, host, client, selection, setFocus, c, s),
+		view:     v,
 		setFocus: setFocus,
 	}
 }
 
+// --- state accessors for the gui layer ---
+
+func (c *Controller) InputMode() model.ReviewInputMode { return c.rs.InputMode }
+func (c *Controller) Summary() string                  { return c.rs.Summary }
+func (c *Controller) EventLabel() string               { return c.rs.Event.Label() }
+func (c *Controller) Notice() string                   { return c.rs.Notice }
+func (c *Controller) RangeStart() *model.ReviewRange   { return c.rs.RangeStart }
+func (c *Controller) Comments() []model.ReviewComment  { return c.rs.Comments }
+func (c *Controller) SelectedCommentIdx() int          { return c.rs.SelectedCommentIdx }
+func (c *Controller) HasRangeStart() bool              { return c.rs.RangeStart != nil }
+func (c *Controller) IsInInputMode() bool              { return c.rs.InputMode != model.ReviewInputNone }
+func (c *Controller) HasPendingReview() bool           { return c.rs.HasPendingReview() }
+func (c *Controller) PRNumber() int                    { return c.rs.PRNumber }
+func (c *Controller) SetNotice(msg string)             { c.rs.SetNotice(msg) }
+func (c *Controller) ClearRangeStart()                 { c.rs.ClearRangeStart() }
+
+// Reset clears review state (called when the PR list reloads).
+func (c *Controller) Reset() { c.rs.Reset() }
+
+// SetContext sets the pending review context (PR number, IDs).
+func (c *Controller) SetContext(prNumber int, pullRequestID, commitOID, reviewID string) {
+	c.rs.SetContext(prNumber, pullRequestID, commitOID, reviewID)
+}
+
+// OpenDrawer opens the review drawer.
+func (c *Controller) OpenDrawer() { c.rs.OpenDrawer() }
+
+// BeginCommentInput puts the drawer into comment input mode.
+func (c *Controller) BeginCommentInput() { c.rs.BeginCommentInput() }
+
+// --- view ---
+
 func (c *Controller) ShouldShowDrawer() bool {
 	return c.view.ShouldShowDrawer()
 }
+
+// --- comment editor ---
 
 func (c *Controller) CurrentCommentValue() string {
 	return c.comment.CurrentValue()
@@ -79,6 +131,10 @@ func (c *Controller) StopInput() {
 	c.view.StopInput()
 }
 
+func (c *Controller) ClearCommentInput() {
+	c.comment.Clear()
+}
+
 func (c *Controller) HandleEditorKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	switch msg.Type {
 	case tea.KeyEsc:
@@ -98,17 +154,17 @@ func (c *Controller) HandleEditorKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	}
 }
 
+// --- range ---
+
 func (c *Controller) ToggleRangeSelection() {
 	c.rng.ToggleSelection()
 }
 
-func (c *Controller) BeginCommentFlow() {
-	c.comment.BeginInput()
+func (c *Controller) IsIndexWithinPendingRange(path string, commentable bool, idx int) bool {
+	return c.rng.IsIndexWithinPendingRange(path, commentable, idx)
 }
 
-func (c *Controller) ClearCommentInput() {
-	c.comment.Clear()
-}
+// --- pending review actions ---
 
 func (c *Controller) BuildCommentDraft(body string) (gh.ReviewComment, error) {
 	return c.comment.BuildDraft(body, c.rng.RangeStart())
@@ -174,10 +230,10 @@ func (c *Controller) IsEditingComment() bool {
 	return c.pending.IsEditingComment()
 }
 
-func (c *Controller) IsIndexWithinPendingRange(path string, commentable bool, idx int) bool {
-	return c.rng.IsIndexWithinPendingRange(path, commentable, idx)
+func (c *Controller) CycleReviewEvent() {
+	c.rs.CycleEvent()
 }
 
-func (c *Controller) CycleReviewEvent() {
-	c.pending.state.CycleReviewEvent()
+func (c *Controller) BeginCommentFlow() {
+	c.comment.BeginInput()
 }

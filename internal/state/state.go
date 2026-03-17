@@ -6,22 +6,6 @@ import (
 	"github.com/rin2yh/lazygh/internal/model"
 )
 
-type ReviewState struct {
-	PRNumber           int
-	PullRequestID      string
-	CommitOID          string
-	ReviewID           string
-	DrawerOpen         bool
-	InputMode          model.ReviewInputMode
-	Event              model.ReviewEvent
-	Summary            string
-	Comments           []model.ReviewComment
-	RangeStart         *model.ReviewRange
-	Notice             string
-	SelectedCommentIdx int
-	EditingCommentIdx  int
-}
-
 // ListState holds PR list and selection state.
 type ListState struct {
 	Repo         string
@@ -49,7 +33,6 @@ type EnterAction struct {
 type State struct {
 	List   ListState
 	Detail DetailState
-	Review ReviewState
 
 	Width  int
 	Height int
@@ -63,10 +46,6 @@ func NewState() *State {
 		},
 		Detail: DetailState{
 			Mode: model.DetailModeOverview,
-		},
-		Review: ReviewState{
-			Comments:          []model.ReviewComment{},
-			EditingCommentIdx: model.NoEditingComment,
 		},
 	}
 }
@@ -91,11 +70,6 @@ func (s *State) ClearLoading() {
 	s.Detail.Loading = model.LoadingNone
 }
 
-// StopReviewInput exits any active review input mode without closing the drawer.
-func (s *State) StopReviewInput() {
-	s.Review.InputMode = model.ReviewInputNone
-}
-
 func (s *State) ApplyPRsResult(repo string, prs []model.Item, err error) {
 	s.List.PRsLoading = false
 	s.Detail.Loading = model.LoadingNone
@@ -108,7 +82,6 @@ func (s *State) ApplyPRsResult(repo string, prs []model.Item, err error) {
 	s.List.PRs = prs
 	s.List.PRsSelected = 0
 	s.Detail.Mode = model.DetailModeOverview
-	s.resetReview()
 	if len(prs) == 0 {
 		s.Detail.Content = "No pull requests"
 		return
@@ -135,10 +108,6 @@ func (s *State) ApplyDiffResult(content string, err error) {
 }
 
 func (s *State) NavigateDown() bool {
-	if s.blocksPRSelectionChange() {
-		s.Review.Notice = "Pending review exists. Submit with S or discard with X."
-		return false
-	}
 	changed := false
 	if s.List.PRsSelected < len(s.List.PRs)-1 {
 		s.List.PRsSelected++
@@ -151,10 +120,6 @@ func (s *State) NavigateDown() bool {
 }
 
 func (s *State) NavigateUp() bool {
-	if s.blocksPRSelectionChange() {
-		s.Review.Notice = "Pending review exists. Submit with S or discard with X."
-		return false
-	}
 	changed := false
 	if s.List.PRsSelected > 0 {
 		s.List.PRsSelected--
@@ -172,7 +137,6 @@ func (s *State) SwitchToOverview() bool {
 	}
 	s.Detail.Mode = model.DetailModeOverview
 	s.Detail.Loading = model.LoadingNone
-	s.Review.InputMode = model.ReviewInputNone
 	s.refreshDetailPreview()
 	return true
 }
@@ -183,8 +147,6 @@ func (s *State) SwitchToDiff() bool {
 	}
 	s.Detail.Mode = model.DetailModeDiff
 	s.Detail.Loading = model.LoadingNone
-	s.Review.DrawerOpen = false
-	s.Review.InputMode = model.ReviewInputNone
 	return true
 }
 
@@ -250,158 +212,9 @@ func (s *State) SelectedPR() (model.Item, bool) {
 	return s.selectedPR()
 }
 
-func (s *State) OpenReviewDrawer() {
-	s.Review.DrawerOpen = true
-}
-
-func (s *State) CloseReviewDrawer() {
-	s.Review.DrawerOpen = false
-	s.Review.InputMode = model.ReviewInputNone
-	s.Review.Notice = ""
-}
-
-func (s *State) BeginReviewCommentInput() {
-	s.Review.DrawerOpen = true
-	s.Review.InputMode = model.ReviewInputComment
-	s.Review.Notice = ""
-}
-
-func (s *State) BeginReviewSummaryInput() {
-	s.Review.DrawerOpen = true
-	s.Review.InputMode = model.ReviewInputSummary
-	s.Review.Notice = ""
-}
-
-func (s *State) SetReviewSummary(summary string) {
-	s.Review.Summary = model.SanitizeMultiline(summary)
-}
-
-func (s *State) SetReviewContext(prNumber int, pullRequestID string, commitOID string, reviewID string) {
-	s.Review.PRNumber = prNumber
-	s.Review.PullRequestID = model.SanitizeSingleLine(pullRequestID)
-	s.Review.CommitOID = model.SanitizeSingleLine(commitOID)
-	s.Review.ReviewID = model.SanitizeSingleLine(reviewID)
-}
-
-func (s *State) AddReviewComment(comment model.ReviewComment) {
-	s.Review.Comments = append(s.Review.Comments, model.ReviewComment{
-		CommentID: comment.CommentID,
-		Path:      model.SanitizeSingleLine(comment.Path),
-		Body:      model.SanitizeMultiline(comment.Body),
-		Side:      model.SanitizeSingleLine(comment.Side),
-		Line:      comment.Line,
-		StartSide: model.SanitizeSingleLine(comment.StartSide),
-		StartLine: comment.StartLine,
-	})
-	s.Review.SelectedCommentIdx = len(s.Review.Comments) - 1
-	s.Review.Notice = "Review comment added."
-	s.Review.DrawerOpen = true
-	s.Review.InputMode = model.ReviewInputNone
-	s.Review.RangeStart = nil
-}
-
-func (s *State) SelectNextComment() {
-	if len(s.Review.Comments) == 0 {
-		return
-	}
-	if s.Review.SelectedCommentIdx < len(s.Review.Comments)-1 {
-		s.Review.SelectedCommentIdx++
-	}
-}
-
-func (s *State) SelectPrevComment() {
-	if s.Review.SelectedCommentIdx > 0 {
-		s.Review.SelectedCommentIdx--
-	}
-}
-
-func (s *State) DeleteSelectedComment() (model.ReviewComment, bool) {
-	idx := s.Review.SelectedCommentIdx
-	if idx < 0 || idx >= len(s.Review.Comments) {
-		return model.ReviewComment{}, false
-	}
-	deleted := s.Review.Comments[idx]
-	s.Review.Comments = append(s.Review.Comments[:idx], s.Review.Comments[idx+1:]...)
-	if len(s.Review.Comments) == 0 {
-		s.Review.SelectedCommentIdx = 0
-	} else if s.Review.SelectedCommentIdx >= len(s.Review.Comments) {
-		s.Review.SelectedCommentIdx = len(s.Review.Comments) - 1
-	}
-	return deleted, true
-}
-
-func (s *State) SelectedComment() (model.ReviewComment, bool) {
-	idx := s.Review.SelectedCommentIdx
-	if idx < 0 || idx >= len(s.Review.Comments) {
-		return model.ReviewComment{}, false
-	}
-	return s.Review.Comments[idx], true
-}
-
-func (s *State) BeginEditComment() {
-	s.Review.EditingCommentIdx = s.Review.SelectedCommentIdx
-	s.Review.InputMode = model.ReviewInputComment
-	s.Review.DrawerOpen = true
-	s.Review.Notice = ""
-}
-
-func (s *State) ApplyEditComment(newBody string) {
-	idx := s.Review.EditingCommentIdx
-	if idx < 0 || idx >= len(s.Review.Comments) {
-		return
-	}
-	s.Review.Comments[idx].Body = model.SanitizeMultiline(newBody)
-	s.Review.EditingCommentIdx = model.NoEditingComment
-	s.Review.InputMode = model.ReviewInputNone
-	s.Review.Notice = "Comment updated."
-}
-
-func (s *State) ClearEditingComment() {
-	s.Review.EditingCommentIdx = model.NoEditingComment
-}
-
-func (s *State) SetReviewNotice(msg string) {
-	s.Review.Notice = model.SanitizeMultiline(msg)
-}
-
-func (s *State) ClearReviewNotice() {
-	s.Review.Notice = ""
-}
-
-func (s *State) HasPendingReview() bool {
-	return s.Review.ReviewID != ""
-}
-
-func (s *State) MarkReviewRangeStart(anchor model.ReviewRange) {
-	copied := anchor
-	s.Review.RangeStart = &copied
-	s.Review.DrawerOpen = true
-	s.Review.Notice = "Range start selected."
-}
-
-func (s *State) CycleReviewEvent() {
-	switch s.Review.Event {
-	case model.ReviewEventComment:
-		s.Review.Event = model.ReviewEventApprove
-	case model.ReviewEventApprove:
-		s.Review.Event = model.ReviewEventRequestChanges
-	default:
-		s.Review.Event = model.ReviewEventComment
-	}
-}
-
-func (s *State) ClearReviewRangeStart() {
-	s.Review.RangeStart = nil
-}
-
-func (s *State) ResetReviewAfterSubmit(notice string) {
-	s.resetReview()
-	s.Review.Notice = model.SanitizeMultiline(notice)
-}
-
-func (s *State) ResetReviewAfterDiscard(notice string) {
-	s.resetReview()
-	s.Review.Notice = model.SanitizeMultiline(notice)
+// ListRepo returns the current repository slug.
+func (s *State) ListRepo() string {
+	return s.List.Repo
 }
 
 func (s *State) OpenFilterSelect() {
@@ -430,19 +243,4 @@ func (s *State) ToggleFilterAtCursor() {
 		return // disallow empty selection
 	}
 	s.List.Filter = next
-}
-
-func (s *State) blocksPRSelectionChange() bool {
-	item, ok := s.selectedPR()
-	if !ok {
-		return false
-	}
-	return s.HasPendingReview() && s.Review.PRNumber == item.Number
-}
-
-func (s *State) resetReview() {
-	s.Review = ReviewState{
-		Notice:            s.Review.Notice,
-		EditingCommentIdx: model.NoEditingComment,
-	}
 }

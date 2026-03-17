@@ -8,8 +8,8 @@ import (
 	"github.com/rin2yh/lazygh/internal/gui/help"
 	"github.com/rin2yh/lazygh/internal/gui/layout"
 	"github.com/rin2yh/lazygh/internal/gui/prs"
-	guireview "github.com/rin2yh/lazygh/internal/gui/review"
 	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/review"
 	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
@@ -22,7 +22,7 @@ func (gui *Gui) render() string {
 		Loading:   gui.state.Detail.Loading != model.LoadingNone,
 		DiffMode:  isDiff,
 		Focus:     focus,
-		InputMode: gui.state.Review.InputMode,
+		InputMode: gui.review.InputMode(),
 		Keys:      gui.config.KeyBindings,
 	}.String()
 
@@ -62,7 +62,7 @@ func (gui *Gui) render() string {
 	drawerInput := gui.buildReviewDrawerInput(showDrawer)
 	if drawerInput != nil && screen.DrawerHeight > 0 {
 		drawerActive := focus == layout.FocusReviewDrawer
-		for _, line := range guireview.RenderDrawer(*drawerInput, gui.style(drawerActive), screen.Width, screen.DrawerHeight) {
+		for _, line := range review.RenderDrawer(*drawerInput, gui.style(drawerActive), screen.Width, screen.DrawerHeight) {
 			lines = append(lines, widget.PadOrTrim(line, screen.Width))
 		}
 	}
@@ -199,41 +199,43 @@ func (gui *Gui) renderDiffContentLines() []guidiff.ContentLine {
 	return lines
 }
 
-func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *guireview.DrawerInput {
+func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *review.DrawerInput {
 	if !showDrawer {
 		return nil
 	}
-	summary := gui.state.Review.Summary
-	if gui.state.Review.InputMode == model.ReviewInputSummary {
+	inputMode := gui.review.InputMode()
+	summary := gui.review.Summary()
+	if inputMode == model.ReviewInputSummary {
 		summary = gui.review.CurrentSummaryValue()
 	}
-	input := &guireview.DrawerInput{
+	input := &review.DrawerInput{
 		SummaryLines:     splitNonEmptyLines(summary),
-		CommentModeLabel: guireview.CommentModeSingleLine,
-		EventLabel:       gui.state.Review.Event.Label(),
-		Notice:           gui.state.Review.Notice,
+		CommentModeLabel: review.CommentModeSingleLine,
+		EventLabel:       gui.review.EventLabel(),
+		Notice:           gui.review.Notice(),
 	}
-	if gui.state.Review.RangeStart != nil {
-		input.CommentModeLabel = guireview.CommentModeRangeSelecting
-		input.RangeStart = &guireview.DrawerRange{
-			Path: gui.state.Review.RangeStart.Path,
-			Line: gui.state.Review.RangeStart.Line,
+	if rs := gui.review.RangeStart(); rs != nil {
+		input.CommentModeLabel = review.CommentModeRangeSelecting
+		input.RangeStart = &review.DrawerRange{
+			Path: rs.Path,
+			Line: rs.Line,
 		}
 	}
-	input.Comments = make([]guireview.DrawerComment, 0, len(gui.state.Review.Comments))
-	for _, comment := range gui.state.Review.Comments {
-		input.Comments = append(input.Comments, guireview.DrawerComment{
+	comments := gui.review.Comments()
+	input.Comments = make([]review.DrawerComment, 0, len(comments))
+	for _, comment := range comments {
+		input.Comments = append(input.Comments, review.DrawerComment{
 			Path:      comment.Path,
 			Line:      comment.Line,
 			StartLine: comment.StartLine,
 			Body:      comment.Body,
 		})
 	}
-	input.SelectedCommentIdx = gui.state.Review.SelectedCommentIdx
-	if gui.state.Review.InputMode == model.ReviewInputComment {
+	input.SelectedCommentIdx = gui.review.SelectedCommentIdx()
+	if inputMode == model.ReviewInputComment {
 		input.CommentInputLines = gui.review.CommentInputLines()
 	}
-	if gui.state.Review.InputMode == model.ReviewInputSummary {
+	if inputMode == model.ReviewInputSummary {
 		input.SummaryInputLines = gui.review.SummaryInputLines()
 	}
 	return input

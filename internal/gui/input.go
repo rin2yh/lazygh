@@ -17,7 +17,7 @@ func (s *screen) handleReviewInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 		case config.ActionReviewDiscard:
 			return s.gui.review.HandleDiscard(), true
 		case config.ActionReviewSave:
-			if s.gui.state.Review.InputMode == model.ReviewInputComment {
+			if s.gui.review.InputMode() == model.ReviewInputComment {
 				if s.gui.review.IsEditingComment() {
 					return s.gui.review.HandleEditCommentSave(), true
 				}
@@ -105,7 +105,7 @@ func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
 	case config.ActionReviewDiscard:
 		return s.gui.review.HandleDiscard()
 	case config.ActionReviewClearComment:
-		if s.gui.state.Review.InputMode == model.ReviewInputComment {
+		if s.gui.review.InputMode() == model.ReviewInputComment {
 			s.gui.review.ClearCommentInput()
 		}
 	case config.ActionReviewEvent:
@@ -147,9 +147,9 @@ func (s *screen) handleFilterKey(msg tea.KeyMsg) tea.Cmd {
 }
 
 func (s *screen) handleCancel() tea.Cmd {
-	if s.gui.state.Review.InputMode == model.ReviewInputNone && s.gui.state.Review.RangeStart != nil {
-		s.gui.state.ClearReviewRangeStart()
-		s.gui.state.SetReviewNotice("Range selection cleared.")
+	if s.gui.review.InputMode() == model.ReviewInputNone && s.gui.review.HasRangeStart() {
+		s.gui.review.ClearRangeStart()
+		s.gui.review.SetNotice("Range selection cleared.")
 		s.gui.focus = panelDiffContent
 		return nil
 	}
@@ -301,7 +301,7 @@ func (s *screen) scrollDetailUp() {
 
 func (s *screen) startReviewRange() tea.Cmd {
 	if !s.gui.state.IsDiffMode() {
-		s.gui.state.SetReviewNotice("Review range selection is only available in diff view.")
+		s.gui.review.SetNotice("Review range selection is only available in diff view.")
 		return nil
 	}
 	s.gui.review.ToggleRangeSelection()
@@ -310,7 +310,7 @@ func (s *screen) startReviewRange() tea.Cmd {
 
 func (s *screen) startReviewComment() tea.Cmd {
 	if !s.gui.state.IsDiffMode() {
-		s.gui.state.SetReviewNotice("Review comments are only available in diff view.")
+		s.gui.review.SetNotice("Review comments are only available in diff view.")
 		return nil
 	}
 	s.gui.review.BeginCommentFlow()
@@ -319,7 +319,7 @@ func (s *screen) startReviewComment() tea.Cmd {
 
 func (s *screen) startReviewSummary() tea.Cmd {
 	if !s.gui.state.IsDiffMode() {
-		s.gui.state.SetReviewNotice("Review summary is only available in diff view.")
+		s.gui.review.SetNotice("Review summary is only available in diff view.")
 		return nil
 	}
 	s.gui.review.BeginSummaryInput()

@@ -6,9 +6,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/model"
-	appstate "github.com/rin2yh/lazygh/internal/state"
 )
 
+// PendingReviewClient handles GitHub API calls for the pending review workflow.
 type PendingReviewClient interface {
 	GetReviewContext(repo string, number int) (gh.ReviewContext, error)
 	StartPendingReview(repo string, number int, ctx gh.ReviewContext) (string, error)
@@ -18,6 +18,8 @@ type PendingReviewClient interface {
 	DeletePendingReviewComment(commentID string) error
 	UpdatePendingReviewComment(commentID string, body string) error
 }
+
+// Message types returned by async commands.
 
 type CommentSavedMsg struct {
 	PRNumber  int
@@ -48,7 +50,8 @@ type DiscardedMsg struct {
 }
 
 type pending struct {
-	state     *appstate.State
+	rs        *ReviewState
+	host      AppState
 	client    PendingReviewClient
 	selection Selection
 	setFocus  func(FocusTarget)
@@ -56,10 +59,11 @@ type pending struct {
 	summary   *summary
 }
 
-func newPending(state *appstate.State, client PendingReviewClient, selection Selection, setFocus func(FocusTarget), comment *comment, summary *summary) *pending {
+func newPending(rs *ReviewState, host AppState, client PendingReviewClient, selection Selection, setFocus func(FocusTarget), comment *comment, summary *summary) *pending {
 	comment.bindSelection(selection)
 	return &pending{
-		state:     state,
+		rs:        rs,
+		host:      host,
 		client:    client,
 		selection: selection,
 		setFocus:  setFocus,
@@ -69,24 +73,24 @@ func newPending(state *appstate.State, client PendingReviewClient, selection Sel
 }
 
 func (f *pending) HandleCommentSave() tea.Cmd {
-	item, ok := f.state.SelectedPR()
+	item, ok := f.host.SelectedPR()
 	if !ok {
-		f.state.SetReviewNotice("No pull request selected.")
+		f.rs.SetNotice("No pull request selected.")
 		return nil
 	}
-	comment, err := f.comment.BuildDraft(f.comment.CurrentValue(), f.state.Review.RangeStart)
+	comment, err := f.comment.BuildDraft(f.comment.CurrentValue(), f.rs.RangeStart)
 	if err != nil {
-		f.state.SetReviewNotice(err.Error())
+		f.rs.SetNotice(err.Error())
 		return nil
 	}
-	repo := f.state.List.Repo
-	reviewID := f.state.Review.ReviewID
+	repo := f.host.ListRepo()
+	reviewID := f.rs.ReviewID
 	ctx := gh.ReviewContext{
-		PullRequestID: f.state.Review.PullRequestID,
-		CommitOID:     f.state.Review.CommitOID,
+		PullRequestID: f.rs.PullRequestID,
+		CommitOID:     f.rs.CommitOID,
 	}
 
-	f.state.BeginReviewLoad()
+	f.host.BeginReviewLoad()
 	return func() tea.Msg {
 		var runErr error
 		if reviewID == "" {
@@ -112,40 +116,40 @@ func (f *pending) HandleCommentSave() tea.Cmd {
 }
 
 func (f *pending) BeginEditComment() bool {
-	comment, ok := f.state.SelectedComment()
+	comment, ok := f.rs.SelectedComment()
 	if !ok {
 		return false
 	}
-	f.state.BeginEditComment()
+	f.rs.BeginEditComment()
 	f.comment.StartEdit(comment.Body)
 	return true
 }
 
 func (f *pending) IsEditingComment() bool {
-	return f.state.Review.EditingCommentIdx != model.NoEditingComment
+	return f.rs.EditingCommentIdx != model.NoEditingComment
 }
 
 func (f *pending) SelectNextComment() {
-	f.state.SelectNextComment()
+	f.rs.SelectNextComment()
 }
 
 func (f *pending) SelectPrevComment() {
-	f.state.SelectPrevComment()
+	f.rs.SelectPrevComment()
 }
 
 func (f *pending) HandleDeleteComment() tea.Cmd {
-	comment, ok := f.state.SelectedComment()
+	comment, ok := f.rs.SelectedComment()
 	if !ok {
-		f.state.SetReviewNotice("No comment selected.")
+		f.rs.SetNotice("No comment selected.")
 		return nil
 	}
 	if comment.CommentID == "" {
-		f.state.DeleteSelectedComment()
-		f.state.SetReviewNotice("Comment deleted.")
+		f.rs.DeleteSelectedComment()
+		f.rs.SetNotice("Comment deleted.")
 		return nil
 	}
 	commentID := comment.CommentID
-	f.state.BeginReviewLoad()
+	f.host.BeginReviewLoad()
 	return func() tea.Msg {
 		err := f.client.DeletePendingReviewComment(commentID)
 		return CommentDeletedMsg{CommentID: commentID, Err: err}
@@ -153,24 +157,24 @@ func (f *pending) HandleDeleteComment() tea.Cmd {
 }
 
 func (f *pending) HandleEditCommentSave() tea.Cmd {
-	idx := f.state.Review.EditingCommentIdx
-	if idx < 0 || idx >= len(f.state.Review.Comments) {
-		f.state.SetReviewNotice("No comment being edited.")
+	idx := f.rs.EditingCommentIdx
+	if idx < 0 || idx >= len(f.rs.Comments) {
+		f.rs.SetNotice("No comment being edited.")
 		return nil
 	}
 	body := strings.TrimSpace(f.comment.CurrentValue())
 	if body == "" {
-		f.state.SetReviewNotice("Comment body is empty.")
+		f.rs.SetNotice("Comment body is empty.")
 		return nil
 	}
-	comment := f.state.Review.Comments[idx]
+	comment := f.rs.Comments[idx]
 	if comment.CommentID == "" {
-		f.state.ApplyEditComment(body)
+		f.rs.ApplyEditComment(body)
 		f.comment.StopInput()
 		return nil
 	}
 	commentID := comment.CommentID
-	f.state.BeginReviewLoad()
+	f.host.BeginReviewLoad()
 	return func() tea.Msg {
 		err := f.client.UpdatePendingReviewComment(commentID, body)
 		return CommentUpdatedMsg{Body: body, Err: err}
@@ -178,20 +182,20 @@ func (f *pending) HandleEditCommentSave() tea.Cmd {
 }
 
 func (f *pending) HandleSubmit() tea.Cmd {
-	if f.state.Review.InputMode == model.ReviewInputSummary {
+	if f.rs.InputMode == model.ReviewInputSummary {
 		f.summary.Save()
 		f.summary.StopInput()
-		f.state.StopReviewInput()
+		f.rs.StopInput()
 	}
-	if !f.state.HasPendingReview() {
-		f.state.SetReviewNotice("No pending review to submit.")
+	if !f.rs.HasPendingReview() {
+		f.rs.SetNotice("No pending review to submit.")
 		return nil
 	}
-	f.state.BeginReviewLoad()
-	reviewID := f.state.Review.ReviewID
-	body := f.state.Review.Summary
-	repo := f.state.List.Repo
-	event := coreEventToGH(f.state.Review.Event)
+	f.host.BeginReviewLoad()
+	reviewID := f.rs.ReviewID
+	body := f.rs.Summary
+	repo := f.host.ListRepo()
+	event := coreEventToGH(f.rs.Event)
 	return func() tea.Msg {
 		err := f.client.SubmitReview(repo, reviewID, event, body)
 		return SubmittedMsg{ReviewID: reviewID, Err: err}
@@ -210,17 +214,17 @@ func coreEventToGH(e model.ReviewEvent) gh.ReviewEvent {
 }
 
 func (f *pending) HandleDiscard() tea.Cmd {
-	if f.state.Review.InputMode == model.ReviewInputSummary {
+	if f.rs.InputMode == model.ReviewInputSummary {
 		f.summary.StopInput()
-		f.state.StopReviewInput()
+		f.rs.StopInput()
 	}
-	reviewID := f.state.Review.ReviewID
+	reviewID := f.rs.ReviewID
 	if reviewID == "" {
-		f.state.ResetReviewAfterDiscard("Review draft discarded.")
+		f.rs.ResetAfterDiscard("Review draft discarded.")
 		return nil
 	}
-	f.state.BeginReviewLoad()
-	repo := f.state.List.Repo
+	f.host.BeginReviewLoad()
+	repo := f.host.ListRepo()
 	return func() tea.Msg {
 		err := f.client.DeletePendingReview(repo, reviewID)
 		return DiscardedMsg{Err: err}
@@ -228,15 +232,15 @@ func (f *pending) HandleDiscard() tea.Cmd {
 }
 
 func (f *pending) ApplyCommentResult(msg CommentSavedMsg) {
-	f.state.ClearLoading()
+	f.host.ClearLoading()
 	if msg.ReviewID != "" || msg.Context.PullRequestID != "" || msg.Context.CommitOID != "" {
-		f.state.SetReviewContext(msg.PRNumber, msg.Context.PullRequestID, msg.Context.CommitOID, msg.ReviewID)
+		f.rs.SetContext(msg.PRNumber, msg.Context.PullRequestID, msg.Context.CommitOID, msg.ReviewID)
 	}
 	if msg.Err != nil {
-		f.state.SetReviewNotice(msg.Err.Error())
+		f.rs.SetNotice(msg.Err.Error())
 		return
 	}
-	f.state.AddReviewComment(model.ReviewComment{
+	f.rs.AddComment(model.ReviewComment{
 		CommentID: msg.CommentID,
 		Path:      msg.Comment.Path,
 		Body:      msg.Comment.Body,
@@ -249,47 +253,47 @@ func (f *pending) ApplyCommentResult(msg CommentSavedMsg) {
 }
 
 func (f *pending) ApplyDeleteCommentResult(msg CommentDeletedMsg) {
-	f.state.ClearLoading()
+	f.host.ClearLoading()
 	if msg.Err != nil {
-		f.state.SetReviewNotice(msg.Err.Error())
+		f.rs.SetNotice(msg.Err.Error())
 		return
 	}
-	f.state.DeleteSelectedComment()
-	f.state.SetReviewNotice("Comment deleted.")
+	f.rs.DeleteSelectedComment()
+	f.rs.SetNotice("Comment deleted.")
 }
 
 func (f *pending) ApplyEditCommentResult(msg CommentUpdatedMsg) {
-	f.state.ClearLoading()
+	f.host.ClearLoading()
 	if msg.Err != nil {
-		f.state.SetReviewNotice(msg.Err.Error())
+		f.rs.SetNotice(msg.Err.Error())
 		return
 	}
-	f.state.ApplyEditComment(msg.Body)
+	f.rs.ApplyEditComment(msg.Body)
 	f.comment.StopInput()
 	f.setFocus(FocusReviewDrawer)
 }
 
 func (f *pending) ApplySubmitResult(msg SubmittedMsg) {
-	f.state.ClearLoading()
+	f.host.ClearLoading()
 	if msg.Err != nil {
-		f.state.SetReviewNotice(msg.Err.Error())
+		f.rs.SetNotice(msg.Err.Error())
 		return
 	}
 	f.comment.StopInput()
 	f.summary.StopInput()
-	f.state.ResetReviewAfterSubmit("Review submitted.")
+	f.rs.ResetAfterSubmit("Review submitted.")
 	f.setFocus(FocusDiffContent)
 }
 
 func (f *pending) ApplyDiscardResult(msg DiscardedMsg) {
-	f.state.ClearLoading()
+	f.host.ClearLoading()
 	if msg.Err != nil {
-		f.state.SetReviewNotice(msg.Err.Error())
+		f.rs.SetNotice(msg.Err.Error())
 		return
 	}
 	f.comment.StopInput()
 	f.summary.StopInput()
 	f.summary.Clear()
-	f.state.ResetReviewAfterDiscard("Review draft discarded.")
+	f.rs.ResetAfterDiscard("Review draft discarded.")
 	f.setFocus(FocusDiffContent)
 }
