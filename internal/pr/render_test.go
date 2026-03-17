@@ -31,7 +31,7 @@ func TestRenderLeftPanelsSeparated(t *testing.T) {
 	if !strings.HasPrefix(xansi.Strip(lines[0]), "┌ Repository ") {
 		t.Fatalf("unexpected first line: %q", xansi.Strip(lines[0]))
 	}
-	if !strings.Contains(xansi.Strip(lines[4]), "PRs [Open]") {
+	if !strings.Contains(xansi.Strip(lines[4]), "PR [Open]") {
 		t.Fatalf("line does not contain expected title: %q", xansi.Strip(lines[4]))
 	}
 }

@@ -18,7 +18,7 @@ type PanelInput struct {
 func RenderLeft(input PanelInput, repoHeight, prHeight int, active func(layout.Focus) bool, style func(bool) widget.PanelStyle, width int) []string {
 	height := repoHeight + prHeight
 	repoLines := widget.FramePanel("Repository", renderRepo(input), width, repoHeight, style(active(layout.FocusRepo)))
-	prTitle := "PRs [" + input.Filter + "]"
+	prTitle := "PR [" + input.Filter + "]"
 	prLines := widget.FramePanel(prTitle, renderPRs(input), width, prHeight, style(active(layout.FocusPRs)))
 	lines := make([]string, 0, height)
 	lines = append(lines, repoLines...)
