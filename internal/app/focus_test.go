@@ -141,7 +141,7 @@ func TestModelUpdateFocusKeysInDiffMode(t *testing.T) {
 			g.switchToDiff()
 			g.diff.SetFiles(tt.files)
 			g.focus = tt.start
-			g.review.OpenDrawer()
+			reviewCtrl(g).OpenDrawer()
 			m := &screen{gui: g}
 
 			_, cmd := m.Update(tt.key)

@@ -147,7 +147,7 @@ func TestHandleEditorKey_EscCancelsCommentAndClearsRange(t *testing.T) {
 	c.setFocus = func(target FocusTarget) { focus = target }
 	c.SetCommentValue("draft")
 
-	_, handled := c.HandleEditorKey(tea.KeyMsg{Type: tea.KeyEsc})
+	_, handled := c.EditorKey(tea.KeyMsg{Type: tea.KeyEsc})
 	if !handled {
 		t.Fatal("expected key handled")
 	}
@@ -157,8 +157,8 @@ func TestHandleEditorKey_EscCancelsCommentAndClearsRange(t *testing.T) {
 	if c.rs.InputMode != model.ReviewInputNone {
 		t.Fatalf("got %v, want %v", c.rs.InputMode, model.ReviewInputNone)
 	}
-	if c.CurrentCommentValue() != "" {
-		t.Fatalf("got %q, want empty", c.CurrentCommentValue())
+	if c.CommentValue() != "" {
+		t.Fatalf("got %q, want empty", c.CommentValue())
 	}
 	if focus != FocusDiffContent {
 		t.Fatalf("got %v, want %v", focus, FocusDiffContent)

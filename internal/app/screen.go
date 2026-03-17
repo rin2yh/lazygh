@@ -29,19 +29,19 @@ func (s *screen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		s.gui.applyDetailResult(msg)
 		return s, nil
 	case review.CommentSavedMsg:
-		s.gui.review.ApplyCommentResult(msg)
+		s.gui.review.CommentResult(msg)
 		return s, nil
 	case review.CommentDeletedMsg:
-		s.gui.review.ApplyDeleteCommentResult(msg)
+		s.gui.review.DeleteCommentResult(msg)
 		return s, nil
 	case review.CommentUpdatedMsg:
-		s.gui.review.ApplyEditCommentResult(msg)
+		s.gui.review.EditCommentResult(msg)
 		return s, nil
 	case review.SubmittedMsg:
-		s.gui.review.ApplySubmitResult(msg)
+		s.gui.review.SubmitResult(msg)
 		return s, nil
 	case review.DiscardedMsg:
-		s.gui.review.ApplyDiscardResult(msg)
+		s.gui.review.DiscardResult(msg)
 		return s, nil
 	case tea.KeyMsg:
 		if s.gui.showHelp {
