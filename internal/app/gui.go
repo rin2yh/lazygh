@@ -3,9 +3,9 @@ package app
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/diff"
 	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr/diff"
 	"github.com/rin2yh/lazygh/internal/review"
 	"github.com/rin2yh/lazygh/pkg/gui/viewport"
 )

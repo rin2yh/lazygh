@@ -2,8 +2,8 @@ package app
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/rin2yh/lazygh/internal/diff"
 	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr/diff"
 	"github.com/rin2yh/lazygh/internal/pr/list"
 )
 

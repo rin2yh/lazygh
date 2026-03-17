@@ -38,7 +38,7 @@ lazygh (Go TUI)  →  gh CLI  →  GitHub API
 | `.` (`main`) | エントリーポイント、設定・App初期化 |
 | `internal/app` | `App` 構造体・`bubbletea` ベースの TUIアダプタ・描画（GUI含む） |
 | `internal/app/layout` | TUI レイアウト計算・フォーカス状態・ステータスライン描画 |
-| `internal/diff` | PR diff の選択状態管理・カラー描画 |
+| `internal/pr/diff` | PR diff の選択状態管理・カラー描画 |
 | `internal/gh` | `gh` CLI の `exec` ラッパー。`ClientInterface` でモック可能 |
 | `internal/core` | UI状態遷移とドメインロジック |
 | `internal/config` | テーマ・キーバインド設定の読み込み |

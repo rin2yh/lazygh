@@ -4,10 +4,10 @@ import (
 	"strings"
 
 	"github.com/rin2yh/lazygh/internal/app/layout"
-	"github.com/rin2yh/lazygh/internal/diff"
 	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/help"
 	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr/diff"
 	prhelp "github.com/rin2yh/lazygh/internal/pr/help"
 	"github.com/rin2yh/lazygh/internal/pr/list"
 	"github.com/rin2yh/lazygh/internal/review"
