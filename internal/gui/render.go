@@ -29,7 +29,7 @@ func (gui *Gui) render() string {
 	leftInput := pr.PanelInput{
 		Repo:     gui.state.Repo,
 		Fetching: gui.state.Fetching,
-		Items:    gui.renderPRItems(),
+		Items:    gui.state.Items,
 		Selected: gui.state.Selected,
 		Filter:   gui.state.Filter.Label(),
 	}
@@ -133,34 +133,6 @@ func (gui *Gui) renderFocus() layout.Focus {
 		return layout.FocusReviewDrawer
 	default:
 		return layout.FocusDiffContent
-	}
-}
-
-func (gui *Gui) renderPRItems() []string {
-	items := make([]string, 0, len(gui.state.Items))
-	for _, item := range gui.state.Items {
-		items = append(items, prStatusPrefix(item.Status)+" "+pr.FormatItem(item))
-	}
-	return items
-}
-
-var (
-	prPrefixOpen   = widget.Colorize("O", "green")
-	prPrefixDraft  = widget.Colorize("D", "gray")
-	prPrefixClosed = widget.Colorize("C", "red")
-	prPrefixMerged = widget.Colorize("M", "purple")
-)
-
-func prStatusPrefix(status string) string {
-	switch status {
-	case model.PRStatusDraft:
-		return prPrefixDraft
-	case model.PRStatusClosed:
-		return prPrefixClosed
-	case model.PRStatusMerged:
-		return prPrefixMerged
-	default:
-		return prPrefixOpen
 	}
 }
 

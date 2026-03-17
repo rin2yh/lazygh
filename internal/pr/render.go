@@ -2,6 +2,7 @@ package pr
 
 import (
 	"github.com/rin2yh/lazygh/internal/gui/layout"
+	"github.com/rin2yh/lazygh/internal/model"
 	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
@@ -9,12 +10,32 @@ import (
 type PanelInput struct {
 	Repo     string
 	Fetching bool
-	Items    []string
+	Items    []model.Item
 	Selected int
 	Filter   string
 }
 
-// RenderLeft renders the Repository and PRs panels on the left side.
+var (
+	prefixOpen   = widget.Colorize("O", "green")
+	prefixDraft  = widget.Colorize("D", "gray")
+	prefixClosed = widget.Colorize("C", "red")
+	prefixMerged = widget.Colorize("M", "purple")
+)
+
+func statusPrefix(status string) string {
+	switch status {
+	case model.PRStatusDraft:
+		return prefixDraft
+	case model.PRStatusClosed:
+		return prefixClosed
+	case model.PRStatusMerged:
+		return prefixMerged
+	default:
+		return prefixOpen
+	}
+}
+
+// RenderLeft renders the Repository and PR panels on the left side.
 func RenderLeft(input PanelInput, repoHeight, prHeight int, active func(layout.Focus) bool, style func(bool) widget.PanelStyle, width int) []string {
 	height := repoHeight + prHeight
 	repoLines := widget.FramePanel("Repository", renderRepo(input), width, repoHeight, style(active(layout.FocusRepo)))
@@ -39,7 +60,7 @@ func renderPRs(input PanelInput) []string {
 	}
 	lines := make([]string, 0, len(input.Items))
 	for i, item := range input.Items {
-		line := widget.ListItem(item, i == input.Selected)
+		line := widget.ListItem(statusPrefix(item.Status)+" "+formatItem(item), i == input.Selected)
 		lines = append(lines, line)
 	}
 	return lines

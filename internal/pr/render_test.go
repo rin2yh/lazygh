@@ -6,14 +6,35 @@ import (
 
 	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/rin2yh/lazygh/internal/gui/layout"
+	"github.com/rin2yh/lazygh/internal/model"
 	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
+
+func TestStatusPrefix(t *testing.T) {
+	tests := []struct {
+		status string
+		want   string
+	}{
+		{model.PRStatusOpen, widget.Colorize("O", "green")},
+		{model.PRStatusDraft, widget.Colorize("D", "gray")},
+		{model.PRStatusClosed, widget.Colorize("C", "red")},
+		{model.PRStatusMerged, widget.Colorize("M", "purple")},
+		{"", widget.Colorize("O", "green")},
+		{"UNKNOWN", widget.Colorize("O", "green")},
+	}
+	for _, tt := range tests {
+		got := statusPrefix(tt.status)
+		if got != tt.want {
+			t.Errorf("statusPrefix(%q) = %q, want %q", tt.status, got, tt.want)
+		}
+	}
+}
 
 func TestRenderLeftPanelsSeparated(t *testing.T) {
 	screen := layout.New(80, 10, false, false)
 	input := PanelInput{
 		Repo:     "owner/repo",
-		Items:    []string{"PR #1 Fix bug"},
+		Items:    []model.Item{{Number: 1, Title: "Fix bug"}},
 		Selected: 0,
 		Filter:   "Open",
 	}

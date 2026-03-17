@@ -77,7 +77,7 @@ func (s *State) ApplyPRsResult(repo string, items []model.Item, err error) {
 		s.Detail.Content = "No pull requests"
 		return
 	}
-	s.Detail.Content = pr.FormatOverview(items[s.Selected])
+	s.Detail.Content = s.SelectedOverview()
 }
 
 func (s *State) ApplyDetailResult(content string, err error) {
@@ -177,11 +177,9 @@ func (s *State) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
 }
 
 func (s *State) refreshDetailPreview() {
-	item, ok := s.selectedPR()
-	if !ok {
-		return
+	if overview := s.SelectedOverview(); overview != "" {
+		s.Detail.Content = overview
 	}
-	s.Detail.Content = pr.FormatOverview(item)
 }
 
 func (s *State) selectedPR() (model.Item, bool) {
