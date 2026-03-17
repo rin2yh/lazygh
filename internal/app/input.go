@@ -14,19 +14,19 @@ func (s *screen) handleReviewInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	if ok {
 		switch action {
 		case config.ActionReviewSubmit:
-			return s.gui.review.HandleSubmit(), true
+			return s.gui.review.Submit(), true
 		case config.ActionReviewDiscard:
-			return s.gui.review.HandleDiscard(), true
+			return s.gui.review.Discard(), true
 		case config.ActionReviewSave:
 			if s.gui.review.InputMode() == model.ReviewInputComment {
 				if s.gui.review.IsEditingComment() {
-					return s.gui.review.HandleEditCommentSave(), true
+					return s.gui.review.SaveEditComment(), true
 				}
-				return s.gui.review.HandleCommentSave(), true
+				return s.gui.review.SaveComment(), true
 			}
 		}
 	}
-	if cmd, handled := s.gui.review.HandleEditorKey(msg); handled {
+	if cmd, handled := s.gui.review.EditorKey(msg); handled {
 		return cmd, true
 	}
 	return nil, false
@@ -102,9 +102,9 @@ func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
 	case config.ActionReviewSummary:
 		return s.startReviewSummary()
 	case config.ActionReviewSubmit:
-		return s.gui.review.HandleSubmit()
+		return s.gui.review.Submit()
 	case config.ActionReviewDiscard:
-		return s.gui.review.HandleDiscard()
+		return s.gui.review.Discard()
 	case config.ActionReviewClearComment:
 		if s.gui.review.InputMode() == model.ReviewInputComment {
 			s.gui.review.ClearCommentInput()
@@ -115,11 +115,11 @@ func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
 		}
 	case config.ActionReviewDeleteComment:
 		if s.gui.focus == layout.FocusReviewDrawer {
-			return s.gui.review.HandleDeleteComment()
+			return s.gui.review.DeleteComment()
 		}
 	case config.ActionReviewEditComment:
 		if s.gui.focus == layout.FocusReviewDrawer {
-			s.gui.review.BeginEditComment()
+			s.gui.review.EditComment()
 		}
 	}
 	return nil

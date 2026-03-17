@@ -165,7 +165,7 @@ func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *review.DrawerInput {
 	inputMode := gui.review.InputMode()
 	summary := gui.review.Summary()
 	if inputMode == model.ReviewInputSummary {
-		summary = gui.review.CurrentSummaryValue()
+		summary = gui.review.SummaryValue()
 	}
 	input := &review.DrawerInput{
 		SummaryLines:     splitNonEmptyLines(summary),

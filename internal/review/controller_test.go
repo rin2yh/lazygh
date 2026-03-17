@@ -48,7 +48,7 @@ func TestHandleCommentSave_NoPRSelected(t *testing.T) {
 	host := &fakeHost{}
 	c := NewController(defaultTestConfig(), host, &testmock.GHClient{}, reviewstub.Selection{}, func(FocusTarget) {})
 
-	cmd := c.HandleCommentSave()
+	cmd := c.SaveComment()
 	if cmd != nil {
 		t.Fatal("expected nil cmd when no PR selected")
 	}
@@ -64,7 +64,7 @@ func TestHandleCommentSave_BuildDraftError(t *testing.T) {
 	c, _, _ := setupControllerWithPR(&testmock.GHClient{}, sel)
 	c.SetCommentValue("")
 
-	cmd := c.HandleCommentSave()
+	cmd := c.SaveComment()
 	if cmd != nil {
 		t.Fatal("expected nil cmd on draft error")
 	}
@@ -80,7 +80,7 @@ func TestHandleCommentSave_InvalidLine(t *testing.T) {
 	c, _, _ := setupControllerWithPR(&testmock.GHClient{}, sel)
 	c.SetCommentValue("hello")
 
-	cmd := c.HandleCommentSave()
+	cmd := c.SaveComment()
 	if cmd != nil {
 		t.Fatal("expected nil cmd on non-commentable line")
 	}
@@ -93,7 +93,7 @@ func TestHandleSubmit_NoPendingReview(t *testing.T) {
 	host := &fakeHost{}
 	c := NewController(defaultTestConfig(), host, &testmock.GHClient{}, reviewstub.Selection{}, func(FocusTarget) {})
 
-	cmd := c.HandleSubmit()
+	cmd := c.Submit()
 	if cmd != nil {
 		t.Fatal("expected nil cmd when no pending review")
 	}
@@ -108,7 +108,7 @@ func TestApplySubmitResult_ErrorPreservesState(t *testing.T) {
 	c.rs.SetContext(1, "PR_1", "abc123", "PRR_1")
 	c.rs.AddComment(model.ReviewComment{Path: "a.go", Body: "hi", Line: 10})
 
-	c.ApplySubmitResult(SubmittedMsg{ReviewID: "PRR_1", Err: errors.New("network error")})
+	c.SubmitResult(SubmittedMsg{ReviewID: "PRR_1", Err: errors.New("network error")})
 
 	if c.rs.Notice != "network error" {
 		t.Fatalf("got %q, want %q", c.rs.Notice, "network error")
@@ -126,7 +126,7 @@ func TestApplySubmitResult_SuccessClearsReview(t *testing.T) {
 	c.rs.SetContext(1, "PR_1", "abc123", "PRR_1")
 	c.rs.AddComment(model.ReviewComment{Path: "a.go", Body: "hi", Line: 10})
 
-	c.ApplySubmitResult(SubmittedMsg{ReviewID: "PRR_1"})
+	c.SubmitResult(SubmittedMsg{ReviewID: "PRR_1"})
 
 	if c.rs.ReviewID != "" {
 		t.Fatalf("review ID not cleared, got %q", c.rs.ReviewID)
@@ -144,7 +144,7 @@ func TestApplyDiscardResult_ErrorPreservesState(t *testing.T) {
 	c.rs.SetContext(1, "PR_1", "abc123", "PRR_1")
 	c.rs.AddComment(model.ReviewComment{Path: "a.go", Body: "hi", Line: 10})
 
-	c.ApplyDiscardResult(DiscardedMsg{Err: errors.New("discard failed")})
+	c.DiscardResult(DiscardedMsg{Err: errors.New("discard failed")})
 
 	if c.rs.Notice != "discard failed" {
 		t.Fatalf("got %q, want %q", c.rs.Notice, "discard failed")
@@ -160,7 +160,7 @@ func TestApplyDiscardResult_SuccessClearsReview(t *testing.T) {
 	c.rs.AddComment(model.ReviewComment{Path: "a.go", Body: "hi", Line: 10})
 	c.rs.SetSummary("my summary")
 
-	c.ApplyDiscardResult(DiscardedMsg{})
+	c.DiscardResult(DiscardedMsg{})
 
 	if c.rs.ReviewID != "" {
 		t.Fatalf("review ID not cleared, got %q", c.rs.ReviewID)
@@ -168,8 +168,8 @@ func TestApplyDiscardResult_SuccessClearsReview(t *testing.T) {
 	if len(c.rs.Comments) != 0 {
 		t.Fatalf("comments not cleared, got %d", len(c.rs.Comments))
 	}
-	if c.CurrentSummaryValue() != "" {
-		t.Fatalf("summary editor not cleared, got %q", c.CurrentSummaryValue())
+	if c.SummaryValue() != "" {
+		t.Fatalf("summary editor not cleared, got %q", c.SummaryValue())
 	}
 	if *focus != FocusDiffContent {
 		t.Fatalf("focus not restored, got %v", *focus)
@@ -179,7 +179,7 @@ func TestApplyDiscardResult_SuccessClearsReview(t *testing.T) {
 func TestApplyCommentResult_SuccessAddsComment(t *testing.T) {
 	c, _, _ := setupControllerWithPR(&testmock.GHClient{}, reviewstub.Selection{})
 
-	c.ApplyCommentResult(CommentSavedMsg{
+	c.CommentResult(CommentSavedMsg{
 		PRNumber: 1,
 		Context:  gh.ReviewContext{PullRequestID: "PR_1", CommitOID: "abc"},
 		ReviewID: "PRR_1",
@@ -205,7 +205,7 @@ func TestHandleSubmit_SavesSummaryIfInSummaryMode(t *testing.T) {
 
 	c.summary.editor.SetValue("my summary text")
 
-	cmd := c.HandleSubmit()
+	cmd := c.Submit()
 	if cmd == nil {
 		t.Fatal("expected non-nil cmd for submit")
 	}

@@ -103,7 +103,7 @@ func (c *Controller) ShouldShowDrawer() bool {
 
 // --- comment editor ---
 
-func (c *Controller) CurrentCommentValue() string {
+func (c *Controller) CommentValue() string {
 	return c.comment.CurrentValue()
 }
 
@@ -111,7 +111,7 @@ func (c *Controller) SetCommentValue(value string) {
 	c.comment.SetValue(value)
 }
 
-func (c *Controller) CurrentSummaryValue() string {
+func (c *Controller) SummaryValue() string {
 	return c.summary.CurrentValue()
 }
 
@@ -138,7 +138,7 @@ func (c *Controller) ClearCommentInput() {
 	c.comment.Clear()
 }
 
-func (c *Controller) HandleEditorKey(msg tea.KeyMsg) (tea.Cmd, bool) {
+func (c *Controller) EditorKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	switch msg.Type {
 	case tea.KeyEsc:
 		handled := c.view.HandleEsc()
@@ -182,43 +182,43 @@ func (c *Controller) BuildCommentDraft(body string) (gh.ReviewComment, error) {
 	return c.comment.BuildDraft(body, c.rng.RangeStart())
 }
 
-func (c *Controller) HandleCommentSave() tea.Cmd {
+func (c *Controller) SaveComment() tea.Cmd {
 	return c.pending.HandleCommentSave()
 }
 
-func (c *Controller) HandleSubmit() tea.Cmd {
+func (c *Controller) Submit() tea.Cmd {
 	return c.pending.HandleSubmit()
 }
 
-func (c *Controller) HandleDiscard() tea.Cmd {
+func (c *Controller) Discard() tea.Cmd {
 	return c.pending.HandleDiscard()
 }
 
-func (c *Controller) ApplyCommentResult(msg CommentSavedMsg) {
+func (c *Controller) CommentResult(msg CommentSavedMsg) {
 	if c.pending.ApplyCommentResult(msg) {
 		c.setFocus(FocusReviewDrawer)
 	}
 }
 
-func (c *Controller) ApplySubmitResult(msg SubmittedMsg) {
+func (c *Controller) SubmitResult(msg SubmittedMsg) {
 	c.pending.ApplySubmitResult(msg)
 	if msg.Err == nil {
 		c.setFocus(FocusDiffContent)
 	}
 }
 
-func (c *Controller) ApplyDiscardResult(msg DiscardedMsg) {
+func (c *Controller) DiscardResult(msg DiscardedMsg) {
 	c.pending.ApplyDiscardResult(msg)
 	if msg.Err == nil {
 		c.setFocus(FocusDiffContent)
 	}
 }
 
-func (c *Controller) HandleDeleteComment() tea.Cmd {
+func (c *Controller) DeleteComment() tea.Cmd {
 	return c.pending.HandleDeleteComment()
 }
 
-func (c *Controller) BeginEditComment() bool {
+func (c *Controller) EditComment() bool {
 	if !c.pending.BeginEditComment() {
 		return false
 	}
@@ -226,15 +226,15 @@ func (c *Controller) BeginEditComment() bool {
 	return true
 }
 
-func (c *Controller) HandleEditCommentSave() tea.Cmd {
+func (c *Controller) SaveEditComment() tea.Cmd {
 	return c.pending.HandleEditCommentSave()
 }
 
-func (c *Controller) ApplyDeleteCommentResult(msg CommentDeletedMsg) {
+func (c *Controller) DeleteCommentResult(msg CommentDeletedMsg) {
 	c.pending.ApplyDeleteCommentResult(msg)
 }
 
-func (c *Controller) ApplyEditCommentResult(msg CommentUpdatedMsg) {
+func (c *Controller) EditCommentResult(msg CommentUpdatedMsg) {
 	c.pending.ApplyEditCommentResult(msg)
 	if msg.Err == nil {
 		c.setFocus(FocusReviewDrawer)

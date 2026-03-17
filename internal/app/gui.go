@@ -23,10 +23,9 @@ type PRClient interface {
 type ReviewReader interface {
 	ShouldShowDrawer() bool
 	IsIndexWithinPendingRange(path string, commentable bool, idx int) bool
-	CurrentSummaryValue() string
+	SummaryValue() string
 	CommentInputLines() []string
 	SummaryInputLines() []string
-	CurrentCommentValue() string
 	IsEditingComment() bool
 	InputMode() model.ReviewInputMode
 	Summary() string
@@ -44,17 +43,16 @@ type ReviewReader interface {
 // ReviewHandler はユーザー入力によるレビュー操作を処理するインターフェース。
 // キー入力ハンドラやフロー開始など、状態変更を伴うアクションを担う。
 type ReviewHandler interface {
-	HandleEditorKey(msg tea.KeyMsg) (tea.Cmd, bool)
-	HandleSubmit() tea.Cmd
-	HandleDiscard() tea.Cmd
-	HandleCommentSave() tea.Cmd
-	HandleEditCommentSave() tea.Cmd
-	HandleDeleteComment() tea.Cmd
-	SetCommentValue(value string)
+	EditorKey(msg tea.KeyMsg) (tea.Cmd, bool)
+	Submit() tea.Cmd
+	Discard() tea.Cmd
+	SaveComment() tea.Cmd
+	SaveEditComment() tea.Cmd
+	DeleteComment() tea.Cmd
 	StopInput()
 	ClearCommentInput()
 	CycleReviewEvent()
-	BeginEditComment() bool
+	EditComment() bool
 	SelectNextComment()
 	SelectPrevComment()
 	ToggleRangeSelection()
@@ -63,18 +61,15 @@ type ReviewHandler interface {
 	SetNotice(msg string)
 	ClearRangeStart()
 	Reset()
-	SetContext(prNumber int, pullRequestID, commitOID, reviewID string)
-	OpenDrawer()
-	BeginCommentInput()
 }
 
 // ReviewApplier は非同期操作の結果をレビュー状態に適用するインターフェース。
 type ReviewApplier interface {
-	ApplyCommentResult(msg review.CommentSavedMsg)
-	ApplyDeleteCommentResult(msg review.CommentDeletedMsg)
-	ApplyEditCommentResult(msg review.CommentUpdatedMsg)
-	ApplySubmitResult(msg review.SubmittedMsg)
-	ApplyDiscardResult(msg review.DiscardedMsg)
+	CommentResult(msg review.CommentSavedMsg)
+	DeleteCommentResult(msg review.CommentDeletedMsg)
+	EditCommentResult(msg review.CommentUpdatedMsg)
+	SubmitResult(msg review.SubmittedMsg)
+	DiscardResult(msg review.DiscardedMsg)
 }
 
 // ReviewController は app/ レイヤーが review 機能に要求するインターフェース。

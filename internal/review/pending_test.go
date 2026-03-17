@@ -18,7 +18,7 @@ func TestApplyCommentResult_PersistsPendingReviewContextOnError(t *testing.T) {
 	}
 	controller := NewController(config.Default(), host, &testmock.GHClient{}, reviewstub.Selection{}, func(FocusTarget) {})
 
-	controller.ApplyCommentResult(CommentSavedMsg{
+	controller.CommentResult(CommentSavedMsg{
 		PRNumber: 1,
 		Context: gh.ReviewContext{
 			PullRequestID: "PR_kwDO123",
@@ -58,7 +58,7 @@ func TestHandleDeleteComment_WithCommentID(t *testing.T) {
 	c.rs.AddComment(model.ReviewComment{CommentID: "IC_1", Path: "a.go", Body: "hi", Line: 1})
 	c.rs.SelectedCommentIdx = 0
 
-	cmd := c.HandleDeleteComment()
+	cmd := c.DeleteComment()
 	if cmd == nil {
 		t.Fatal("expected non-nil cmd")
 	}
@@ -80,7 +80,7 @@ func TestApplyDeleteCommentResult_SuccessDeletesFromState(t *testing.T) {
 	c.rs.SetContext(1, "PR_1", "abc", "PRR_1")
 	c.rs.AddComment(model.ReviewComment{CommentID: "IC_1", Path: "a.go", Body: "hi", Line: 1})
 
-	c.ApplyDeleteCommentResult(CommentDeletedMsg{CommentID: "IC_1"})
+	c.DeleteCommentResult(CommentDeletedMsg{CommentID: "IC_1"})
 
 	if len(c.rs.Comments) != 0 {
 		t.Errorf("expected 0 comments after delete, got %d", len(c.rs.Comments))

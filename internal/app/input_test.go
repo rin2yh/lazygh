@@ -166,16 +166,17 @@ func TestModelUpdate_InputModeSubmitShortcutBypassesEditor(t *testing.T) {
 	}
 	g.coord.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
 	g.switchToDiff()
-	g.review.SetContext(1, "PR_kwDO123", "deadbeef", "PRR_kwDO456")
-	g.review.BeginCommentInput()
-	g.review.SetCommentValue("draft")
+	rc := reviewCtrl(g)
+	rc.SetContext(1, "PR_kwDO123", "deadbeef", "PRR_kwDO456")
+	rc.BeginCommentInput()
+	rc.SetCommentValue("draft")
 
 	m := &screen{gui: g}
 	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlR})
 	if cmd == nil {
 		t.Fatal("expected submit command")
 	}
-	if got := g.review.CurrentCommentValue(); got != "draft" {
+	if got := rc.CommentValue(); got != "draft" {
 		t.Fatalf("got %q, want %q", got, "draft")
 	}
 	msg := cmd().(review.SubmittedMsg)
@@ -195,16 +196,17 @@ func TestModelUpdate_InputModeDiscardShortcutBypassesEditor(t *testing.T) {
 	}
 	g.coord.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
 	g.switchToDiff()
-	g.review.SetContext(1, "PR_kwDO123", "deadbeef", "PRR_kwDO456")
-	g.review.BeginCommentInput()
-	g.review.SetCommentValue("draft")
+	rc := reviewCtrl(g)
+	rc.SetContext(1, "PR_kwDO123", "deadbeef", "PRR_kwDO456")
+	rc.BeginCommentInput()
+	rc.SetCommentValue("draft")
 
 	m := &screen{gui: g}
 	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'X'}})
 	if cmd == nil {
 		t.Fatal("expected discard command")
 	}
-	if got := g.review.CurrentCommentValue(); got != "draft" {
+	if got := rc.CommentValue(); got != "draft" {
 		t.Fatalf("got %q, want %q", got, "draft")
 	}
 	_ = cmd().(review.DiscardedMsg)
