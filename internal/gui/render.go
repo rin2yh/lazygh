@@ -8,7 +8,7 @@ import (
 	"github.com/rin2yh/lazygh/internal/gui/help"
 	"github.com/rin2yh/lazygh/internal/gui/layout"
 	"github.com/rin2yh/lazygh/internal/model"
-	prlist "github.com/rin2yh/lazygh/internal/pr/list"
+	"github.com/rin2yh/lazygh/internal/pr/list"
 	"github.com/rin2yh/lazygh/internal/review"
 	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
@@ -26,7 +26,7 @@ func (gui *Gui) render() string {
 		Keys:      gui.config.KeyBindings,
 	}.String()
 
-	leftInput := prlist.PanelInput{
+	leftInput := list.PanelInput{
 		Repo:     gui.state.Repo,
 		Fetching: gui.state.Fetching,
 		Items:    gui.state.Items,
@@ -51,7 +51,7 @@ func (gui *Gui) render() string {
 		rightInput.DiffContentLines = gui.renderDiffContentLines()
 	}
 
-	leftLines := prlist.RenderLeft(leftInput, screen.RepoHeight, screen.PRHeight,
+	leftLines := list.RenderLeft(leftInput, screen.RepoHeight, screen.PRHeight,
 		func(f layout.Focus) bool { return focus == f },
 		gui.style,
 		screen.LeftWidth,
@@ -214,7 +214,7 @@ func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *review.DrawerInput {
 }
 
 func applyFilterOverlay(background []string, filter model.PRFilterMask, cursor int, screenWidth int) []string {
-	panelLines, panelW := prlist.FilterPanelLines(filter, cursor)
+	panelLines, panelW := list.FilterPanelLines(filter, cursor)
 	return widget.OverlayPanel(background, panelLines, panelW, screenWidth)
 }
 

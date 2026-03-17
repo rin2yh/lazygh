@@ -101,7 +101,7 @@ func (s *State) NavigateDown() bool {
 		changed = true
 	}
 	if changed && s.Overview.Mode == model.DetailModeOverview {
-		s.refreshDetailPreview()
+		s.refreshOverviewPreview()
 	}
 	return changed
 }
@@ -113,7 +113,7 @@ func (s *State) NavigateUp() bool {
 		changed = true
 	}
 	if changed && s.Overview.Mode == model.DetailModeOverview {
-		s.refreshDetailPreview()
+		s.refreshOverviewPreview()
 	}
 	return changed
 }
@@ -124,7 +124,7 @@ func (s *State) SwitchToOverview() bool {
 	}
 	s.Overview.Mode = model.DetailModeOverview
 	s.Overview.Loading = model.LoadingNone
-	s.refreshDetailPreview()
+	s.refreshOverviewPreview()
 	return true
 }
 
@@ -172,7 +172,7 @@ func (s *State) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
 	return EnterAction{Kind: model.EnterLoadPRDetail, Repo: s.Repo, Number: item.Number}
 }
 
-func (s *State) refreshDetailPreview() {
+func (s *State) refreshOverviewPreview() {
 	if content, ok := s.SelectedOverview(); ok {
 		s.Overview.Content = content
 	}
