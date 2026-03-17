@@ -1,4 +1,4 @@
-package pr
+package list
 
 import (
 	"github.com/rin2yh/lazygh/internal/gui/layout"

@@ -56,7 +56,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 			g.state.ApplyPRsResult("owner/repo", prs, nil)
 			g.focus = tt.startFocus
 			g.state.Selected = tt.startIndex
-			g.state.Detail.Content = "PR #1 one\nStatus: \nAssignee: -"
+			g.state.Overview.Content = "PR #1 one\nStatus: \nAssignee: -"
 			m := &screen{gui: g}
 
 			_, cmd := m.Update(tt.key)
@@ -66,8 +66,8 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 			if g.state.Selected != tt.wantIndex {
 				t.Fatalf("got selected %d, want %d", g.state.Selected, tt.wantIndex)
 			}
-			if g.state.Detail.Content != tt.wantDetail {
-				t.Fatalf("got detail %q, want %q", g.state.Detail.Content, tt.wantDetail)
+			if g.state.Overview.Content != tt.wantDetail {
+				t.Fatalf("got detail %q, want %q", g.state.Overview.Content, tt.wantDetail)
 			}
 		})
 	}

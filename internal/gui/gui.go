@@ -4,7 +4,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/gui/detail"
 	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
 	"github.com/rin2yh/lazygh/internal/model"
 	"github.com/rin2yh/lazygh/internal/review"
@@ -93,13 +92,13 @@ type Gui struct {
 }
 
 func NewGui(cfg *config.Config, prClient PRClient, reviewClient review.PendingReviewClient) (*Gui, error) {
-	d := detail.NewState()
+	vp := newViewportState()
 	gui := &Gui{
 		config: cfg,
 		state:  appstate.NewState(),
 		client: prClient,
 		focus:  panelPRs,
-		detail: &d,
+		detail: &vp,
 	}
 	gui.review = review.NewController(cfg, gui.state, reviewClient, &gui.diff, gui.setReviewFocus)
 	return gui, nil

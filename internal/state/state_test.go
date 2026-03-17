@@ -60,8 +60,8 @@ func TestApplyPRsResult(t *testing.T) {
 			if s.Fetching {
 				t.Fatal("prs should not be loading")
 			}
-			if s.Detail.Loading != model.LoadingNone {
-				t.Fatalf("got %v, want %v", s.Detail.Loading, model.LoadingNone)
+			if s.Overview.Loading != model.LoadingNone {
+				t.Fatalf("got %v, want %v", s.Overview.Loading, model.LoadingNone)
 			}
 			if s.Repo != tt.want.repo {
 				t.Fatalf("got %q, want %q", s.Repo, tt.want.repo)
@@ -69,11 +69,11 @@ func TestApplyPRsResult(t *testing.T) {
 			if len(s.Items) != tt.want.prCount {
 				t.Fatalf("got %d, want %d", len(s.Items), tt.want.prCount)
 			}
-			if s.Detail.Content != tt.want.detail {
-				t.Fatalf("got %q, want %q", s.Detail.Content, tt.want.detail)
+			if s.Overview.Content != tt.want.detail {
+				t.Fatalf("got %q, want %q", s.Overview.Content, tt.want.detail)
 			}
-			if s.Detail.Mode != model.DetailModeOverview {
-				t.Fatalf("got %v, want %v", s.Detail.Mode, model.DetailModeOverview)
+			if s.Overview.Mode != model.DetailModeOverview {
+				t.Fatalf("got %v, want %v", s.Overview.Mode, model.DetailModeOverview)
 			}
 		})
 	}
@@ -81,18 +81,18 @@ func TestApplyPRsResult(t *testing.T) {
 
 func TestBeginLoadPRs_OnlySetsLoadingState(t *testing.T) {
 	s := NewState()
-	s.Detail.Content = "keep"
+	s.Overview.Content = "keep"
 
 	s.BeginLoadPRs()
 
 	if !s.Fetching {
 		t.Fatal("expected PRsLoading to be true")
 	}
-	if s.Detail.Loading != model.LoadingPRs {
-		t.Fatalf("got %v, want %v", s.Detail.Loading, model.LoadingPRs)
+	if s.Overview.Loading != model.LoadingPRs {
+		t.Fatalf("got %v, want %v", s.Overview.Loading, model.LoadingPRs)
 	}
-	if s.Detail.Content != "keep" {
-		t.Fatalf("got %q, want %q", s.Detail.Content, "keep")
+	if s.Overview.Content != "keep" {
+		t.Fatalf("got %q, want %q", s.Overview.Content, "keep")
 	}
 }
 
@@ -107,8 +107,8 @@ func TestNavigatePRs(t *testing.T) {
 	if s.Selected != 1 {
 		t.Fatalf("got %d, want %d", s.Selected, 1)
 	}
-	if s.Detail.Content != "PR #2 two\nStatus: OPEN\nAssignee: unassigned" {
-		t.Fatalf("got %q, want %q", s.Detail.Content, "PR #2 two\nStatus: OPEN\nAssignee: unassigned")
+	if s.Overview.Content != "PR #2 two\nStatus: OPEN\nAssignee: unassigned" {
+		t.Fatalf("got %q, want %q", s.Overview.Content, "PR #2 two\nStatus: OPEN\nAssignee: unassigned")
 	}
 
 	changed = s.NavigateUp()
@@ -118,15 +118,15 @@ func TestNavigatePRs(t *testing.T) {
 	if s.Selected != 0 {
 		t.Fatalf("got %d, want %d", s.Selected, 0)
 	}
-	if s.Detail.Content != "PR #1 one\nStatus: OPEN\nAssignee: unassigned" {
-		t.Fatalf("got %q, want %q", s.Detail.Content, "PR #1 one\nStatus: OPEN\nAssignee: unassigned")
+	if s.Overview.Content != "PR #1 one\nStatus: OPEN\nAssignee: unassigned" {
+		t.Fatalf("got %q, want %q", s.Overview.Content, "PR #1 one\nStatus: OPEN\nAssignee: unassigned")
 	}
 }
 
 func TestNavigatePRs_DiffModeDoesNotOverwriteContent(t *testing.T) {
 	s := NewState()
 	s.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
-	s.Detail.Content = "diff-body"
+	s.Overview.Content = "diff-body"
 	s.SwitchToDiff()
 
 	changed := s.NavigateDown()
@@ -136,8 +136,8 @@ func TestNavigatePRs_DiffModeDoesNotOverwriteContent(t *testing.T) {
 	if s.Selected != 1 {
 		t.Fatalf("got %d, want %d", s.Selected, 1)
 	}
-	if s.Detail.Content != "diff-body" {
-		t.Fatalf("got %q, want %q", s.Detail.Content, "diff-body")
+	if s.Overview.Content != "diff-body" {
+		t.Fatalf("got %q, want %q", s.Overview.Content, "diff-body")
 	}
 }
 
@@ -166,7 +166,7 @@ func TestPlanEnter_LoadPR(t *testing.T) {
 			if tt.switchDiff {
 				s.SwitchToDiff()
 			}
-			before := s.Detail.Content
+			before := s.Overview.Content
 
 			action := s.PlanEnter(true, "")
 			if action.Kind != tt.wantKind {
@@ -178,12 +178,12 @@ func TestPlanEnter_LoadPR(t *testing.T) {
 			if action.Number != 7 {
 				t.Fatalf("got %d, want %d", action.Number, 7)
 			}
-			if s.Detail.Loading != model.LoadingDetail {
-				t.Fatalf("got %v, want %v", s.Detail.Loading, model.LoadingDetail)
+			if s.Overview.Loading != model.LoadingDetail {
+				t.Fatalf("got %v, want %v", s.Overview.Loading, model.LoadingDetail)
 			}
 			if tt.wantKind == model.EnterLoadPRDetail {
-				if s.Detail.Content != before {
-					t.Fatalf("got %q, want %q", s.Detail.Content, before)
+				if s.Overview.Content != before {
+					t.Fatalf("got %q, want %q", s.Overview.Content, before)
 				}
 			}
 		})
@@ -220,15 +220,15 @@ func TestApplyDetailResult(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewState()
-			s.Detail.Loading = model.LoadingDetail
+			s.Overview.Loading = model.LoadingDetail
 
 			s.ApplyDetailResult(tt.content, tt.err)
 
-			if s.Detail.Loading != model.LoadingNone {
-				t.Fatalf("got %v, want %v", s.Detail.Loading, model.LoadingNone)
+			if s.Overview.Loading != model.LoadingNone {
+				t.Fatalf("got %v, want %v", s.Overview.Loading, model.LoadingNone)
 			}
-			if s.Detail.Content != tt.want.detail {
-				t.Fatalf("got %q, want %q", s.Detail.Content, tt.want.detail)
+			if s.Overview.Content != tt.want.detail {
+				t.Fatalf("got %q, want %q", s.Overview.Content, tt.want.detail)
 			}
 		})
 	}
@@ -264,15 +264,15 @@ func TestApplyDiffResult(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewState()
-			s.Detail.Loading = model.LoadingDetail
+			s.Overview.Loading = model.LoadingDetail
 
 			s.ApplyDiffResult(tt.content, tt.err)
 
-			if s.Detail.Loading != model.LoadingNone {
-				t.Fatalf("got %v, want %v", s.Detail.Loading, model.LoadingNone)
+			if s.Overview.Loading != model.LoadingNone {
+				t.Fatalf("got %v, want %v", s.Overview.Loading, model.LoadingNone)
 			}
-			if s.Detail.Content != tt.want.detail {
-				t.Fatalf("got %q, want %q", s.Detail.Content, tt.want.detail)
+			if s.Overview.Content != tt.want.detail {
+				t.Fatalf("got %q, want %q", s.Overview.Content, tt.want.detail)
 			}
 		})
 	}
@@ -281,22 +281,22 @@ func TestApplyDiffResult(t *testing.T) {
 func TestSwitchMode(t *testing.T) {
 	s := NewState()
 	s.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "one"}}, nil)
-	s.Detail.Content = "from-overview"
+	s.Overview.Content = "from-overview"
 
 	if !s.SwitchToDiff() {
 		t.Fatal("expected switch to diff")
 	}
-	if s.Detail.Mode != model.DetailModeDiff {
-		t.Fatalf("got %v, want %v", s.Detail.Mode, model.DetailModeDiff)
+	if s.Overview.Mode != model.DetailModeDiff {
+		t.Fatalf("got %v, want %v", s.Overview.Mode, model.DetailModeDiff)
 	}
 	if !s.SwitchToOverview() {
 		t.Fatal("expected switch to overview")
 	}
-	if s.Detail.Mode != model.DetailModeOverview {
-		t.Fatalf("got %v, want %v", s.Detail.Mode, model.DetailModeOverview)
+	if s.Overview.Mode != model.DetailModeOverview {
+		t.Fatalf("got %v, want %v", s.Overview.Mode, model.DetailModeOverview)
 	}
-	if s.Detail.Content != "PR #1 one\nStatus: OPEN\nAssignee: unassigned" {
-		t.Fatalf("got %q, want %q", s.Detail.Content, "PR #1 one\nStatus: OPEN\nAssignee: unassigned")
+	if s.Overview.Content != "PR #1 one\nStatus: OPEN\nAssignee: unassigned" {
+		t.Fatalf("got %q, want %q", s.Overview.Content, "PR #1 one\nStatus: OPEN\nAssignee: unassigned")
 	}
 }
 

@@ -42,20 +42,12 @@ func (s *Selection) CurrentFile() (gh.DiffFile, bool) {
 	return CurrentFile(s.files, s.fileSelected)
 }
 
-func (s *Selection) CurrentDiffFile() (gh.DiffFile, bool) {
-	return s.CurrentFile()
-}
-
-func (s *Selection) CurrentDiffLine() (gh.DiffLine, bool) {
+func (s *Selection) CurrentLine() (gh.DiffLine, bool) {
 	file, ok := s.CurrentFile()
 	if !ok {
 		return gh.DiffLine{}, false
 	}
 	return CurrentLine(file, s.lineSelected)
-}
-
-func (s *Selection) CurrentLineIndex() int {
-	return s.lineSelected
 }
 
 func (s *Selection) EnsureLineSelection() {

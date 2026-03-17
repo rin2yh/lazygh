@@ -8,7 +8,7 @@ import (
 	"github.com/rin2yh/lazygh/internal/gui/help"
 	"github.com/rin2yh/lazygh/internal/gui/layout"
 	"github.com/rin2yh/lazygh/internal/model"
-	"github.com/rin2yh/lazygh/internal/pr"
+	"github.com/rin2yh/lazygh/internal/pr/list"
 	"github.com/rin2yh/lazygh/internal/review"
 	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
@@ -19,14 +19,14 @@ func (gui *Gui) render() string {
 	screen := layout.New(gui.state.Width, gui.state.Height, isDiff, showDrawer)
 	focus := gui.renderFocus()
 	statusLine := layout.Status{
-		Loading:   gui.state.Detail.Loading != model.LoadingNone,
+		Loading:   gui.state.Overview.Loading != model.LoadingNone,
 		DiffMode:  isDiff,
 		Focus:     focus,
 		InputMode: gui.review.InputMode(),
 		Keys:      gui.config.KeyBindings,
 	}.String()
 
-	leftInput := pr.PanelInput{
+	leftInput := list.PanelInput{
 		Repo:     gui.state.Repo,
 		Fetching: gui.state.Fetching,
 		Items:    gui.state.Items,
@@ -38,7 +38,7 @@ func (gui *Gui) render() string {
 	if isDiff {
 		rightLines = gui.currentDetailLines(screen, guidiff.ColorizeContent(gui.currentDiffContent()))
 	} else {
-		rightLines = gui.currentDetailLines(screen, gui.state.Detail.Content)
+		rightLines = gui.currentDetailLines(screen, gui.state.Overview.Content)
 	}
 	rightInput := guidiff.PanelInput{
 		DiffMode:      isDiff,
@@ -51,7 +51,7 @@ func (gui *Gui) render() string {
 		rightInput.DiffContentLines = gui.renderDiffContentLines()
 	}
 
-	leftLines := pr.RenderLeft(leftInput, screen.RepoHeight, screen.PRHeight,
+	leftLines := list.RenderLeft(leftInput, screen.RepoHeight, screen.PRHeight,
 		func(f layout.Focus) bool { return focus == f },
 		gui.style,
 		screen.LeftWidth,
@@ -214,7 +214,7 @@ func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *review.DrawerInput {
 }
 
 func applyFilterOverlay(background []string, filter model.PRFilterMask, cursor int, screenWidth int) []string {
-	panelLines, panelW := pr.FilterPanelLines(filter, cursor)
+	panelLines, panelW := list.FilterPanelLines(filter, cursor)
 	return widget.OverlayPanel(background, panelLines, panelW, screenWidth)
 }
 
