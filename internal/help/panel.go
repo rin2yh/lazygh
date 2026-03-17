@@ -1,4 +1,4 @@
-package gui
+package help
 
 import (
 	"fmt"
@@ -6,19 +6,18 @@ import (
 
 	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/help"
-	prhelp "github.com/rin2yh/lazygh/internal/pr/help"
 	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
-func renderHelpOverlay(background []string, keys config.KeyBindings, screenWidth int) []string {
-	panelLines, panelW := buildHelpPanelLines(keys, screenWidth)
+// RenderOverlay はヘルプパネルを画面中央に重ねて描画する。
+// sections にはグローバル・機能固有のセクションを結合して渡す。
+func RenderOverlay(background []string, sections []Section, keys config.KeyBindings, screenWidth int) []string {
+	panelLines, panelW := buildPanelLines(sections, keys, screenWidth)
 	return widget.OverlayPanel(background, panelLines, panelW, screenWidth)
 }
 
-func buildHelpPanelLines(keys config.KeyBindings, screenWidth int) ([]string, int) {
-	sections := append(help.CommonSections(keys), prhelp.Sections(keys)...)
-	content := buildHelpContent(sections)
+func buildPanelLines(sections []Section, keys config.KeyBindings, screenWidth int) ([]string, int) {
+	content := buildContent(sections)
 	closeHint := fmt.Sprintf("Press [%s] or [%s] to close", keys.HelpLabel(), keys.Label(config.ActionCancel))
 
 	panelContent := make([]string, 0, len(content)+4)
@@ -43,7 +42,7 @@ func buildHelpPanelLines(keys config.KeyBindings, screenWidth int) ([]string, in
 	return lines, panelW
 }
 
-func buildHelpContent(sections []help.Section) []string {
+func buildContent(sections []Section) []string {
 	var lines []string
 	for i, sec := range sections {
 		if i > 0 {
