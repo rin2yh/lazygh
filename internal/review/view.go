@@ -30,9 +30,9 @@ func (f *view) ShouldShowDrawer() bool {
 	return rs.DrawerOpen || rs.InputMode != model.ReviewInputNone || rs.HasPendingReview() || len(rs.Comments) > 0 || rs.Summary != "" || rs.RangeStart != nil
 }
 
-// StopInput stops any active input and returns the FocusTarget to move to,
-// or nil if focus should not change.
-func (f *view) StopInput() *FocusTarget {
+// StopInput stops any active input and returns the FocusTarget to move to
+// and whether focus should change.
+func (f *view) StopInput() (FocusTarget, bool) {
 	f.comment.editor.Blur()
 	f.summary.editor.Blur()
 	if f.rs.InputMode == model.ReviewInputComment {
@@ -42,10 +42,9 @@ func (f *view) StopInput() *FocusTarget {
 	}
 	f.rs.StopInput()
 	if f.ShouldShowDrawer() {
-		t := FocusReviewDrawer
-		return &t
+		return FocusReviewDrawer, true
 	}
-	return nil
+	return 0, false
 }
 
 func (f *view) HandleEsc() bool {
@@ -54,10 +53,10 @@ func (f *view) HandleEsc() bool {
 }
 
 // HandleSummarySave saves the summary, stops input, and returns the FocusTarget
-// to move to (or nil if focus should not change).
-func (f *view) HandleSummarySave() (bool, *FocusTarget) {
+// to move to and whether focus should change.
+func (f *view) HandleSummarySave() (FocusTarget, bool) {
 	f.summary.Save()
-	target := f.StopInput()
+	target, ok := f.StopInput()
 	f.rs.SetNotice("Review summary updated.")
-	return true, target
+	return target, ok
 }

@@ -129,8 +129,8 @@ func (c *Controller) BeginSummaryInput() {
 }
 
 func (c *Controller) StopInput() {
-	if t := c.view.StopInput(); t != nil {
-		c.setFocus(*t)
+	if t, ok := c.view.StopInput(); ok {
+		c.setFocus(t)
 	}
 }
 
@@ -148,9 +148,8 @@ func (c *Controller) HandleEditorKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 		return nil, handled
 	}
 	if c.keys.Matches(msg, config.ActionReviewSave) && c.view.InputMode() == model.ReviewInputSummary {
-		_, target := c.view.HandleSummarySave()
-		if target != nil {
-			c.setFocus(*target)
+		if t, ok := c.view.HandleSummarySave(); ok {
+			c.setFocus(t)
 		}
 		return nil, true
 	}
