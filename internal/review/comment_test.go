@@ -61,7 +61,7 @@ func TestBuildDraft(t *testing.T) {
 		{
 			name:      "valid single-line comment",
 			body:      "looks good",
-			selection: reviewstub.Selection{Line: commentableLine, LineIdx: 5},
+			selection: reviewstub.Selection{Line: commentableLine, LineIndex: 5},
 			wantLine:  42,
 		},
 		{
@@ -73,20 +73,20 @@ func TestBuildDraft(t *testing.T) {
 				NewLine:     0,
 				Side:        gh.DiffSideLeft,
 				Commentable: true,
-			}, LineIdx: 3},
+			}, LineIndex: 3},
 			wantLine: 10,
 		},
 		{
 			name:      "range across different files fails",
 			body:      "cross-file",
-			selection: reviewstub.Selection{Line: commentableLine, LineIdx: 5},
+			selection: reviewstub.Selection{Line: commentableLine, LineIndex: 5},
 			rangePtr:  &model.ReviewRange{Path: "other.go", Index: 2, Line: 10},
 			wantErr:   "range must stay within one file",
 		},
 		{
 			name:      "valid range comment",
 			body:      "range comment",
-			selection: reviewstub.Selection{Line: commentableLine, LineIdx: 5},
+			selection: reviewstub.Selection{Line: commentableLine, LineIndex: 5},
 			rangePtr:  &model.ReviewRange{Path: "main.go", Index: 2, Line: 30, Side: "RIGHT"},
 			wantLine:  42,
 			wantStart: 30,
@@ -94,7 +94,7 @@ func TestBuildDraft(t *testing.T) {
 		{
 			name:      "range with reversed indices swaps lines",
 			body:      "reversed range",
-			selection: reviewstub.Selection{Line: commentableLine, LineIdx: 2},
+			selection: reviewstub.Selection{Line: commentableLine, LineIndex: 2},
 			rangePtr:  &model.ReviewRange{Path: "main.go", Index: 5, Line: 50, Side: "RIGHT"},
 			wantLine:  50,
 			wantStart: 42,
@@ -102,7 +102,7 @@ func TestBuildDraft(t *testing.T) {
 		{
 			name:      "same index range has no StartLine",
 			body:      "same line range",
-			selection: reviewstub.Selection{Line: commentableLine, LineIdx: 5},
+			selection: reviewstub.Selection{Line: commentableLine, LineIndex: 5},
 			rangePtr:  &model.ReviewRange{Path: "main.go", Index: 5, Line: 42, Side: "RIGHT"},
 			wantLine:  42,
 			wantStart: 0,

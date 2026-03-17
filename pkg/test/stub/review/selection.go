@@ -3,9 +3,9 @@ package review
 import "github.com/rin2yh/lazygh/internal/gh"
 
 type Selection struct {
-	File    gh.DiffFile
-	Line    gh.DiffLine
-	LineIdx int
+	File      gh.DiffFile
+	Line      gh.DiffLine
+	LineIndex int
 }
 
 func (s Selection) CurrentFile() (gh.DiffFile, bool) {
@@ -23,5 +23,5 @@ func (s Selection) CurrentLine() (gh.DiffLine, bool) {
 }
 
 func (s Selection) LineSelected() int {
-	return s.LineIdx
+	return s.LineIndex
 }

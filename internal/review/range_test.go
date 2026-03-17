@@ -18,7 +18,7 @@ func TestToggleRangeSelection_StartsAndClearsRange(t *testing.T) {
 			Side:        gh.DiffSideRight,
 			Commentable: true,
 		},
-		LineIdx: 5,
+		LineIndex: 5,
 	}
 	focus := FocusReviewDrawer
 	controller := NewController(config.Default(), host, &testmock.GHClient{}, selection, func(target FocusTarget) {

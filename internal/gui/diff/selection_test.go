@@ -78,7 +78,7 @@ func TestSelectionLineNavigation(t *testing.T) {
 	}
 }
 
-func TestSelectionCurrentDiffAccessors(t *testing.T) {
+func TestSelectionCurrentAccessors(t *testing.T) {
 	selection := Selection{}
 	selection.SetFiles([]gh.DiffFile{
 		{
