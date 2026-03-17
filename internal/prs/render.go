@@ -5,7 +5,8 @@ import (
 	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
-type Input struct {
+// PanelInput holds the data needed to render the left PR list panels.
+type PanelInput struct {
 	Repo       string
 	PRsLoading bool
 	PRs        []string
@@ -13,7 +14,8 @@ type Input struct {
 	Filter     string
 }
 
-func RenderLeft(input Input, repoHeight, prHeight int, active func(layout.Focus) bool, style func(bool) widget.PanelStyle, width int) []string {
+// RenderLeft renders the Repository and PRs panels on the left side.
+func RenderLeft(input PanelInput, repoHeight, prHeight int, active func(layout.Focus) bool, style func(bool) widget.PanelStyle, width int) []string {
 	height := repoHeight + prHeight
 	repoLines := widget.FramePanel("Repository", renderRepo(input), width, repoHeight, style(active(layout.FocusRepo)))
 	prTitle := "PRs [" + input.Filter + "]"
@@ -24,11 +26,11 @@ func RenderLeft(input Input, repoHeight, prHeight int, active func(layout.Focus)
 	return lines
 }
 
-func renderRepo(input Input) []string {
+func renderRepo(input PanelInput) []string {
 	return []string{input.Repo}
 }
 
-func renderPRs(input Input) []string {
+func renderPRs(input PanelInput) []string {
 	if input.PRsLoading {
 		return nil
 	}

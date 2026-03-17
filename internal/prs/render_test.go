@@ -11,7 +11,7 @@ import (
 
 func TestRenderLeftPanelsSeparated(t *testing.T) {
 	screen := layout.New(80, 10, false, false)
-	input := Input{
+	input := PanelInput{
 		Repo:       "owner/repo",
 		PRs:        []string{"PR #1 Fix bug"},
 		PRSelected: 0,
