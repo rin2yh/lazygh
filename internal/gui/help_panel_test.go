@@ -1,4 +1,4 @@
-package help
+package gui
 
 import (
 	"strings"
@@ -16,9 +16,9 @@ func makeBackground(lines, width int) []string {
 	return bg
 }
 
-func TestBuildPanelLines_WidthMatchesLines(t *testing.T) {
+func TestBuildHelpPanelLines_WidthMatchesLines(t *testing.T) {
 	keys := config.Default().KeyBindings
-	lines, w := buildPanelLines(keys, 120)
+	lines, w := buildHelpPanelLines(keys, 120)
 	for i, line := range lines {
 		got := xansi.StringWidth(line)
 		if got != w {
@@ -27,16 +27,16 @@ func TestBuildPanelLines_WidthMatchesLines(t *testing.T) {
 	}
 }
 
-func TestBuildPanelLines_ClampsToScreenWidth(t *testing.T) {
+func TestBuildHelpPanelLines_ClampsToScreenWidth(t *testing.T) {
 	keys := config.Default().KeyBindings
 	const screenW = 40
-	_, w := buildPanelLines(keys, screenW)
+	_, w := buildHelpPanelLines(keys, screenW)
 	if w != screenW-2 {
 		t.Fatalf("got w=%d, want %d", w, screenW-2)
 	}
 }
 
-func TestRenderOverlay_LineCountPreserved(t *testing.T) {
+func TestRenderHelpOverlay_LineCountPreserved(t *testing.T) {
 	tests := []struct {
 		name    string
 		bgLines int
@@ -55,7 +55,7 @@ func TestRenderOverlay_LineCountPreserved(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			bg := makeBackground(tt.bgLines, tt.screenW)
-			got := RenderOverlay(bg, keys, tt.screenW)
+			got := renderHelpOverlay(bg, keys, tt.screenW)
 			if len(got) != tt.bgLines {
 				t.Fatalf("got %d lines, want %d", len(got), tt.bgLines)
 			}
@@ -63,11 +63,11 @@ func TestRenderOverlay_LineCountPreserved(t *testing.T) {
 	}
 }
 
-func TestRenderOverlay_ContainsText(t *testing.T) {
+func TestRenderHelpOverlay_ContainsText(t *testing.T) {
 	const screenW = 120
 	keys := config.Default().KeyBindings
 	bg := makeBackground(40, screenW)
-	got := RenderOverlay(bg, keys, screenW)
+	got := renderHelpOverlay(bg, keys, screenW)
 	joined := strings.Join(got, "\n")
 
 	tests := []struct {
@@ -89,11 +89,11 @@ func TestRenderOverlay_ContainsText(t *testing.T) {
 	}
 }
 
-func TestRenderOverlay_UntouchedLinesUnchanged(t *testing.T) {
+func TestRenderHelpOverlay_UntouchedLinesUnchanged(t *testing.T) {
 	const screenW = 120
 	keys := config.Default().KeyBindings
 	bg := makeBackground(40, screenW)
-	got := RenderOverlay(bg, keys, screenW)
+	got := renderHelpOverlay(bg, keys, screenW)
 
 	// 40行の背景に対してパネルは中央に配置されるので、先頭・末尾行は変化しないはず
 	if got[0] != bg[0] {

@@ -5,7 +5,6 @@ import (
 
 	"github.com/rin2yh/lazygh/internal/gh"
 	guidiff "github.com/rin2yh/lazygh/internal/gui/diff"
-	"github.com/rin2yh/lazygh/internal/gui/help"
 	"github.com/rin2yh/lazygh/internal/gui/layout"
 	"github.com/rin2yh/lazygh/internal/model"
 	"github.com/rin2yh/lazygh/internal/pr/list"
@@ -72,7 +71,7 @@ func (gui *Gui) render() string {
 		lines = applyFilterOverlay(lines, gui.state.Filter, gui.state.FilterCursor, screen.Width)
 	}
 	if gui.showHelp {
-		lines = help.RenderOverlay(lines, gui.config.KeyBindings, screen.Width)
+		lines = renderHelpOverlay(lines, gui.config.KeyBindings, screen.Width)
 	}
 
 	var b strings.Builder

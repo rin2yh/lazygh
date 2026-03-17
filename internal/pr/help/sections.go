@@ -1,27 +1,13 @@
 package help
 
-import "github.com/rin2yh/lazygh/internal/config"
+import (
+	"github.com/rin2yh/lazygh/internal/config"
+	"github.com/rin2yh/lazygh/internal/help"
+)
 
-// Section は1グループ分のキーバインドヘルプ定義を表す。
-type Section struct {
-	Title string
-	Rows  [][2]string // [key label, description]
-}
-
-// BuildSections は config.KeyBindings から PR レビュー操作のヘルプセクション一覧を返す。
-func BuildSections(keys config.KeyBindings) []Section {
-	return []Section{
-		{
-			Title: "Navigation",
-			Rows: [][2]string{
-				{keys.MoveLabel(), "Move Up/Down"},
-				{keys.PanelLabel(), "Panel Prev/Next"},
-				{keys.FocusLabel(), "Cycle Focus"},
-				{keys.PageLabel(), "Page Up/Down"},
-				{keys.TopBottomLabel(), "Go Top/Bottom"},
-				{keys.Label(config.ActionCancel), "Cancel / Close"},
-			},
-		},
+// Sections は PR レビュー操作のキーバインドセクションを返す。
+func Sections(keys config.KeyBindings) []help.Section {
+	return []help.Section{
 		{
 			Title: "View",
 			Rows: [][2]string{
