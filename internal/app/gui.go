@@ -18,37 +18,16 @@ type PRClient interface {
 	DiffPR(repo string, number int) (string, error)
 }
 
-// ReviewController は app/ レイヤーが review 機能に要求するインターフェース。
-type ReviewController interface {
+// ReviewStateReader はレビュー状態の読み取り専用アクセスを提供するインターフェース。
+// 描画ロジックなど状態参照のみ必要な箇所はこのインターフェースに依存する。
+type ReviewStateReader interface {
 	ShouldShowDrawer() bool
 	IsIndexWithinPendingRange(path string, commentable bool, idx int) bool
 	CurrentSummaryValue() string
 	CommentInputLines() []string
 	SummaryInputLines() []string
-	HandleEditorKey(msg tea.KeyMsg) (tea.Cmd, bool)
-	HandleSubmit() tea.Cmd
-	HandleDiscard() tea.Cmd
-	HandleCommentSave() tea.Cmd
-	HandleEditCommentSave() tea.Cmd
-	HandleDeleteComment() tea.Cmd
-	ApplyCommentResult(msg review.CommentSavedMsg)
-	ApplyDeleteCommentResult(msg review.CommentDeletedMsg)
-	ApplyEditCommentResult(msg review.CommentUpdatedMsg)
-	ApplySubmitResult(msg review.SubmittedMsg)
-	ApplyDiscardResult(msg review.DiscardedMsg)
 	CurrentCommentValue() string
-	SetCommentValue(value string)
-	StopInput()
-	ClearCommentInput()
-	CycleReviewEvent()
-	BeginEditComment() bool
 	IsEditingComment() bool
-	SelectNextComment()
-	SelectPrevComment()
-	ToggleRangeSelection()
-	BeginCommentFlow()
-	BeginSummaryInput()
-	// state accessors
 	InputMode() model.ReviewInputMode
 	Summary() string
 	EventLabel() string
@@ -60,12 +39,51 @@ type ReviewController interface {
 	IsInInputMode() bool
 	HasPendingReview() bool
 	PRNumber() int
+}
+
+// ReviewInputHandler はユーザー入力によるレビュー操作を処理するインターフェース。
+// キー入力ハンドラやフロー開始など、状態変更を伴うアクションを担う。
+type ReviewInputHandler interface {
+	HandleEditorKey(msg tea.KeyMsg) (tea.Cmd, bool)
+	HandleSubmit() tea.Cmd
+	HandleDiscard() tea.Cmd
+	HandleCommentSave() tea.Cmd
+	HandleEditCommentSave() tea.Cmd
+	HandleDeleteComment() tea.Cmd
+	SetCommentValue(value string)
+	StopInput()
+	ClearCommentInput()
+	CycleReviewEvent()
+	BeginEditComment() bool
+	SelectNextComment()
+	SelectPrevComment()
+	ToggleRangeSelection()
+	BeginCommentFlow()
+	BeginSummaryInput()
 	SetNotice(msg string)
 	ClearRangeStart()
 	Reset()
 	SetContext(prNumber int, pullRequestID, commitOID, reviewID string)
 	OpenDrawer()
 	BeginCommentInput()
+}
+
+// ReviewResultApplier は非同期操作の結果をレビュー状態に適用するインターフェース。
+type ReviewResultApplier interface {
+	ApplyCommentResult(msg review.CommentSavedMsg)
+	ApplyDeleteCommentResult(msg review.CommentDeletedMsg)
+	ApplyEditCommentResult(msg review.CommentUpdatedMsg)
+	ApplySubmitResult(msg review.SubmittedMsg)
+	ApplyDiscardResult(msg review.DiscardedMsg)
+}
+
+// ReviewController は app/ レイヤーが review 機能に要求するインターフェース。
+// ISP に従い ReviewStateReader / ReviewInputHandler / ReviewResultApplier に分割されており、
+// 各呼び出し側は必要な責務のみに依存できる。
+type ReviewController interface {
+	ReviewStateReader
+	ReviewInputHandler
+	ReviewResultApplier
 }
 
 // DetailViewport は app/ レイヤーが detail 機能に要求するインターフェース。
