@@ -19,19 +19,24 @@ func FormatPROverview(item model.Item) string {
 	}
 
 	assignee := "unassigned"
-	if len(item.Assignees) > 0 {
-		list := make([]string, 0, len(item.Assignees))
-		for _, name := range item.Assignees {
-			n := model.SanitizeSingleLine(name)
-			if n != "" {
-				list = append(list, n)
-			}
+	first := ""
+	extra := 0
+	for _, name := range item.Assignees {
+		n := model.SanitizeSingleLine(name)
+		if n == "" {
+			continue
 		}
-		if len(list) > 0 {
-			assignee = list[0]
-			if len(list) > 1 {
-				assignee = fmt.Sprintf("%s (+%d)", list[0], len(list)-1)
-			}
+		if first == "" {
+			first = n
+		} else {
+			extra++
+		}
+	}
+	if first != "" {
+		if extra > 0 {
+			assignee = fmt.Sprintf("%s (+%d)", first, extra)
+		} else {
+			assignee = first
 		}
 	}
 
