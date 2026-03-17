@@ -59,7 +59,7 @@ func (s *State) ApplyPRsResult(repo string, items []model.Item, err error) {
 	s.Fetching = false
 	s.Overview.Fetching = model.FetchNone
 	if err != nil {
-		s.showError("Error loading PRs", err)
+		s.showError("Error fetching PRs", err)
 		return
 	}
 
@@ -78,7 +78,7 @@ func (s *State) ApplyPRsResult(repo string, items []model.Item, err error) {
 
 func (s *State) ApplyDetailResult(content string, err error) {
 	if err != nil {
-		s.showError("Error loading detail", err)
+		s.showError("Error fetching detail", err)
 		return
 	}
 	s.Overview.Fetching = model.FetchNone
@@ -87,7 +87,7 @@ func (s *State) ApplyDetailResult(content string, err error) {
 
 func (s *State) ApplyDiffResult(content string, err error) {
 	if err != nil {
-		s.showError("Error loading diff", err)
+		s.showError("Error fetching diff", err)
 		return
 	}
 	s.Overview.Fetching = model.FetchNone

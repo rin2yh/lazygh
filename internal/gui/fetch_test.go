@@ -177,7 +177,7 @@ func TestApplyPRsResult(t *testing.T) {
 			want: want{
 				repo:   "",
 				prs:    nil,
-				detail: "Error loading PRs: boom",
+				detail: "Error fetching PRs: boom",
 			},
 		},
 	}
@@ -240,7 +240,7 @@ func TestApplyDetailResult(t *testing.T) {
 				err:    errors.New("boom"),
 			},
 			want: want{
-				detail: "Error loading detail: boom",
+				detail: "Error fetching detail: boom",
 			},
 		},
 	}

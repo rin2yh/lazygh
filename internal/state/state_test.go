@@ -46,7 +46,7 @@ func TestApplyPRsResult(t *testing.T) {
 			want: want{
 				repo:    "",
 				prCount: 0,
-				detail:  "Error loading PRs: boom",
+				detail:  "Error fetching PRs: boom",
 			},
 		},
 	}
@@ -212,7 +212,7 @@ func TestApplyDetailResult(t *testing.T) {
 			name: "error",
 			err:  errors.New("boom"),
 			want: want{
-				detail: "Error loading detail: boom",
+				detail: "Error fetching detail: boom",
 			},
 		},
 	}
@@ -256,7 +256,7 @@ func TestApplyDiffResult(t *testing.T) {
 			name: "error",
 			err:  errors.New("boom"),
 			want: want{
-				detail: "Error loading diff: boom",
+				detail: "Error fetching diff: boom",
 			},
 		},
 	}
