@@ -72,7 +72,7 @@ func (s *screen) handleGlobalAction(action config.Action) (tea.Cmd, bool) {
 	case config.ActionOpenSelected:
 		return s.openSelectedPR(), true
 	case config.ActionFilterPRs:
-		s.gui.state.OpenFilterSelect()
+		s.gui.coord.OpenFilterSelect()
 		return nil, true
 	default:
 		return nil, false
@@ -109,7 +109,7 @@ func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
 			s.gui.review.ClearCommentInput()
 		}
 	case config.ActionReviewEvent:
-		if s.gui.state.IsDiffMode() {
+		if s.gui.coord.IsDiffMode() {
 			s.gui.review.CycleReviewEvent()
 		}
 	case config.ActionReviewDeleteComment:
@@ -127,20 +127,20 @@ func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
 func (s *screen) handleFilterKey(msg tea.KeyMsg) tea.Cmd {
 	switch msg.String() {
 	case "esc":
-		s.gui.state.CloseFilterSelect()
+		s.gui.coord.CloseFilterSelect()
 		return nil
 	case "enter":
-		s.gui.state.CloseFilterSelect()
-		s.gui.state.BeginLoadPRs()
+		s.gui.coord.CloseFilterSelect()
+		s.gui.coord.BeginLoadPRs()
 		return s.loadPRsCmd()
 	case "j", "down":
-		s.gui.state.MoveFilterCursor(1)
+		s.gui.coord.MoveFilterCursor(1)
 		return nil
 	case "k", "up":
-		s.gui.state.MoveFilterCursor(-1)
+		s.gui.coord.MoveFilterCursor(-1)
 		return nil
 	case " ":
-		s.gui.state.ToggleFilterAtCursor()
+		s.gui.coord.ToggleFilterAtCursor()
 		return nil
 	}
 	return nil
@@ -174,7 +174,7 @@ func (s *screen) moveUp() tea.Cmd   { return s.moveCursor(-1) }
 
 // moveCursor moves the cursor in the given direction (1 = down, -1 = up).
 func (s *screen) moveCursor(dir int) tea.Cmd {
-	if s.gui.state.IsDiffMode() {
+	if s.gui.coord.IsDiffMode() {
 		switch s.gui.focus {
 		case panelPRs:
 			navigate := s.gui.navigateDown
@@ -221,7 +221,7 @@ func (s *screen) moveCursor(dir int) tea.Cmd {
 }
 
 func (s *screen) openSelectedPR() tea.Cmd {
-	action := s.gui.state.PlanEnter(s.gui.client != nil, os.Getenv("LAZYGH_DEBUG_DETAIL_TEXT"))
+	action := s.gui.coord.PlanEnter(s.gui.client != nil, os.Getenv("LAZYGH_DEBUG_DETAIL_TEXT"))
 	switch action.Kind {
 	case model.EnterLoadPRDiff:
 		return s.loadDetailCmd(action.Repo, action.Number, model.DetailModeDiff)
@@ -237,7 +237,7 @@ func (s *screen) handleDetailScrollAction(action config.Action) tea.Cmd {
 		return nil
 	}
 
-	if s.gui.state.IsDiffMode() {
+	if s.gui.coord.IsDiffMode() {
 		switch action {
 		case config.ActionPageUp:
 			s.gui.diff.SelectPrevLine(s.gui.detail.Height())
@@ -284,7 +284,7 @@ func primaryKeyMsg(binding config.KeyBinding) (tea.KeyMsg, bool) {
 }
 
 func (s *screen) scrollDetailDown() {
-	if s.gui.state.IsDiffMode() {
+	if s.gui.coord.IsDiffMode() {
 		s.gui.diff.SelectNextLine(1)
 		return
 	}
@@ -292,7 +292,7 @@ func (s *screen) scrollDetailDown() {
 }
 
 func (s *screen) scrollDetailUp() {
-	if s.gui.state.IsDiffMode() {
+	if s.gui.coord.IsDiffMode() {
 		s.gui.diff.SelectPrevLine(1)
 		return
 	}
@@ -300,7 +300,7 @@ func (s *screen) scrollDetailUp() {
 }
 
 func (s *screen) startReviewRange() tea.Cmd {
-	if !s.gui.state.IsDiffMode() {
+	if !s.gui.coord.IsDiffMode() {
 		s.gui.review.SetNotice("Review range selection is only available in diff view.")
 		return nil
 	}
@@ -309,7 +309,7 @@ func (s *screen) startReviewRange() tea.Cmd {
 }
 
 func (s *screen) startReviewComment() tea.Cmd {
-	if !s.gui.state.IsDiffMode() {
+	if !s.gui.coord.IsDiffMode() {
 		s.gui.review.SetNotice("Review comments are only available in diff view.")
 		return nil
 	}
@@ -318,7 +318,7 @@ func (s *screen) startReviewComment() tea.Cmd {
 }
 
 func (s *screen) startReviewSummary() tea.Cmd {
-	if !s.gui.state.IsDiffMode() {
+	if !s.gui.coord.IsDiffMode() {
 		s.gui.review.SetNotice("Review summary is only available in diff view.")
 		return nil
 	}

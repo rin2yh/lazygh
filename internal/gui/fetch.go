@@ -50,7 +50,7 @@ func toCorePRs(prs []gh.PRItem, filter model.PRFilterMask) []model.Item {
 }
 
 func (s *screen) loadPRsCmd() tea.Cmd {
-	filter := s.gui.state.Filter
+	filter := s.gui.coord.Filter
 	return func() tea.Msg {
 		repo, err := s.gui.client.ResolveCurrentRepo()
 		if err != nil {
@@ -81,17 +81,16 @@ func (s *screen) loadDetailCmd(repo string, number int, mode model.DetailMode) t
 }
 
 func (gui *Gui) applyPRsResult(msg prsLoadedMsg) {
-	gui.state.ApplyPRsResult(msg.repo, msg.prs, msg.err)
-	gui.review.Reset()
+	gui.coord.ApplyPRsResult(msg.repo, msg.prs, msg.err)
 	gui.focus = panelPRs
 }
 
 func (gui *Gui) applyDetailResult(msg detailLoadedMsg) {
-	if !gui.state.ShouldApplyDetailResult(msg.mode, msg.number) {
+	if !gui.coord.ShouldApplyDetailResult(msg.mode, msg.number) {
 		return
 	}
 	if msg.mode == model.DetailModeDiff {
-		gui.state.ApplyDiffResult(msg.content, msg.err)
+		gui.coord.ApplyDiffResult(msg.content, msg.err)
 		if msg.err != nil {
 			gui.diff.Reset()
 			if gui.focus == panelDiffFiles {
@@ -99,20 +98,20 @@ func (gui *Gui) applyDetailResult(msg detailLoadedMsg) {
 			}
 			return
 		}
-		gui.updateDiffFiles(gui.state.Overview.Content)
+		gui.updateDiffFiles(gui.coord.Overview.Content)
 		return
 	}
-	gui.state.ApplyDetailResult(msg.content, msg.err)
+	gui.coord.ApplyDetailResult(msg.content, msg.err)
 }
 
 func (gui *Gui) currentDiffContent() string {
 	files := gui.diff.Files()
 	selected := gui.diff.FileSelected()
 	if len(files) == 0 {
-		return gui.state.Overview.Content
+		return gui.coord.Overview.Content
 	}
 	if selected < 0 || selected >= len(files) {
-		return gui.state.Overview.Content
+		return gui.coord.Overview.Content
 	}
 	return files[selected].Content
 }

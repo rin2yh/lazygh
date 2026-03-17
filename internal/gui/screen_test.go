@@ -53,21 +53,21 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := mustNewGui(t, &testmock.GHClient{})
-			g.state.ApplyPRsResult("owner/repo", prs, nil)
+			g.coord.ApplyPRsResult("owner/repo", prs, nil)
 			g.focus = tt.startFocus
-			g.state.Selected = tt.startIndex
-			g.state.Overview.Content = "PR #1 one\nStatus: \nAssignee: -"
+			g.coord.Selected = tt.startIndex
+			g.coord.Overview.Content = "PR #1 one\nStatus: \nAssignee: -"
 			m := &screen{gui: g}
 
 			_, cmd := m.Update(tt.key)
 			if (cmd != nil) != tt.wantCmd {
 				t.Fatalf("cmd returned = %v, want %v", cmd != nil, tt.wantCmd)
 			}
-			if g.state.Selected != tt.wantIndex {
-				t.Fatalf("got selected %d, want %d", g.state.Selected, tt.wantIndex)
+			if g.coord.Selected != tt.wantIndex {
+				t.Fatalf("got selected %d, want %d", g.coord.Selected, tt.wantIndex)
 			}
-			if g.state.Overview.Content != tt.wantDetail {
-				t.Fatalf("got detail %q, want %q", g.state.Overview.Content, tt.wantDetail)
+			if g.coord.Overview.Content != tt.wantDetail {
+				t.Fatalf("got detail %q, want %q", g.coord.Overview.Content, tt.wantDetail)
 			}
 		})
 	}
@@ -79,7 +79,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 	t.Run("j on prs returns reload command", func(t *testing.T) {
 		client := &testmock.GHClient{PRDiff: "diff for two"}
 		g := mustNewGui(t, client)
-		g.state.ApplyPRsResult("owner/repo", prs, nil)
+		g.coord.ApplyPRsResult("owner/repo", prs, nil)
 		g.switchToDiff()
 		g.focus = panelPRs
 		m := &screen{gui: g}
@@ -88,8 +88,8 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 		if cmd == nil {
 			t.Fatal("expected reload command")
 		}
-		if g.state.Selected != 1 {
-			t.Fatalf("got selected %d, want %d", g.state.Selected, 1)
+		if g.coord.Selected != 1 {
+			t.Fatalf("got selected %d, want %d", g.coord.Selected, 1)
 		}
 
 		msg := cmd().(detailLoadedMsg)
@@ -106,7 +106,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 
 	t.Run("j on repo does nothing", func(t *testing.T) {
 		g := mustNewGui(t, &testmock.GHClient{PRDiff: "diff for two"})
-		g.state.ApplyPRsResult("owner/repo", prs, nil)
+		g.coord.ApplyPRsResult("owner/repo", prs, nil)
 		g.switchToDiff()
 		g.focus = panelRepo
 		m := &screen{gui: g}
@@ -115,14 +115,14 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 		if cmd != nil {
 			t.Fatal("did not expect command")
 		}
-		if g.state.Selected != 0 {
-			t.Fatalf("got selected %d, want %d", g.state.Selected, 0)
+		if g.coord.Selected != 0 {
+			t.Fatalf("got selected %d, want %d", g.coord.Selected, 0)
 		}
 	})
 
 	t.Run("j on diff content scrolls without changing prs", func(t *testing.T) {
 		g := mustNewGui(t, &testmock.GHClient{PRDiff: "diff for two"})
-		g.state.ApplyPRsResult("owner/repo", prs, nil)
+		g.coord.ApplyPRsResult("owner/repo", prs, nil)
 		g.switchToDiff()
 		g.updateDiffFiles(strings.Join([]string{
 			"diff --git a/a.txt b/a.txt",
@@ -140,8 +140,8 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 		if cmd != nil {
 			t.Fatal("did not expect command")
 		}
-		if g.state.Selected != 0 {
-			t.Fatalf("got selected %d, want %d", g.state.Selected, 0)
+		if g.coord.Selected != 0 {
+			t.Fatalf("got selected %d, want %d", g.coord.Selected, 0)
 		}
 		if g.diff.LineSelected() == 0 {
 			t.Fatal("expected diff line selection to move")

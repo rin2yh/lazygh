@@ -14,12 +14,12 @@ import (
 )
 
 func (gui *Gui) render() string {
-	isDiff := gui.state.IsDiffMode()
+	isDiff := gui.coord.IsDiffMode()
 	showDrawer := gui.review.ShouldShowDrawer()
-	screen := layout.New(gui.state.Width, gui.state.Height, isDiff, showDrawer)
+	screen := layout.New(gui.coord.Width, gui.coord.Height, isDiff, showDrawer)
 	focus := gui.renderFocus()
 	statusLine := layout.Status{
-		Loading:   gui.state.Overview.Loading != model.LoadingNone,
+		Loading:   gui.coord.Overview.Loading != model.LoadingNone,
 		DiffMode:  isDiff,
 		Focus:     focus,
 		InputMode: gui.review.InputMode(),
@@ -27,18 +27,18 @@ func (gui *Gui) render() string {
 	}.String()
 
 	leftInput := list.PanelInput{
-		Repo:     gui.state.Repo,
-		Fetching: gui.state.Fetching,
-		Items:    gui.state.Items,
-		Selected: gui.state.Selected,
-		Filter:   gui.state.Filter.Label(),
+		Repo:     gui.coord.Repo,
+		Fetching: gui.coord.Fetching,
+		Items:    gui.coord.Items,
+		Selected: gui.coord.Selected,
+		Filter:   gui.coord.Filter.Label(),
 	}
 
 	var rightLines []string
 	if isDiff {
 		rightLines = gui.currentDetailLines(screen, guidiff.ColorizeContent(gui.currentDiffContent()))
 	} else {
-		rightLines = gui.currentDetailLines(screen, gui.state.Overview.Content)
+		rightLines = gui.currentDetailLines(screen, gui.coord.Overview.Content)
 	}
 	rightInput := guidiff.PanelInput{
 		DiffMode:      isDiff,
@@ -68,8 +68,8 @@ func (gui *Gui) render() string {
 	}
 	lines = append(lines, widget.PadOrTrim(statusLine, screen.Width))
 
-	if gui.state.FilterOpen {
-		lines = applyFilterOverlay(lines, gui.state.Filter, gui.state.FilterCursor, screen.Width)
+	if gui.coord.FilterOpen {
+		lines = applyFilterOverlay(lines, gui.coord.Filter, gui.coord.FilterCursor, screen.Width)
 	}
 	if gui.showHelp {
 		lines = help.RenderOverlay(lines, gui.config.KeyBindings, screen.Width)
@@ -138,7 +138,7 @@ func (gui *Gui) renderFocus() layout.Focus {
 
 func (gui *Gui) currentDetailLines(dims layout.Screen, content string) []string {
 	innerWidth := dims.RightWidth
-	if gui.state.IsDiffMode() {
+	if gui.coord.IsDiffMode() {
 		filesWidth, diffWidth := layout.DiffSplitWidths(dims.RightWidth)
 		if filesWidth > 0 {
 			innerWidth = diffWidth
