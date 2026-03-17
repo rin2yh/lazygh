@@ -55,7 +55,7 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 			g := mustNewGui(t, &testmock.GHClient{})
 			g.state.ApplyPRsResult("owner/repo", prs, nil)
 			g.focus = tt.startFocus
-			g.state.List.PRsSelected = tt.startIndex
+			g.state.PRsSelected = tt.startIndex
 			g.state.Detail.Content = "PR #1 one\nStatus: \nAssignee: -"
 			m := &screen{gui: g}
 
@@ -63,8 +63,8 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 			if (cmd != nil) != tt.wantCmd {
 				t.Fatalf("cmd returned = %v, want %v", cmd != nil, tt.wantCmd)
 			}
-			if g.state.List.PRsSelected != tt.wantIndex {
-				t.Fatalf("got selected %d, want %d", g.state.List.PRsSelected, tt.wantIndex)
+			if g.state.PRsSelected != tt.wantIndex {
+				t.Fatalf("got selected %d, want %d", g.state.PRsSelected, tt.wantIndex)
 			}
 			if g.state.Detail.Content != tt.wantDetail {
 				t.Fatalf("got detail %q, want %q", g.state.Detail.Content, tt.wantDetail)
@@ -88,8 +88,8 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 		if cmd == nil {
 			t.Fatal("expected reload command")
 		}
-		if g.state.List.PRsSelected != 1 {
-			t.Fatalf("got selected %d, want %d", g.state.List.PRsSelected, 1)
+		if g.state.PRsSelected != 1 {
+			t.Fatalf("got selected %d, want %d", g.state.PRsSelected, 1)
 		}
 
 		msg := cmd().(detailLoadedMsg)
@@ -115,8 +115,8 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 		if cmd != nil {
 			t.Fatal("did not expect command")
 		}
-		if g.state.List.PRsSelected != 0 {
-			t.Fatalf("got selected %d, want %d", g.state.List.PRsSelected, 0)
+		if g.state.PRsSelected != 0 {
+			t.Fatalf("got selected %d, want %d", g.state.PRsSelected, 0)
 		}
 	})
 
@@ -140,8 +140,8 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 		if cmd != nil {
 			t.Fatal("did not expect command")
 		}
-		if g.state.List.PRsSelected != 0 {
-			t.Fatalf("got selected %d, want %d", g.state.List.PRsSelected, 0)
+		if g.state.PRsSelected != 0 {
+			t.Fatalf("got selected %d, want %d", g.state.PRsSelected, 0)
 		}
 		if g.diff.LineSelected() == 0 {
 			t.Fatal("expected diff line selection to move")

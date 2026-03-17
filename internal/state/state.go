@@ -4,18 +4,8 @@ import (
 	"fmt"
 
 	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/prs"
 )
-
-// ListState holds PR list and selection state.
-type ListState struct {
-	Repo         string
-	PRs          []model.Item
-	PRsLoading   bool
-	PRsSelected  int
-	Filter       model.PRFilterMask
-	FilterOpen   bool
-	FilterCursor int
-}
 
 // DetailState holds detail panel display and loading state.
 type DetailState struct {
@@ -31,7 +21,8 @@ type EnterAction struct {
 }
 
 type State struct {
-	List   ListState
+	prs.ListState
+
 	Detail DetailState
 
 	Width  int
@@ -40,7 +31,7 @@ type State struct {
 
 func NewState() *State {
 	return &State{
-		List: ListState{
+		ListState: prs.ListState{
 			PRs:    []model.Item{},
 			Filter: model.PRFilterOpen,
 		},
@@ -56,7 +47,7 @@ func (s *State) SetWindowSize(width int, height int) {
 }
 
 func (s *State) BeginLoadPRs() {
-	s.List.PRsLoading = true
+	s.PRsLoading = true
 	s.Detail.Loading = model.LoadingPRs
 }
 
@@ -70,23 +61,23 @@ func (s *State) ClearLoading() {
 	s.Detail.Loading = model.LoadingNone
 }
 
-func (s *State) ApplyPRsResult(repo string, prs []model.Item, err error) {
-	s.List.PRsLoading = false
+func (s *State) ApplyPRsResult(repo string, items []model.Item, err error) {
+	s.PRsLoading = false
 	s.Detail.Loading = model.LoadingNone
 	if err != nil {
 		s.showError("Error loading PRs", err)
 		return
 	}
 
-	s.List.Repo = repo
-	s.List.PRs = prs
-	s.List.PRsSelected = 0
+	s.Repo = repo
+	s.PRs = items
+	s.PRsSelected = 0
 	s.Detail.Mode = model.DetailModeOverview
-	if len(prs) == 0 {
+	if len(items) == 0 {
 		s.Detail.Content = "No pull requests"
 		return
 	}
-	s.Detail.Content = model.FormatPROverview(prs[s.List.PRsSelected])
+	s.Detail.Content = prs.FormatPROverview(items[s.PRsSelected])
 }
 
 func (s *State) ApplyDetailResult(content string, err error) {
@@ -109,8 +100,8 @@ func (s *State) ApplyDiffResult(content string, err error) {
 
 func (s *State) NavigateDown() bool {
 	changed := false
-	if s.List.PRsSelected < len(s.List.PRs)-1 {
-		s.List.PRsSelected++
+	if s.PRsSelected < len(s.PRs)-1 {
+		s.PRsSelected++
 		changed = true
 	}
 	if changed && s.Detail.Mode == model.DetailModeOverview {
@@ -121,8 +112,8 @@ func (s *State) NavigateDown() bool {
 
 func (s *State) NavigateUp() bool {
 	changed := false
-	if s.List.PRsSelected > 0 {
-		s.List.PRsSelected--
+	if s.PRsSelected > 0 {
+		s.PRsSelected--
 		changed = true
 	}
 	if changed && s.Detail.Mode == model.DetailModeOverview {
@@ -166,7 +157,7 @@ func (s *State) ShouldApplyDetailResult(mode model.DetailMode, number int) bool 
 }
 
 func (s *State) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
-	if !hasClient || s.List.PRsLoading {
+	if !hasClient || s.PRsLoading {
 		return EnterAction{}
 	}
 	item, ok := s.selectedPR()
@@ -180,9 +171,9 @@ func (s *State) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
 	}
 	s.Detail.Loading = model.LoadingDetail
 	if s.Detail.Mode == model.DetailModeDiff {
-		return EnterAction{Kind: model.EnterLoadPRDiff, Repo: s.List.Repo, Number: item.Number}
+		return EnterAction{Kind: model.EnterLoadPRDiff, Repo: s.Repo, Number: item.Number}
 	}
-	return EnterAction{Kind: model.EnterLoadPRDetail, Repo: s.List.Repo, Number: item.Number}
+	return EnterAction{Kind: model.EnterLoadPRDetail, Repo: s.Repo, Number: item.Number}
 }
 
 func (s *State) refreshDetailPreview() {
@@ -190,17 +181,17 @@ func (s *State) refreshDetailPreview() {
 	if !ok {
 		return
 	}
-	s.Detail.Content = model.FormatPROverview(item)
+	s.Detail.Content = prs.FormatPROverview(item)
 }
 
 func (s *State) selectedPR() (model.Item, bool) {
-	if len(s.List.PRs) == 0 {
+	if len(s.PRs) == 0 {
 		return model.Item{}, false
 	}
-	if s.List.PRsSelected < 0 || s.List.PRsSelected >= len(s.List.PRs) {
+	if s.PRsSelected < 0 || s.PRsSelected >= len(s.PRs) {
 		return model.Item{}, false
 	}
-	return s.List.PRs[s.List.PRsSelected], true
+	return s.PRs[s.PRsSelected], true
 }
 
 func (s *State) showError(msg string, err error) {
@@ -214,33 +205,33 @@ func (s *State) SelectedPR() (model.Item, bool) {
 
 // ListRepo returns the current repository slug.
 func (s *State) ListRepo() string {
-	return s.List.Repo
+	return s.Repo
 }
 
 func (s *State) OpenFilterSelect() {
-	s.List.FilterOpen = true
-	s.List.FilterCursor = 0
+	s.FilterOpen = true
+	s.FilterCursor = 0
 }
 
 func (s *State) CloseFilterSelect() {
-	s.List.FilterOpen = false
+	s.FilterOpen = false
 }
 
 func (s *State) MoveFilterCursor(dir int) {
 	n := len(model.PRFilterOptions)
-	s.List.FilterCursor = (s.List.FilterCursor + dir + n) % n
+	s.FilterCursor = (s.FilterCursor + dir + n) % n
 }
 
 // ToggleFilterAtCursor toggles the filter option under the cursor.
 // It prevents deselecting all options (at least one must remain selected).
 func (s *State) ToggleFilterAtCursor() {
-	if s.List.FilterCursor < 0 || s.List.FilterCursor >= len(model.PRFilterOptions) {
+	if s.FilterCursor < 0 || s.FilterCursor >= len(model.PRFilterOptions) {
 		return
 	}
-	opt := model.PRFilterOptions[s.List.FilterCursor]
-	next := s.List.Filter.Toggle(opt)
+	opt := model.PRFilterOptions[s.FilterCursor]
+	next := s.Filter.Toggle(opt)
 	if next == 0 {
 		return // disallow empty selection
 	}
-	s.List.Filter = next
+	s.Filter = next
 }

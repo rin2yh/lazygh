@@ -57,17 +57,17 @@ func TestApplyPRsResult(t *testing.T) {
 			s.BeginLoadPRs()
 			s.ApplyPRsResult(tt.repo, tt.prs, tt.err)
 
-			if s.List.PRsLoading {
+			if s.PRsLoading {
 				t.Fatal("prs should not be loading")
 			}
 			if s.Detail.Loading != model.LoadingNone {
 				t.Fatalf("got %v, want %v", s.Detail.Loading, model.LoadingNone)
 			}
-			if s.List.Repo != tt.want.repo {
-				t.Fatalf("got %q, want %q", s.List.Repo, tt.want.repo)
+			if s.Repo != tt.want.repo {
+				t.Fatalf("got %q, want %q", s.Repo, tt.want.repo)
 			}
-			if len(s.List.PRs) != tt.want.prCount {
-				t.Fatalf("got %d, want %d", len(s.List.PRs), tt.want.prCount)
+			if len(s.PRs) != tt.want.prCount {
+				t.Fatalf("got %d, want %d", len(s.PRs), tt.want.prCount)
 			}
 			if s.Detail.Content != tt.want.detail {
 				t.Fatalf("got %q, want %q", s.Detail.Content, tt.want.detail)
@@ -85,7 +85,7 @@ func TestBeginLoadPRs_OnlySetsLoadingState(t *testing.T) {
 
 	s.BeginLoadPRs()
 
-	if !s.List.PRsLoading {
+	if !s.PRsLoading {
 		t.Fatal("expected PRsLoading to be true")
 	}
 	if s.Detail.Loading != model.LoadingPRs {
@@ -104,8 +104,8 @@ func TestNavigatePRs(t *testing.T) {
 	if !changed {
 		t.Fatal("expected selection change")
 	}
-	if s.List.PRsSelected != 1 {
-		t.Fatalf("got %d, want %d", s.List.PRsSelected, 1)
+	if s.PRsSelected != 1 {
+		t.Fatalf("got %d, want %d", s.PRsSelected, 1)
 	}
 	if s.Detail.Content != "PR #2 two\nStatus: OPEN\nAssignee: unassigned" {
 		t.Fatalf("got %q, want %q", s.Detail.Content, "PR #2 two\nStatus: OPEN\nAssignee: unassigned")
@@ -115,8 +115,8 @@ func TestNavigatePRs(t *testing.T) {
 	if !changed {
 		t.Fatal("expected selection change")
 	}
-	if s.List.PRsSelected != 0 {
-		t.Fatalf("got %d, want %d", s.List.PRsSelected, 0)
+	if s.PRsSelected != 0 {
+		t.Fatalf("got %d, want %d", s.PRsSelected, 0)
 	}
 	if s.Detail.Content != "PR #1 one\nStatus: OPEN\nAssignee: unassigned" {
 		t.Fatalf("got %q, want %q", s.Detail.Content, "PR #1 one\nStatus: OPEN\nAssignee: unassigned")
@@ -133,8 +133,8 @@ func TestNavigatePRs_DiffModeDoesNotOverwriteContent(t *testing.T) {
 	if !changed {
 		t.Fatal("expected selection change")
 	}
-	if s.List.PRsSelected != 1 {
-		t.Fatalf("got %d, want %d", s.List.PRsSelected, 1)
+	if s.PRsSelected != 1 {
+		t.Fatalf("got %d, want %d", s.PRsSelected, 1)
 	}
 	if s.Detail.Content != "diff-body" {
 		t.Fatalf("got %q, want %q", s.Detail.Content, "diff-body")

@@ -13,12 +13,12 @@ func TestNavigatePRList(t *testing.T) {
 	g.state.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "a"), testfactory.NewItem(2, "b")}, nil)
 
 	g.navigateDown()
-	if g.state.List.PRsSelected != 1 {
-		t.Fatalf("got %d, want %d", g.state.List.PRsSelected, 1)
+	if g.state.PRsSelected != 1 {
+		t.Fatalf("got %d, want %d", g.state.PRsSelected, 1)
 	}
 
 	g.navigateUp()
-	if g.state.List.PRsSelected != 0 {
-		t.Fatalf("got %d, want %d", g.state.List.PRsSelected, 0)
+	if g.state.PRsSelected != 0 {
+		t.Fatalf("got %d, want %d", g.state.PRsSelected, 0)
 	}
 }
