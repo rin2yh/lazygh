@@ -204,10 +204,9 @@ func (c *Client) GetReviewContext(repo string, number int) (ReviewContext, error
 			} `json:"repository"`
 		} `json:"data"`
 	}
-	query := `query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){id headRefOid}}}`
 	if err := c.api.RunGraphQL(
 		&resp,
-		query,
+		queryGetReviewContext,
 		"-f", "owner="+owner,
 		"-f", "name="+name,
 		"-F", "number="+strconv.Itoa(number),
@@ -234,10 +233,9 @@ func (c *Client) StartPendingReview(_ string, _ int, ctx ReviewContext) (string,
 			} `json:"addPullRequestReview"`
 		} `json:"data"`
 	}
-	query := `mutation($pullRequestId:ID!,$commitOID:GitObjectID!){addPullRequestReview(input:{pullRequestId:$pullRequestId,commitOID:$commitOID}){pullRequestReview{id}}}`
 	if err := c.api.RunGraphQL(
 		&resp,
-		query,
+		mutationStartPendingReview,
 		"-f", "pullRequestId="+ctx.PullRequestID,
 		"-f", "commitOID="+ctx.CommitOID,
 	); err != nil {
@@ -264,7 +262,6 @@ func (c *Client) AddReviewComment(_ string, reviewID string, comment ReviewComme
 		return "", fmt.Errorf("comment line is invalid")
 	}
 
-	query := `mutation($pullRequestReviewId:ID!,$body:String!,$path:String!,$line:Int!,$side:DiffSide!,$startLine:Int,$startSide:DiffSide){addPullRequestReviewThread(input:{pullRequestReviewId:$pullRequestReviewId,body:$body,path:$path,line:$line,side:$side,startLine:$startLine,startSide:$startSide}){thread{comments(first:1){nodes{id}}}}}`
 	args := []string{
 		"-f", "pullRequestReviewId=" + reviewID,
 		"-f", "body=" + comment.Body,
@@ -291,7 +288,7 @@ func (c *Client) AddReviewComment(_ string, reviewID string, comment ReviewComme
 			} `json:"addPullRequestReviewThread"`
 		} `json:"data"`
 	}
-	if err := c.api.RunGraphQL(&resp, query, args...); err != nil {
+	if err := c.api.RunGraphQL(&resp, mutationAddReviewComment, args...); err != nil {
 		return "", err
 	}
 	nodes := resp.Data.AddPullRequestReviewThread.Thread.Comments.Nodes
@@ -312,8 +309,7 @@ func (c *Client) DeletePendingReviewComment(commentID string) error {
 			} `json:"deletePullRequestReviewComment"`
 		} `json:"data"`
 	}
-	query := `mutation($id:ID!){deletePullRequestReviewComment(input:{id:$id}){clientMutationId}}`
-	return c.api.RunGraphQL(&resp, query, "-f", "id="+commentID)
+	return c.api.RunGraphQL(&resp, mutationDeleteReviewComment, "-f", "id="+commentID)
 }
 
 func (c *Client) UpdatePendingReviewComment(commentID string, body string) error {
@@ -332,8 +328,7 @@ func (c *Client) UpdatePendingReviewComment(commentID string, body string) error
 			} `json:"updatePullRequestReviewComment"`
 		} `json:"data"`
 	}
-	query := `mutation($id:ID!,$body:String!){updatePullRequestReviewComment(input:{pullRequestReviewCommentId:$id,body:$body}){pullRequestReviewComment{id}}}`
-	return c.api.RunGraphQL(&resp, query, "-f", "id="+commentID, "-f", "body="+body)
+	return c.api.RunGraphQL(&resp, mutationUpdateReviewComment, "-f", "id="+commentID, "-f", "body="+body)
 }
 
 func (c *Client) SubmitReview(_ string, reviewID string, event ReviewEvent, body string) error {
@@ -346,10 +341,9 @@ func (c *Client) SubmitReview(_ string, reviewID string, event ReviewEvent, body
 			} `json:"submitPullRequestReview"`
 		} `json:"data"`
 	}
-	query := `mutation($pullRequestReviewId:ID!,$event:PullRequestReviewEvent!,$body:String!){submitPullRequestReview(input:{pullRequestReviewId:$pullRequestReviewId,event:$event,body:$body}){pullRequestReview{id}}}`
 	return c.api.RunGraphQL(
 		&resp,
-		query,
+		mutationSubmitReview,
 		"-f", "pullRequestReviewId="+reviewID,
 		"-f", "event="+string(event),
 		"-f", "body="+body,
@@ -364,10 +358,9 @@ func (c *Client) DeletePendingReview(_ string, reviewID string) error {
 			} `json:"deletePullRequestReview"`
 		} `json:"data"`
 	}
-	query := `mutation($pullRequestReviewId:ID!){deletePullRequestReview(input:{pullRequestReviewId:$pullRequestReviewId}){clientMutationId}}`
 	return c.api.RunGraphQL(
 		&resp,
-		query,
+		mutationDeleteReview,
 		"-f", "pullRequestReviewId="+reviewID,
 	)
 }

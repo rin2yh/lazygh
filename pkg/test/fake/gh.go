@@ -72,9 +72,15 @@ var graphqlOps = []string{
 	"addPullRequestReviewThread",
 	"submitPullRequestReview",
 	"addPullRequestReview",
+	"deletePullRequestReviewComment",
+	"updatePullRequestReviewComment",
 	"deletePullRequestReview",
 }
 
+// graphqlOp returns the first entry from graphqlOps found as a substring in the
+// query argument. Entries must be ordered most-specific first: a less-specific
+// string that is a substring of a more-specific one (e.g. "deletePullRequestReview"
+// inside "deletePullRequestReviewComment") would otherwise match first and shadow it.
 func graphqlOp(ghArgs []string) string {
 	for i, a := range ghArgs {
 		if (a == "-f" || a == "-F") && i+1 < len(ghArgs) {
