@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/rin2yh/lazygh/internal/gh"
+	"github.com/rin2yh/lazygh/pkg/gui/ansi"
 )
 
 func TestRenderDiffFileListLineShowsColoredStatusAndCounts(t *testing.T) {
@@ -18,9 +19,9 @@ func TestRenderDiffFileListLineShowsColoredStatusAndCounts(t *testing.T) {
 	tests := []struct {
 		substr string
 	}{
-		{ansiGreen + "A" + ansiReset},
-		{ansiGreen + "+3" + ansiReset},
-		{ansiRed + "-1" + ansiReset},
+		{ansi.Green + "A" + ansi.Reset},
+		{ansi.Green + "+3" + ansi.Reset},
+		{ansi.Red + "-1" + ansi.Reset},
 		{"a.txt"},
 	}
 	for _, tt := range tests {
@@ -47,10 +48,10 @@ func TestColorizeDiffContent(t *testing.T) {
 	tests := []struct {
 		substr string
 	}{
-		{ansiBlue + "diff --git a/a.txt b/a.txt" + ansiReset},
-		{ansiGray + "index 1111111..2222222 100644" + ansiReset},
-		{ansiRed + "-old" + ansiReset},
-		{ansiGreen + "+new" + ansiReset},
+		{ansi.Blue + "diff --git a/a.txt b/a.txt" + ansi.Reset},
+		{ansi.Gray + "index 1111111..2222222 100644" + ansi.Reset},
+		{ansi.Red + "-old" + ansi.Reset},
+		{ansi.Green + "+new" + ansi.Reset},
 	}
 	for _, tt := range tests {
 		if !strings.Contains(got, tt.substr) {

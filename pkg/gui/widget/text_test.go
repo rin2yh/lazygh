@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	xansi "github.com/charmbracelet/x/ansi"
+	"github.com/rin2yh/lazygh/pkg/gui/ansi"
 )
 
 func TestWrapText(t *testing.T) {
@@ -44,7 +45,7 @@ func TestWrapText(t *testing.T) {
 }
 
 func TestWrapTextWithANSI(t *testing.T) {
-	got := WrapText("\x1b[32mabcdef\x1b[0m", 3)
+	got := WrapText(ansi.Green+"abcdef"+ansi.Reset, 3)
 	lines := strings.Split(got, "\n")
 	if len(lines) != 2 {
 		t.Fatalf("got %d, want %d", len(lines), 2)

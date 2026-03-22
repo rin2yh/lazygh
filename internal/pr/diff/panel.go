@@ -2,6 +2,7 @@ package diff
 
 import (
 	"github.com/rin2yh/lazygh/internal/gh"
+	"github.com/rin2yh/lazygh/pkg/gui/ansi"
 	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
@@ -80,7 +81,7 @@ func diffLine(line ContentLine) string {
 		prefix = widget.PadOrTrim(line.Location, diffLocationColWidth) + " "
 	}
 	if line.InRange {
-		styledPrefix := colorize(ansiCyan, prefix)
+		styledPrefix := colorize(ansi.Cyan, prefix)
 		if line.Selected {
 			return widget.Highlight(styledPrefix) + line.Text
 		}
