@@ -4,11 +4,7 @@ import (
 	"strings"
 
 	xansi "github.com/charmbracelet/x/ansi"
-)
-
-const (
-	ansiReset   = "\x1b[0m"
-	ansiReverse = "\x1b[7m"
+	"github.com/rin2yh/lazygh/pkg/gui/ansi"
 )
 
 // Highlight applies reverse-video ANSI styling to s, preserving any inner resets.
@@ -16,8 +12,8 @@ func Highlight(s string) string {
 	if s == "" {
 		return s
 	}
-	restyled := strings.ReplaceAll(s, ansiReset, ansiReset+ansiReverse)
-	return ansiReverse + restyled + ansiReset
+	restyled := strings.ReplaceAll(s, ansi.Reset, ansi.Reset+ansi.Reverse)
+	return ansi.Reverse + restyled + ansi.Reset
 }
 
 // ListItem formats a list entry with selection indicator.
@@ -161,29 +157,29 @@ func Colorize(s string, colorName string) string {
 	if code == "" || s == "" {
 		return s
 	}
-	return code + s + ansiReset
+	return code + s + ansi.Reset
 }
 
 func ansiCodeForColor(name string) string {
 	switch strings.ToLower(strings.TrimSpace(name)) {
 	case "black":
-		return "\x1b[30m"
+		return ansi.Black
 	case "red":
-		return "\x1b[31m"
+		return ansi.Red
 	case "green":
-		return "\x1b[32m"
+		return ansi.Green
 	case "yellow":
-		return "\x1b[33m"
+		return ansi.Yellow
 	case "blue":
-		return "\x1b[34m"
+		return ansi.Blue
 	case "magenta", "purple":
-		return "\x1b[35m"
+		return ansi.Purple
 	case "cyan":
-		return "\x1b[36m"
+		return ansi.Cyan
 	case "white":
-		return "\x1b[37m"
+		return ansi.White
 	case "gray", "grey", "brightblack", "bright-black":
-		return "\x1b[90m"
+		return ansi.Gray
 	default:
 		return ""
 	}

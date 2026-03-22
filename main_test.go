@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rin2yh/lazygh/pkg/gui/ansi"
 	"github.com/rin2yh/lazygh/pkg/test/e2e"
 	"github.com/rin2yh/lazygh/pkg/test/fake"
 )
@@ -119,14 +120,14 @@ func TestLazyghE2E_ReviewFlow(t *testing.T) {
 
 	// move focus from diff files panel to diff content panel;
 	// wait for the Diff panel to show an active (green) border confirming focus change
-	s.WriteInputAndWaitOutputContains([]byte("l"), "\x1b[32m Diff ", 3*time.Second)
+	s.WriteInputAndWaitOutputContains([]byte("l"), ansi.Green+" Diff ", 3*time.Second)
 
 	// navigate to the commentable DELETE line at index 4 (4 j-presses from index 0);
 	// wait for the DELETE line (-1 location prefix with reverse-video highlight) to be selected
-	s.WriteInputAndWaitOutputContains([]byte("j"), "\x1b[7m  \x1b[0m\x1b[31m--- a/main.go", 3*time.Second)
-	s.WriteInputAndWaitOutputContains([]byte("j"), "\x1b[7m  \x1b[0m\x1b[32m+++ b/main.go", 3*time.Second)
-	s.WriteInputAndWaitOutputContains([]byte("j"), "\x1b[7m  \x1b[0m\x1b[36m@@ -1 +1 @@", 3*time.Second)
-	s.WriteInputAndWaitOutputContains([]byte("j"), "\x1b[7m-1", 3*time.Second)
+	s.WriteInputAndWaitOutputContains([]byte("j"), ansi.Reverse+"  "+ansi.Reset+ansi.Red+"--- a/main.go", 3*time.Second)
+	s.WriteInputAndWaitOutputContains([]byte("j"), ansi.Reverse+"  "+ansi.Reset+ansi.Green+"+++ b/main.go", 3*time.Second)
+	s.WriteInputAndWaitOutputContains([]byte("j"), ansi.Reverse+"  "+ansi.Reset+ansi.Cyan+"@@ -1 +1 @@", 3*time.Second)
+	s.WriteInputAndWaitOutputContains([]byte("j"), ansi.Reverse+"-1", 3*time.Second)
 
 	// begin comment input
 	s.WriteInputAndWaitOutputContains([]byte{13}, "Comment Input", 3*time.Second)

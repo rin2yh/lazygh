@@ -12,8 +12,11 @@ Execute milestone work as a repeatable issue lifecycle, not as isolated edits.
 `gh milestone list` は存在しない。マイルストーン操作には以下のコマンドのみ使用すること。
 
 ```sh
-# マイルストーン一覧（owner/repo は実際の値に置換すること）
-gh api repos/OWNER/REPO/milestones
+# マイルストーン一覧（ローカルプロキシ環境では動作しない。代わりに gh issue list を使う）
+# gh api repos/OWNER/REPO/milestones  ← 使用不可
+
+# Issue一覧（マイルストーン指定なしで全件取得し、tech-debt ラベル等で絞る）
+gh issue list --label "tech-debt" --json number,title,labels,body
 
 # マイルストーン名でIssue一覧（ラベル・本文付き）
 gh issue list --milestone "<milestone-name>" --json number,title,labels,body
@@ -67,6 +70,32 @@ gh issue edit <number> --add-label "<label1>,<label2>"
 - PR マージ時に Issue が自動クローズされるため、自分で Issue をクローズしない。
 - PR 作成後、Issue に PR の URL を短いコメントで通知する。
 - Keep the issue comment factual and minimal.
+
+### PR 作成コマンド
+
+git remote がローカルプロキシを指しているため、`gh pr create` は `GH_HOST=github.com` を付与して実行すること。
+
+```sh
+GH_HOST=github.com gh pr create \
+  --title "<title>" \
+  --base main \
+  --head "<branch-name>" \
+  --body "$(cat <<'EOF'
+## Summary
+<bullet points>
+
+## Test plan
+<checklist>
+
+Closes #<number>
+
+https://claude.ai/code/session_0127NTVSSgRcBVbzR9vWHJYR
+EOF
+)"
+```
+
+**禁止コマンド:**
+- `gh pr create` (GH_HOST なし) — ローカルプロキシを解決できず失敗する
 
 ## Output Style
 

@@ -6,9 +6,8 @@ import (
 
 	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/google/go-cmp/cmp"
+	"github.com/rin2yh/lazygh/pkg/gui/ansi"
 )
-
-const ansiGreen = "\x1b[32m"
 
 func TestFramePanel(t *testing.T) {
 	got := FramePanel("Repo", []string{"body"}, 10, 3, PanelStyle{})
@@ -33,7 +32,7 @@ func TestFramePanelFallsBackWhenTooSmall(t *testing.T) {
 }
 
 func TestPadOrTrimHandlesANSI(t *testing.T) {
-	colored := ansiGreen + "+10" + ansiReset
+	colored := ansi.Green + "+10" + ansi.Reset
 	got := PadOrTrim(colored, 4)
 	if !strings.Contains(got, colored) {
 		t.Fatalf("result does not contain colored text: %q", got)
@@ -46,10 +45,10 @@ func TestFramePanel_ActiveUsesConfiguredColors(t *testing.T) {
 		TitleColor:  "green",
 	})
 
-	if !strings.Contains(lines[0], ansiGreen+"┌") {
+	if !strings.Contains(lines[0], ansi.Green+"┌") {
 		t.Fatalf("top border is not active color: %q", lines[0])
 	}
-	if !strings.Contains(lines[0], ansiGreen+" Repo "+ansiReset) {
+	if !strings.Contains(lines[0], ansi.Green+" Repo "+ansi.Reset) {
 		t.Fatalf("title is not active color: %q", lines[0])
 	}
 	if strings.Contains(xansi.Strip(lines[0]), "> Repo <") {
