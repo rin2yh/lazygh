@@ -2,12 +2,12 @@ package config
 
 import tea "github.com/charmbracelet/bubbletea"
 
-// KeyBinding holds the keys mapped to an action.
+// KeyBinding is the set of key strings that trigger one action.
 type KeyBinding struct {
 	Keys []string
 }
 
-// KeyBindings maps actions to their key bindings.
+// KeyBindings is the runtime key map; use newKeyBindings to initialize.
 type KeyBindings struct {
 	bindings map[Action]KeyBinding
 }
@@ -16,7 +16,7 @@ func newKeyBindings() KeyBindings {
 	return KeyBindings{bindings: make(map[Action]KeyBinding, len(actionSpecs))}
 }
 
-// Matches reports whether msg matches the keys bound to action.
+// Matches reports whether msg's string representation is in the key set for action.
 func (k KeyBindings) Matches(msg tea.KeyMsg, action Action) bool {
 	key := msg.String()
 	for _, candidate := range k.Binding(action).Keys {
@@ -37,7 +37,7 @@ func (k KeyBindings) ActionFor(msg tea.KeyMsg) (Action, bool) {
 	return 0, false
 }
 
-// Binding returns the KeyBinding for action.
+// Binding returns the keys for action; returns an empty binding if unset.
 func (k KeyBindings) Binding(action Action) KeyBinding {
 	if k.bindings == nil {
 		return KeyBinding{}

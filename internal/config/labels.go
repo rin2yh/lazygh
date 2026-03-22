@@ -87,18 +87,21 @@ func (k KeyBindings) primaryNonArrowLabel(action Action) string {
 	return k.PrimaryLabel(action)
 }
 
+// pageKeyPriority ranks page keys for display: prefer space/b > f > pgdown/pgup.
+// Space and b are the most recognizable, so rank 0; pgdown/pgup are last-resort.
+var pageKeyPriority = map[string]int{
+	" ":      0,
+	"b":      0,
+	"f":      1,
+	"pgdown": 2,
+	"pgup":   2,
+}
+
 func (k KeyBindings) pagePrimaryLabel(action Action) string {
-	priority := map[string]int{
-		" ":      0,
-		"b":      0,
-		"f":      1,
-		"pgdown": 2,
-		"pgup":   2,
-	}
 	best := ""
 	bestRank := 999
 	for _, key := range k.Binding(action).Keys {
-		rank, ok := priority[key]
+		rank, ok := pageKeyPriority[key]
 		if !ok {
 			return formatKeyLabel(key)
 		}

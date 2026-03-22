@@ -1,6 +1,6 @@
 package config
 
-// Action represents a user-triggerable action in the TUI.
+// Action identifies a user-triggerable command; the zero value is ActionQuit.
 type Action int
 
 const (
