@@ -43,7 +43,6 @@ func (e *CommandError) Unwrap() error {
 	return e.Err
 }
 
-// commandRunner executes gh CLI subprocesses.
 type commandRunner struct {
 	execCommand func(name string, args ...string) *exec.Cmd
 }
@@ -56,22 +55,17 @@ func (r *commandRunner) Run(args ...string) ([]byte, error) {
 		return out, nil
 	}
 
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) {
-		return nil, &CommandError{
-			Command: append([]string(nil), args...),
-			Stderr:  string(exitErr.Stderr),
-			Err:     err,
-		}
-	}
-
-	return nil, &CommandError{
+	cmdErr := &CommandError{
 		Command: append([]string(nil), args...),
 		Err:     err,
 	}
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		cmdErr.Stderr = string(exitErr.Stderr)
+	}
+	return nil, cmdErr
 }
 
-// apiClient wraps commandRunner with JSON and GraphQL helpers.
 type apiClient struct {
 	runner *commandRunner
 }
