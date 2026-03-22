@@ -49,7 +49,6 @@ const (
 	DiffFileStatusType     DiffFileStatus = "T"
 )
 
-// ParseUnifiedDiff parses unified diff text into per-file metadata and content.
 func ParseUnifiedDiff(content string) []DiffFile {
 	return newDiffFileParser(content).parse()
 }
