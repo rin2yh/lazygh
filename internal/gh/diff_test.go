@@ -266,26 +266,6 @@ new mode 100755`,
 	}
 }
 
-func TestUnifiedDiffParserParse(t *testing.T) {
-	diff := `diff --git "a/line\nbreak\033.txt" "b/line\nbreak\033.txt"
-old mode 100644
-new mode 100755
-diff --git a/a.txt b/a.txt
---- a/a.txt
-+++ b/a.txt
-@@ -1,2 +1,2 @@
-----bar
-++++foo`
-
-	parser := NewUnifiedDiffParser(diff)
-	got := parser.Parse()
-	want := ParseUnifiedDiff(diff)
-
-	if d := cmp.Diff(want, got); d != "" {
-		t.Fatalf("parse result mismatch (-want +got)\n%s", d)
-	}
-}
-
 func TestParseUnifiedDiff_IncludesReviewableLines(t *testing.T) {
 	diff := `diff --git a/a.txt b/a.txt
 --- a/a.txt

@@ -49,24 +49,8 @@ const (
 	DiffFileStatusType     DiffFileStatus = "T"
 )
 
-// UnifiedDiffParser parses unified diff text into per-file metadata and content.
-type UnifiedDiffParser struct {
-	content string
-}
-
-// NewUnifiedDiffParser creates a parser for unified diff content.
-func NewUnifiedDiffParser(content string) *UnifiedDiffParser {
-	return &UnifiedDiffParser{content: content}
-}
-
-// Parse parses unified diff content and returns file entries.
-func (p *UnifiedDiffParser) Parse() []DiffFile {
-	return newDiffFileParser(p.content).parse()
-}
-
-// ParseUnifiedDiff is a backward compatible helper around UnifiedDiffParser.
 func ParseUnifiedDiff(content string) []DiffFile {
-	return NewUnifiedDiffParser(content).Parse()
+	return newDiffFileParser(content).parse()
 }
 
 func FormatDiffLineLocation(line DiffLine) string {
