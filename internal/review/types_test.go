@@ -1,15 +1,15 @@
-package model
+package review
 
 import "testing"
 
-func TestReviewEventLabel(t *testing.T) {
+func TestEventLabel(t *testing.T) {
 	tests := []struct {
-		event ReviewEvent
+		event Event
 		label string
 	}{
-		{ReviewEventComment, "COMMENT"},
-		{ReviewEventApprove, "APPROVE"},
-		{ReviewEventRequestChanges, "REQUEST CHANGES"},
+		{EventComment, "COMMENT"},
+		{EventApprove, "APPROVE"},
+		{EventRequestChanges, "REQUEST CHANGES"},
 	}
 	for _, tt := range tests {
 		if got := tt.event.Label(); got != tt.label {

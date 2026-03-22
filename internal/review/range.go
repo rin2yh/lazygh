@@ -1,7 +1,5 @@
 package review
 
-import "github.com/rin2yh/lazygh/internal/model"
-
 type rangeState struct {
 	rs        *ReviewState
 	selection Selection
@@ -14,7 +12,7 @@ func newRange(rs *ReviewState, selection Selection) *rangeState {
 	}
 }
 
-func (f *rangeState) RangeStart() *model.ReviewRange {
+func (f *rangeState) RangeStart() *Range {
 	return f.rs.RangeStart
 }
 
@@ -31,7 +29,7 @@ func (f *rangeState) ToggleSelection() bool {
 		f.rs.SetNotice("Range selection cleared.")
 		return true
 	}
-	anchor := model.ReviewRange{
+	anchor := Range{
 		Path:  line.Path,
 		Index: f.selection.LineSelected(),
 		Side:  string(line.Side),

@@ -78,8 +78,8 @@ func TestModelUpdate_EnterKeyUsesRangeFlowAfterV(t *testing.T) {
 	if cmd != nil {
 		t.Fatal("did not expect command")
 	}
-	if g.review.InputMode() != model.ReviewInputComment {
-		t.Fatalf("got %v, want %v", g.review.InputMode(), model.ReviewInputComment)
+	if g.review.InputMode() != review.InputComment {
+		t.Fatalf("got %v, want %v", g.review.InputMode(), review.InputComment)
 	}
 }
 
@@ -114,8 +114,8 @@ func TestModelUpdate_EscCancelsCommentAndClearsRangeHighlight(t *testing.T) {
 	if g.review.RangeStart() != nil {
 		t.Fatal("expected range start cleared after cancel")
 	}
-	if g.review.InputMode() != model.ReviewInputNone {
-		t.Fatalf("got %v, want %v", g.review.InputMode(), model.ReviewInputNone)
+	if g.review.InputMode() != review.InputNone {
+		t.Fatalf("got %v, want %v", g.review.InputMode(), review.InputNone)
 	}
 	if g.focus != layout.FocusDiffContent {
 		t.Fatalf("got %v, want %v", g.focus, layout.FocusDiffContent)
@@ -232,8 +232,8 @@ func TestModelUpdate_ReviewKeysIgnoredOutsideDiff(t *testing.T) {
 		if cmd != nil {
 			t.Fatal("did not expect command")
 		}
-		if g.review.InputMode() != model.ReviewInputNone {
-			t.Fatalf("got %v, want %v", g.review.InputMode(), model.ReviewInputNone)
+		if g.review.InputMode() != review.InputNone {
+			t.Fatalf("got %v, want %v", g.review.InputMode(), review.InputNone)
 		}
 		if g.review.RangeStart() != nil {
 			t.Fatal("expected no range selection outside diff")

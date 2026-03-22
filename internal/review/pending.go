@@ -5,7 +5,6 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/model"
 )
 
 // PendingReviewClient handles GitHub API calls for the pending review workflow.
@@ -124,7 +123,7 @@ func (f *pending) BeginEditComment() bool {
 }
 
 func (f *pending) IsEditingComment() bool {
-	return f.rs.EditingCommentIdx != model.NoEditingComment
+	return f.rs.EditingCommentIdx != noEditingComment
 }
 
 func (f *pending) SelectNextComment() {
@@ -180,7 +179,7 @@ func (f *pending) HandleEditCommentSave() tea.Cmd {
 }
 
 func (f *pending) HandleSubmit() tea.Cmd {
-	if f.rs.InputMode == model.ReviewInputSummary {
+	if f.rs.InputMode == InputSummary {
 		f.summary.Save()
 		f.summary.StopInput()
 		f.rs.StopInput()
@@ -200,11 +199,11 @@ func (f *pending) HandleSubmit() tea.Cmd {
 	}
 }
 
-func coreEventToGH(e model.ReviewEvent) gh.ReviewEvent {
+func coreEventToGH(e Event) gh.ReviewEvent {
 	switch e {
-	case model.ReviewEventApprove:
+	case EventApprove:
 		return gh.ReviewEventApprove
-	case model.ReviewEventRequestChanges:
+	case EventRequestChanges:
 		return gh.ReviewEventRequestChanges
 	default:
 		return gh.ReviewEventComment
@@ -212,7 +211,7 @@ func coreEventToGH(e model.ReviewEvent) gh.ReviewEvent {
 }
 
 func (f *pending) HandleDiscard() tea.Cmd {
-	if f.rs.InputMode == model.ReviewInputSummary {
+	if f.rs.InputMode == InputSummary {
 		f.summary.StopInput()
 		f.rs.StopInput()
 	}
@@ -240,7 +239,7 @@ func (f *pending) ApplyCommentResult(msg CommentSavedMsg) bool {
 		f.rs.SetNotice(msg.Err.Error())
 		return false
 	}
-	f.rs.AddComment(model.ReviewComment{
+	f.rs.AddComment(Comment{
 		CommentID: msg.CommentID,
 		Path:      msg.Comment.Path,
 		Body:      msg.Comment.Body,

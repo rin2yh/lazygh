@@ -6,7 +6,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/model"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 	reviewstub "github.com/rin2yh/lazygh/pkg/test/stub/review"
 )
@@ -23,7 +22,7 @@ func TestBuildDraft(t *testing.T) {
 		name      string
 		body      string
 		selection reviewstub.Selection
-		rangePtr  *model.ReviewRange
+		rangePtr  *Range
 		wantErr   string
 		wantLine  int
 		wantStart int
@@ -80,14 +79,14 @@ func TestBuildDraft(t *testing.T) {
 			name:      "range across different files fails",
 			body:      "cross-file",
 			selection: reviewstub.Selection{Line: commentableLine, LineIndex: 5},
-			rangePtr:  &model.ReviewRange{Path: "other.go", Index: 2, Line: 10},
+			rangePtr:  &Range{Path: "other.go", Index: 2, Line: 10},
 			wantErr:   "range must stay within one file",
 		},
 		{
 			name:      "valid range comment",
 			body:      "range comment",
 			selection: reviewstub.Selection{Line: commentableLine, LineIndex: 5},
-			rangePtr:  &model.ReviewRange{Path: "main.go", Index: 2, Line: 30, Side: "RIGHT"},
+			rangePtr:  &Range{Path: "main.go", Index: 2, Line: 30, Side: "RIGHT"},
 			wantLine:  42,
 			wantStart: 30,
 		},
@@ -95,7 +94,7 @@ func TestBuildDraft(t *testing.T) {
 			name:      "range with reversed indices swaps lines",
 			body:      "reversed range",
 			selection: reviewstub.Selection{Line: commentableLine, LineIndex: 2},
-			rangePtr:  &model.ReviewRange{Path: "main.go", Index: 5, Line: 50, Side: "RIGHT"},
+			rangePtr:  &Range{Path: "main.go", Index: 5, Line: 50, Side: "RIGHT"},
 			wantLine:  50,
 			wantStart: 42,
 		},
@@ -103,7 +102,7 @@ func TestBuildDraft(t *testing.T) {
 			name:      "same index range has no StartLine",
 			body:      "same line range",
 			selection: reviewstub.Selection{Line: commentableLine, LineIndex: 5},
-			rangePtr:  &model.ReviewRange{Path: "main.go", Index: 5, Line: 42, Side: "RIGHT"},
+			rangePtr:  &Range{Path: "main.go", Index: 5, Line: 42, Side: "RIGHT"},
 			wantLine:  42,
 			wantStart: 0,
 		},
@@ -142,7 +141,7 @@ func TestHandleEditorKey_EscCancelsCommentAndClearsRange(t *testing.T) {
 	host := &fakeHost{diffMode: true}
 	c := NewController(config.Default(), host, &testmock.GHClient{}, reviewstub.Selection{}, func(target FocusTarget) {})
 	c.rs.BeginCommentInput()
-	c.rs.MarkRangeStart(model.ReviewRange{Path: "a.txt", Index: 3, Line: 10})
+	c.rs.MarkRangeStart(Range{Path: "a.txt", Index: 3, Line: 10})
 	focus := FocusReviewDrawer
 	c.setFocus = func(target FocusTarget) { focus = target }
 	c.SetCommentValue("draft")
@@ -154,8 +153,8 @@ func TestHandleEditorKey_EscCancelsCommentAndClearsRange(t *testing.T) {
 	if c.rs.RangeStart != nil {
 		t.Fatal("expected range cleared")
 	}
-	if c.rs.InputMode != model.ReviewInputNone {
-		t.Fatalf("got %v, want %v", c.rs.InputMode, model.ReviewInputNone)
+	if c.rs.InputMode != InputNone {
+		t.Fatalf("got %v, want %v", c.rs.InputMode, InputNone)
 	}
 	if c.CommentValue() != "" {
 		t.Fatalf("got %q, want empty", c.CommentValue())

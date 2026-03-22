@@ -55,7 +55,7 @@ func TestHandleDeleteComment_WithCommentID(t *testing.T) {
 	mc := &testmock.GHClient{}
 	c, _, _ := setupControllerWithPR(mc, reviewstub.Selection{})
 	c.rs.SetContext(1, "PR_1", "abc", "PRR_1")
-	c.rs.AddComment(model.ReviewComment{CommentID: "IC_1", Path: "a.go", Body: "hi", Line: 1})
+	c.rs.AddComment(Comment{CommentID: "IC_1", Path: "a.go", Body: "hi", Line: 1})
 	c.rs.SelectedCommentIdx = 0
 
 	cmd := c.DeleteComment()
@@ -78,7 +78,7 @@ func TestApplyDeleteCommentResult_SuccessDeletesFromState(t *testing.T) {
 	mc := &testmock.GHClient{}
 	c, _, _ := setupControllerWithPR(mc, reviewstub.Selection{})
 	c.rs.SetContext(1, "PR_1", "abc", "PRR_1")
-	c.rs.AddComment(model.ReviewComment{CommentID: "IC_1", Path: "a.go", Body: "hi", Line: 1})
+	c.rs.AddComment(Comment{CommentID: "IC_1", Path: "a.go", Body: "hi", Line: 1})
 
 	c.DeleteCommentResult(CommentDeletedMsg{CommentID: "IC_1"})
 

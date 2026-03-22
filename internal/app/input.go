@@ -4,7 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/app/layout"
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/review"
 )
 
 func (s *screen) handleKeyInput(msg tea.KeyMsg) tea.Cmd {
@@ -56,7 +56,7 @@ func (s *screen) handleGlobalAction(action config.Action) (tea.Cmd, bool) {
 }
 
 func (s *screen) handleCancel() tea.Cmd {
-	if s.gui.review.InputMode() == model.ReviewInputNone && s.gui.review.HasRangeStart() {
+	if s.gui.review.InputMode() == review.InputNone && s.gui.review.HasRangeStart() {
 		s.gui.review.ClearRangeStart()
 		s.gui.review.SetNotice("Range selection cleared.")
 		s.gui.focus = layout.FocusDiffContent
