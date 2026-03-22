@@ -10,7 +10,7 @@ func CommonSections(keys config.KeyBindings) []Section {
 			Rows: [][2]string{
 				{keys.MoveLabel(), "Move Up/Down"},
 				{keys.PanelLabel(), "Panel Prev/Next"},
-				{keys.FocusLabel(), "Cycle Focus"},
+				{keys.PrimaryLabel(config.ActionFocusNext), "Cycle Focus"},
 				{keys.PageLabel(), "Page Up/Down"},
 				{keys.TopBottomLabel(), "Go Top/Bottom"},
 				{keys.Label(config.ActionCancel), "Cancel / Close"},

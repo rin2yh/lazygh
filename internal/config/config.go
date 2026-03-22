@@ -147,23 +147,11 @@ func (k KeyBindings) Label(action Action) string {
 }
 
 func (k KeyBindings) PrimaryLabel(action Action) string {
-	labels := k.labels(action)
-	if len(labels) == 0 {
+	keys := k.Binding(action).Keys
+	if len(keys) == 0 {
 		return ""
 	}
-	return labels[0]
-}
-
-func (k KeyBindings) QuitLabel() string {
-	return k.PrimaryLabel(ActionQuit)
-}
-
-func (k KeyBindings) ReloadLabel() string {
-	return k.PrimaryLabel(ActionOpenSelected)
-}
-
-func (k KeyBindings) FocusLabel() string {
-	return k.PrimaryLabel(ActionFocusNext)
+	return formatKeyLabel(keys[0])
 }
 
 func (k KeyBindings) MoveLabel() string {
@@ -190,50 +178,6 @@ func (k KeyBindings) PageLabel() string {
 
 func (k KeyBindings) TopBottomLabel() string {
 	return joinUnique(k.primaryNavigationLabel(ActionGoTop), k.primaryNavigationLabel(ActionGoBottom))
-}
-
-func (k KeyBindings) ReviewModeLabel() string {
-	return joinUnique(k.PrimaryLabel(ActionReviewComment), k.PrimaryLabel(ActionReviewSummary))
-}
-
-func (k KeyBindings) SaveLabel() string {
-	return k.PrimaryLabel(ActionReviewSave)
-}
-
-func (k KeyBindings) CancelLabel() string {
-	return k.PrimaryLabel(ActionCancel)
-}
-
-func (k KeyBindings) SubmitLabel() string {
-	return k.PrimaryLabel(ActionReviewSubmit)
-}
-
-func (k KeyBindings) DiscardLabel() string {
-	return k.PrimaryLabel(ActionReviewDiscard)
-}
-
-func (k KeyBindings) DiffLabel() string {
-	return k.PrimaryLabel(ActionShowDiff)
-}
-
-func (k KeyBindings) OverviewLabel() string {
-	return k.PrimaryLabel(ActionShowOverview)
-}
-
-func (k KeyBindings) RangeLabel() string {
-	return k.PrimaryLabel(ActionReviewRange)
-}
-
-func (k KeyBindings) CommentLabel() string {
-	return k.PrimaryLabel(ActionReviewComment)
-}
-
-func (k KeyBindings) SummaryLabel() string {
-	return k.PrimaryLabel(ActionReviewSummary)
-}
-
-func (k KeyBindings) HelpLabel() string {
-	return k.PrimaryLabel(ActionShowHelp)
 }
 
 func (k KeyBindings) labels(action Action) []string {

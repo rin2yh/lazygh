@@ -57,10 +57,14 @@ func TestKeyBindingsMatches(t *testing.T) {
 	}
 }
 
+func reviewModeLabel(keys KeyBindings) string {
+	return joinUnique(keys.PrimaryLabel(ActionReviewComment), keys.PrimaryLabel(ActionReviewSummary))
+}
+
 func TestKeyBindingsLabels(t *testing.T) {
 	keys := Default().KeyBindings
 
-	if got := keys.QuitLabel(); got != "q" {
+	if got := keys.PrimaryLabel(ActionQuit); got != "q" {
 		t.Fatalf("got %q, want %q", got, "q")
 	}
 	if got := keys.MoveLabel(); got != "j/k/↑/↓" {
@@ -72,7 +76,7 @@ func TestKeyBindingsLabels(t *testing.T) {
 	if got := keys.TopBottomLabel(); got != "g/G" {
 		t.Fatalf("got %q, want %q", got, "g/G")
 	}
-	if got := keys.ReviewModeLabel(); got != "enter/R" {
+	if got := reviewModeLabel(keys); got != "enter/R" {
 		t.Fatalf("got %q, want %q", got, "enter/R")
 	}
 }
@@ -97,7 +101,7 @@ func TestKeyBindingsLabelsFollowCustomBindings(t *testing.T) {
 	if got := keys.TopBottomLabel(); got != "g/B" {
 		t.Fatalf("got %q, want %q", got, "g/B")
 	}
-	if got := keys.ReviewModeLabel(); got != "enter/r" {
+	if got := reviewModeLabel(keys); got != "enter/r" {
 		t.Fatalf("got %q, want %q", got, "enter/r")
 	}
 }

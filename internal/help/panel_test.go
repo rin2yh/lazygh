@@ -23,8 +23,8 @@ func allSections(keys config.KeyBindings) []Section {
 // testPRSections はテスト用の最小セクション（pr/help への依存を避ける）
 func testPRSections(keys config.KeyBindings) []Section {
 	return []Section{
-		{Title: "View", Rows: [][2]string{{keys.DiffLabel(), "Show Diff"}}},
-		{Title: "Review", Rows: [][2]string{{keys.RangeLabel(), "Select Range"}}},
+		{Title: "View", Rows: [][2]string{{keys.PrimaryLabel(config.ActionShowDiff), "Show Diff"}}},
+		{Title: "Review", Rows: [][2]string{{keys.PrimaryLabel(config.ActionReviewRange), "Select Range"}}},
 	}
 }
 
