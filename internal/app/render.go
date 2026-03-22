@@ -10,7 +10,7 @@ import (
 	"github.com/rin2yh/lazygh/internal/pr/diff"
 	prhelp "github.com/rin2yh/lazygh/internal/pr/help"
 	"github.com/rin2yh/lazygh/internal/pr/list"
-	"github.com/rin2yh/lazygh/internal/review"
+	"github.com/rin2yh/lazygh/internal/pr/review"
 	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
