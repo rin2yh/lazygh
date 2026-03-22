@@ -179,17 +179,12 @@ func (c *Coordinator) ShouldApplyDetailResult(mode model.DetailMode, number int)
 	return item.Number == number
 }
 
-func (c *Coordinator) PlanEnter(hasClient bool, forcedDetailText string) EnterAction {
+func (c *Coordinator) PlanEnter(hasClient bool) EnterAction {
 	if !hasClient || c.Fetching {
 		return EnterAction{}
 	}
 	item, ok := c.selectedPR()
 	if !ok {
-		return EnterAction{}
-	}
-	if forcedDetailText != "" {
-		c.Overview.Fetching = model.FetchNone
-		c.Overview.Content = forcedDetailText
 		return EnterAction{}
 	}
 	c.Overview.Fetching = model.FetchingDetail
