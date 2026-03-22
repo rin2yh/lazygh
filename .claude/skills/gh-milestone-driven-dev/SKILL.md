@@ -1,6 +1,6 @@
 ---
 name: gh-milestone-driven-dev
-description: Execute milestone-driven development with GitHub Issues and PR-adjacent workflows. Use when user needs to pick issues from a GitHub milestone, inspect local code, implement fixes or refactors, run project verification commands, commit the result, post the commit ID back to the issue, and close the issue.
+description: Execute milestone-driven development with GitHub Issues and PR-adjacent workflows. Use when user needs to pick issues from a GitHub milestone, inspect local code, implement fixes or refactors, run project verification commands, commit the result, create a PR linked to the issue, and post the PR URL back to the issue.
 ---
 
 # Gh Milestone Driven Dev
@@ -42,14 +42,15 @@ gh issue edit <number> --add-label "<label1>,<label2>"
 4. Issue を解決する最小限の変更を実装する。
 5. リポジトリの必須検証コマンドを実行する。
 6. `/simplify` スキルを2回実行してコードをシンプルにする。
-7. 集中したメッセージでコミットする。
-8. Issue にコミット ID をコメントしてからクローズする。
+7. 集中したメッセージでコミットし、ブランチにプッシュする。
+8. PR を作成し、本文に `Closes #<number>` で Issue を紐づける。
+9. Issue に PR の URL をコメントする。Issue は自分でクローズしない（PR マージ時に自動クローズされる）。
 
 ## Operating Rules
 
 - Prefer milestone issues whose title or labels imply breakage, tech debt, or blocked progress.
 - If the user's wording maps to a specific issue title, confirm that issue first instead of guessing broadly.
-- Treat issue resolution as incomplete until code changes, verification, commit, and issue closure are all done.
+- Treat issue resolution as incomplete until code changes, verification, commit, PR creation, and issue comment are all done.
 - If the worktree is dirty, avoid reverting unrelated changes; stage only the files relevant to the issue.
 - If a refactor suggests a follow-up issue, finish the current issue first and then surface the follow-up separately.
 
@@ -60,13 +61,14 @@ gh issue edit <number> --add-label "<label1>,<label2>"
 - If a command is blocked by sandbox or cache permissions, rerun it with the required escalation instead of skipping silently.
 - If verification cannot run, state exactly what was blocked and why.
 
-## Issue Closure
+## PR Creation and Issue Linking
 
-- Post a short issue comment that includes the commit ID.
-- Close the issue only after the commit succeeds.
+- PR 本文に `Closes #<number>` を含めて Issue を紐づける。
+- PR マージ時に Issue が自動クローズされるため、自分で Issue をクローズしない。
+- PR 作成後、Issue に PR の URL を短いコメントで通知する。
 - Keep the issue comment factual and minimal.
 
 ## Output Style
 
 - Give short progress updates while working.
-- In the final response, report the resolved issue, the commit ID, and the verification commands that passed.
+- In the final response, report the resolved issue, the commit ID, the PR URL, and the verification commands that passed.
