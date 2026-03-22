@@ -35,5 +35,5 @@ func SanitizeMultiline(s string) string {
 }
 
 func isDangerousControl(r rune) bool {
-	return (r >= 0 && r < 0x20 && r != '\n' && r != '\t') || r == 0x7f
+	return (r < 0x20 && r != '\n' && r != '\t') || r == 0x7f
 }
