@@ -16,3 +16,7 @@ paths:
 - `go vet ./...`：リンター
 - `go test ./...`：テスト
 
+## git commit 前
+
+git commit を実行する前に `/simplify` を2回実行してコードをシンプルにすること。
+
