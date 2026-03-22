@@ -135,7 +135,7 @@ func (c *Client) AddReviewComment(_ string, reviewID string, comment ReviewComme
 	}
 	nodes := resp.Data.AddPullRequestReviewThread.Thread.Comments.Nodes
 	if len(nodes) == 0 {
-		return "", nil
+		return "", fmt.Errorf("comment node is empty")
 	}
 	return strings.TrimSpace(nodes[0].ID), nil
 }
