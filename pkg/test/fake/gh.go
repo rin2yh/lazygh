@@ -67,11 +67,16 @@ func (g Gh) Key(ghArgs []string) (string, bool) {
 	return base, true
 }
 
+// graphqlOps maps GraphQL query text substrings to operation keys.
+// More specific strings must appear before any that are substrings of them
+// (e.g. "deletePullRequestReviewComment" before "deletePullRequestReview").
 var graphqlOps = []string{
 	"headRefOid",
 	"addPullRequestReviewThread",
 	"submitPullRequestReview",
 	"addPullRequestReview",
+	"deletePullRequestReviewComment",
+	"updatePullRequestReviewComment",
 	"deletePullRequestReview",
 }
 
