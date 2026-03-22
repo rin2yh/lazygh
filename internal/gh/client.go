@@ -1,15 +1,13 @@
 package gh
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 )
 
+// PRItem represents a pull request item from gh CLI.
 type PRItem struct {
 	Number    int      `json:"number"`
 	Title     string   `json:"title"`
@@ -18,45 +16,18 @@ type PRItem struct {
 	Assignees []GHUser `json:"assignees"`
 }
 
+// GHUser represents a GitHub user.
 type GHUser struct {
 	Login string `json:"login"`
 }
 
-type ReviewContext struct {
-	PullRequestID string
-	CommitOID     string
-}
-
-type ReviewEvent string
-
-const (
-	ReviewEventComment        ReviewEvent = "COMMENT"
-	ReviewEventApprove        ReviewEvent = "APPROVE"
-	ReviewEventRequestChanges ReviewEvent = "REQUEST_CHANGES"
-)
-
-type ReviewComment struct {
-	Path      string
-	Body      string
-	Side      DiffSide
-	Line      int
-	StartSide DiffSide
-	StartLine int
-}
-
-type commandRunner struct {
-	execCommand func(name string, args ...string) *exec.Cmd
-}
-
-type apiClient struct {
-	runner *commandRunner
-}
-
+// Client wraps the gh CLI to interact with GitHub PRs and reviews.
 type Client struct {
 	runner *commandRunner
 	api    *apiClient
 }
 
+// NewClient returns a Client backed by the real gh binary.
 func NewClient() *Client {
 	runner := &commandRunner{execCommand: exec.Command}
 	return &Client{
@@ -65,81 +36,12 @@ func NewClient() *Client {
 	}
 }
 
+// ValidateCLI returns an error if the gh binary is not found in PATH.
 func ValidateCLI() error {
 	if _, err := exec.LookPath("gh"); err != nil {
 		return fmt.Errorf("gh CLI is required but was not found in PATH: %w", err)
 	}
 	return nil
-}
-
-func withGHCommandEnv(base []string) []string {
-	env := os.Environ()
-	if len(base) > 0 {
-		env = append(env, base...)
-	}
-	return append(env,
-		"NO_COLOR=1",
-		"CLICOLOR=0",
-		"GH_PAGER=cat",
-	)
-}
-
-type CommandError struct {
-	Command []string
-	Stderr  string
-	Err     error
-}
-
-func (e *CommandError) Error() string {
-	command := "gh"
-	if len(e.Command) > 0 {
-		command += " " + strings.Join(e.Command, " ")
-	}
-	if stderr := strings.TrimSpace(e.Stderr); stderr != "" {
-		return fmt.Sprintf("%s failed: %s: %v", command, stderr, e.Err)
-	}
-	return fmt.Sprintf("%s failed: %v", command, e.Err)
-}
-
-func (e *CommandError) Unwrap() error {
-	return e.Err
-}
-
-func (r *commandRunner) Run(args ...string) ([]byte, error) {
-	cmd := r.execCommand("gh", args...)
-	cmd.Env = withGHCommandEnv(cmd.Env)
-	out, err := cmd.Output()
-	if err == nil {
-		return out, nil
-	}
-
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) {
-		return nil, &CommandError{
-			Command: append([]string(nil), args...),
-			Stderr:  string(exitErr.Stderr),
-			Err:     err,
-		}
-	}
-
-	return nil, &CommandError{
-		Command: append([]string(nil), args...),
-		Err:     err,
-	}
-}
-
-func (a *apiClient) RunJSON(dst any, args ...string) error {
-	out, err := a.runner.Run(args...)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(out, dst)
-}
-
-func (a *apiClient) RunGraphQL(dst any, query string, variables ...string) error {
-	args := []string{"api", "graphql", "-f", "query=" + query}
-	args = append(args, variables...)
-	return a.RunJSON(dst, args...)
 }
 
 func (c *Client) ResolveCurrentRepo() (string, error) {
@@ -187,182 +89,6 @@ func (c *Client) DiffPR(repo string, number int) (string, error) {
 		return "", err
 	}
 	return string(out), nil
-}
-
-func (c *Client) GetReviewContext(repo string, number int) (ReviewContext, error) {
-	owner, name, err := splitRepo(repo)
-	if err != nil {
-		return ReviewContext{}, err
-	}
-	var resp struct {
-		Data struct {
-			Repository struct {
-				PullRequest struct {
-					ID         string `json:"id"`
-					HeadRefOID string `json:"headRefOid"`
-				} `json:"pullRequest"`
-			} `json:"repository"`
-		} `json:"data"`
-	}
-	if err := c.api.RunGraphQL(
-		&resp,
-		queryGetReviewContext,
-		"-f", "owner="+owner,
-		"-f", "name="+name,
-		"-F", "number="+strconv.Itoa(number),
-	); err != nil {
-		return ReviewContext{}, err
-	}
-	ctx := ReviewContext{
-		PullRequestID: strings.TrimSpace(resp.Data.Repository.PullRequest.ID),
-		CommitOID:     strings.TrimSpace(resp.Data.Repository.PullRequest.HeadRefOID),
-	}
-	if ctx.PullRequestID == "" || ctx.CommitOID == "" {
-		return ReviewContext{}, fmt.Errorf("review context is incomplete")
-	}
-	return ctx, nil
-}
-
-func (c *Client) StartPendingReview(_ string, _ int, ctx ReviewContext) (string, error) {
-	var resp struct {
-		Data struct {
-			AddPullRequestReview struct {
-				PullRequestReview struct {
-					ID string `json:"id"`
-				} `json:"pullRequestReview"`
-			} `json:"addPullRequestReview"`
-		} `json:"data"`
-	}
-	if err := c.api.RunGraphQL(
-		&resp,
-		mutationStartPendingReview,
-		"-f", "pullRequestId="+ctx.PullRequestID,
-		"-f", "commitOID="+ctx.CommitOID,
-	); err != nil {
-		return "", err
-	}
-	reviewID := strings.TrimSpace(resp.Data.AddPullRequestReview.PullRequestReview.ID)
-	if reviewID == "" {
-		return "", fmt.Errorf("pending review id is empty")
-	}
-	return reviewID, nil
-}
-
-func (c *Client) AddReviewComment(_ string, reviewID string, comment ReviewComment) (string, error) {
-	if strings.TrimSpace(reviewID) == "" {
-		return "", fmt.Errorf("review id is empty")
-	}
-	if strings.TrimSpace(comment.Path) == "" {
-		return "", fmt.Errorf("comment path is empty")
-	}
-	if strings.TrimSpace(comment.Body) == "" {
-		return "", fmt.Errorf("comment body is empty")
-	}
-	if comment.Line <= 0 {
-		return "", fmt.Errorf("comment line is invalid")
-	}
-
-	args := []string{
-		"-f", "pullRequestReviewId=" + reviewID,
-		"-f", "body=" + comment.Body,
-		"-f", "path=" + comment.Path,
-		"-F", "line=" + strconv.Itoa(comment.Line),
-		"-f", "side=" + string(comment.Side),
-	}
-	if comment.StartLine > 0 {
-		args = append(args, "-F", "startLine="+strconv.Itoa(comment.StartLine))
-		if comment.StartSide != "" {
-			args = append(args, "-f", "startSide="+string(comment.StartSide))
-		}
-	}
-	var resp struct {
-		Data struct {
-			AddPullRequestReviewThread struct {
-				Thread struct {
-					Comments struct {
-						Nodes []struct {
-							ID string `json:"id"`
-						} `json:"nodes"`
-					} `json:"comments"`
-				} `json:"thread"`
-			} `json:"addPullRequestReviewThread"`
-		} `json:"data"`
-	}
-	if err := c.api.RunGraphQL(&resp, mutationAddReviewComment, args...); err != nil {
-		return "", err
-	}
-	nodes := resp.Data.AddPullRequestReviewThread.Thread.Comments.Nodes
-	if len(nodes) == 0 {
-		return "", nil
-	}
-	return strings.TrimSpace(nodes[0].ID), nil
-}
-
-func (c *Client) DeletePendingReviewComment(commentID string) error {
-	if strings.TrimSpace(commentID) == "" {
-		return fmt.Errorf("comment id is empty")
-	}
-	var resp struct {
-		Data struct {
-			DeletePullRequestReviewComment struct {
-				ClientMutationID string `json:"clientMutationId"`
-			} `json:"deletePullRequestReviewComment"`
-		} `json:"data"`
-	}
-	return c.api.RunGraphQL(&resp, mutationDeleteReviewComment, "-f", "id="+commentID)
-}
-
-func (c *Client) UpdatePendingReviewComment(commentID string, body string) error {
-	if strings.TrimSpace(commentID) == "" {
-		return fmt.Errorf("comment id is empty")
-	}
-	if strings.TrimSpace(body) == "" {
-		return fmt.Errorf("comment body is empty")
-	}
-	var resp struct {
-		Data struct {
-			UpdatePullRequestReviewComment struct {
-				PullRequestReviewComment struct {
-					ID string `json:"id"`
-				} `json:"pullRequestReviewComment"`
-			} `json:"updatePullRequestReviewComment"`
-		} `json:"data"`
-	}
-	return c.api.RunGraphQL(&resp, mutationUpdateReviewComment, "-f", "id="+commentID, "-f", "body="+body)
-}
-
-func (c *Client) SubmitReview(_ string, reviewID string, event ReviewEvent, body string) error {
-	var resp struct {
-		Data struct {
-			SubmitPullRequestReview struct {
-				PullRequestReview struct {
-					ID string `json:"id"`
-				} `json:"pullRequestReview"`
-			} `json:"submitPullRequestReview"`
-		} `json:"data"`
-	}
-	return c.api.RunGraphQL(
-		&resp,
-		mutationSubmitReview,
-		"-f", "pullRequestReviewId="+reviewID,
-		"-f", "event="+string(event),
-		"-f", "body="+body,
-	)
-}
-
-func (c *Client) DeletePendingReview(_ string, reviewID string) error {
-	var resp struct {
-		Data struct {
-			DeletePullRequestReview struct {
-				ClientMutationID string `json:"clientMutationId"`
-			} `json:"deletePullRequestReview"`
-		} `json:"data"`
-	}
-	return c.api.RunGraphQL(
-		&resp,
-		mutationDeleteReview,
-		"-f", "pullRequestReviewId="+reviewID,
-	)
 }
 
 func splitRepo(repo string) (string, string, error) {
