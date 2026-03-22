@@ -8,7 +8,7 @@ import (
 	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/model"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
-	reviewstub "github.com/rin2yh/lazygh/pkg/test/stub/review"
+	reviewstub "github.com/rin2yh/lazygh/pkg/test/stub/pr/review"
 )
 
 func defaultTestConfig() *config.Config { return config.Default() }

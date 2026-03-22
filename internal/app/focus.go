@@ -2,7 +2,7 @@ package app
 
 import (
 	"github.com/rin2yh/lazygh/internal/app/layout"
-	"github.com/rin2yh/lazygh/internal/review"
+	"github.com/rin2yh/lazygh/internal/pr/review"
 )
 
 func (gui *Gui) switchToOverview() bool {

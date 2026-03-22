@@ -4,7 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/app/layout"
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/review"
+	"github.com/rin2yh/lazygh/internal/pr/review"
 )
 
 func (s *screen) handleKeyInput(msg tea.KeyMsg) tea.Cmd {

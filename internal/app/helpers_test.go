@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/review"
+	"github.com/rin2yh/lazygh/internal/pr/review"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 )
 
