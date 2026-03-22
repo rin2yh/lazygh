@@ -175,11 +175,14 @@ func (rs *ReviewState) ClearRangeStart() {
 }
 
 func (rs *ReviewState) ResetAfterSubmit(notice string) {
-	rs.reset()
-	rs.Notice = model.SanitizeMultiline(notice)
+	rs.resetWithNotice(notice)
 }
 
 func (rs *ReviewState) ResetAfterDiscard(notice string) {
+	rs.resetWithNotice(notice)
+}
+
+func (rs *ReviewState) resetWithNotice(notice string) {
 	rs.reset()
 	rs.Notice = model.SanitizeMultiline(notice)
 }
