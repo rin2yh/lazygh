@@ -22,7 +22,8 @@ Rebase rewrites history and requires force push — use `git merge origin/main` 
 6. **コンフリクトを解消**: コンフリクトマーカー（`<<<<<<<`, `=======`, `>>>>>>>`）を取り除き、両方の意図を正しく統合した内容にする。
 7. **検証**: `go fmt ./...` → `go vet ./...` → `go test ./...` をすべて通す。
 8. **merge コミット**: `git add <resolved-files>` → `git commit`（メッセージは自動生成される）。
-9. **push**: `git push -u origin <branch-name>`。
+9. **simplify**: `/simplify` スキルを1回実行してコードをシンプルにする。
+10. **push**: `git push -u origin <branch-name>`。
 
 ## Resolving Each Conflict
 
