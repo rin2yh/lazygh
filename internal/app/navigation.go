@@ -116,6 +116,10 @@ func (s *screen) handleDetailScrollAction(action config.Action) tea.Cmd {
 		}
 		_, cmd := s.gui.detail.Update(key)
 		return cmd
+	case config.ActionGoTop:
+		s.gui.detail.GotoTop()
+	case config.ActionGoBottom:
+		s.gui.detail.GotoBottom()
 	}
 	return nil
 }

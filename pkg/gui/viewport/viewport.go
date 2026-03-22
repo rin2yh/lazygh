@@ -58,6 +58,14 @@ func (s *State) ScrollUp(lines int) {
 	s.vp.ScrollUp(lines)
 }
 
+func (s *State) GotoTop() {
+	s.vp.GotoTop()
+}
+
+func (s *State) GotoBottom() {
+	s.vp.GotoBottom()
+}
+
 func (s *State) View() string {
 	return s.vp.View()
 }

@@ -87,6 +87,8 @@ type DetailViewport interface {
 	Update(msg tea.KeyMsg) (bool, tea.Cmd)
 	ScrollDown(lines int)
 	ScrollUp(lines int)
+	GotoTop()
+	GotoBottom()
 	View() string
 }
 
