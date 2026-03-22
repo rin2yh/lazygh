@@ -1,7 +1,5 @@
 package review
 
-import "github.com/rin2yh/lazygh/internal/model"
-
 type view struct {
 	rs      *ReviewState
 	host    AppState
@@ -18,7 +16,7 @@ func newView(rs *ReviewState, host AppState, comment *comment, summary *summary)
 	}
 }
 
-func (f *view) InputMode() model.ReviewInputMode {
+func (f *view) InputMode() InputMode {
 	return f.rs.InputMode
 }
 
@@ -27,7 +25,7 @@ func (f *view) ShouldShowDrawer() bool {
 		return false
 	}
 	rs := f.rs
-	return rs.DrawerOpen || rs.InputMode != model.ReviewInputNone || rs.HasPendingReview() || len(rs.Comments) > 0 || rs.Summary != "" || rs.RangeStart != nil
+	return rs.DrawerOpen || rs.InputMode != InputNone || rs.HasPendingReview() || len(rs.Comments) > 0 || rs.Summary != "" || rs.RangeStart != nil
 }
 
 // StopInput stops any active input and returns the FocusTarget to move to
@@ -35,7 +33,7 @@ func (f *view) ShouldShowDrawer() bool {
 func (f *view) StopInput() (FocusTarget, bool) {
 	f.comment.editor.Blur()
 	f.summary.editor.Blur()
-	if f.rs.InputMode == model.ReviewInputComment {
+	if f.rs.InputMode == InputComment {
 		f.rs.ClearRangeStart()
 		f.rs.ClearEditingComment()
 		f.comment.editor.SetValue("")

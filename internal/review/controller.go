@@ -67,19 +67,19 @@ func NewController(cfg *config.Config, host AppState, client PendingReviewClient
 
 // --- state accessors for the gui layer ---
 
-func (c *Controller) InputMode() model.ReviewInputMode { return c.rs.InputMode }
-func (c *Controller) Summary() string                  { return c.rs.Summary }
-func (c *Controller) EventLabel() string               { return c.rs.Event.Label() }
-func (c *Controller) Notice() string                   { return c.rs.Notice }
-func (c *Controller) RangeStart() *model.ReviewRange   { return c.rs.RangeStart }
-func (c *Controller) Comments() []model.ReviewComment  { return c.rs.Comments }
-func (c *Controller) SelectedCommentIdx() int          { return c.rs.SelectedCommentIdx }
-func (c *Controller) HasRangeStart() bool              { return c.rs.RangeStart != nil }
-func (c *Controller) IsInInputMode() bool              { return c.rs.InputMode != model.ReviewInputNone }
-func (c *Controller) HasPendingReview() bool           { return c.rs.HasPendingReview() }
-func (c *Controller) PRNumber() int                    { return c.rs.PRNumber }
-func (c *Controller) SetNotice(msg string)             { c.rs.SetNotice(msg) }
-func (c *Controller) ClearRangeStart()                 { c.rs.ClearRangeStart() }
+func (c *Controller) InputMode() InputMode    { return c.rs.InputMode }
+func (c *Controller) Summary() string         { return c.rs.Summary }
+func (c *Controller) EventLabel() string      { return c.rs.Event.Label() }
+func (c *Controller) Notice() string          { return c.rs.Notice }
+func (c *Controller) RangeStart() *Range      { return c.rs.RangeStart }
+func (c *Controller) Comments() []Comment     { return c.rs.Comments }
+func (c *Controller) SelectedCommentIdx() int { return c.rs.SelectedCommentIdx }
+func (c *Controller) HasRangeStart() bool     { return c.rs.RangeStart != nil }
+func (c *Controller) IsInInputMode() bool     { return c.rs.InputMode != InputNone }
+func (c *Controller) HasPendingReview() bool  { return c.rs.HasPendingReview() }
+func (c *Controller) PRNumber() int           { return c.rs.PRNumber }
+func (c *Controller) SetNotice(msg string)    { c.rs.SetNotice(msg) }
+func (c *Controller) ClearRangeStart()        { c.rs.ClearRangeStart() }
 
 // Reset clears review state (called when the PR list reloads).
 func (c *Controller) Reset() { c.rs.Reset() }
@@ -147,7 +147,7 @@ func (c *Controller) EditorKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 		}
 		return nil, handled
 	}
-	if c.keys.Matches(msg, config.ActionReviewSave) && c.view.InputMode() == model.ReviewInputSummary {
+	if c.keys.Matches(msg, config.ActionReviewSave) && c.view.InputMode() == InputSummary {
 		if t, ok := c.view.HandleSummarySave(); ok {
 			c.setFocus(t)
 		}
@@ -155,9 +155,9 @@ func (c *Controller) EditorKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	}
 
 	switch c.view.InputMode() {
-	case model.ReviewInputComment:
+	case InputComment:
 		return c.comment.HandleKey(msg)
-	case model.ReviewInputSummary:
+	case InputSummary:
 		return c.summary.HandleKey(msg)
 	default:
 		return nil, false

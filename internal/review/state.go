@@ -9,11 +9,11 @@ type ReviewState struct {
 	CommitOID          string
 	ReviewID           string
 	DrawerOpen         bool
-	InputMode          model.ReviewInputMode
-	Event              model.ReviewEvent
+	InputMode          InputMode
+	Event              Event
 	Summary            string
-	Comments           []model.ReviewComment
-	RangeStart         *model.ReviewRange
+	Comments           []Comment
+	RangeStart         *Range
 	Notice             string
 	SelectedCommentIdx int
 	EditingCommentIdx  int
@@ -21,8 +21,8 @@ type ReviewState struct {
 
 func newReviewState() *ReviewState {
 	return &ReviewState{
-		Comments:          []model.ReviewComment{},
-		EditingCommentIdx: model.NoEditingComment,
+		Comments:          []Comment{},
+		EditingCommentIdx: noEditingComment,
 	}
 }
 
@@ -31,7 +31,7 @@ func (rs *ReviewState) HasPendingReview() bool {
 }
 
 func (rs *ReviewState) StopInput() {
-	rs.InputMode = model.ReviewInputNone
+	rs.InputMode = InputNone
 }
 
 func (rs *ReviewState) OpenDrawer() {
@@ -40,19 +40,19 @@ func (rs *ReviewState) OpenDrawer() {
 
 func (rs *ReviewState) CloseDrawer() {
 	rs.DrawerOpen = false
-	rs.InputMode = model.ReviewInputNone
+	rs.InputMode = InputNone
 	rs.Notice = ""
 }
 
 func (rs *ReviewState) BeginCommentInput() {
 	rs.DrawerOpen = true
-	rs.InputMode = model.ReviewInputComment
+	rs.InputMode = InputComment
 	rs.Notice = ""
 }
 
 func (rs *ReviewState) BeginSummaryInput() {
 	rs.DrawerOpen = true
-	rs.InputMode = model.ReviewInputSummary
+	rs.InputMode = InputSummary
 	rs.Notice = ""
 }
 
@@ -67,8 +67,8 @@ func (rs *ReviewState) SetContext(prNumber int, pullRequestID string, commitOID 
 	rs.ReviewID = model.SanitizeSingleLine(reviewID)
 }
 
-func (rs *ReviewState) AddComment(comment model.ReviewComment) {
-	rs.Comments = append(rs.Comments, model.ReviewComment{
+func (rs *ReviewState) AddComment(comment Comment) {
+	rs.Comments = append(rs.Comments, Comment{
 		CommentID: comment.CommentID,
 		Path:      model.SanitizeSingleLine(comment.Path),
 		Body:      model.SanitizeMultiline(comment.Body),
@@ -80,7 +80,7 @@ func (rs *ReviewState) AddComment(comment model.ReviewComment) {
 	rs.SelectedCommentIdx = len(rs.Comments) - 1
 	rs.Notice = "Review comment added."
 	rs.DrawerOpen = true
-	rs.InputMode = model.ReviewInputNone
+	rs.InputMode = InputNone
 	rs.RangeStart = nil
 }
 
@@ -99,10 +99,10 @@ func (rs *ReviewState) SelectPrevComment() {
 	}
 }
 
-func (rs *ReviewState) DeleteSelectedComment() (model.ReviewComment, bool) {
+func (rs *ReviewState) DeleteSelectedComment() (Comment, bool) {
 	idx := rs.SelectedCommentIdx
 	if idx < 0 || idx >= len(rs.Comments) {
-		return model.ReviewComment{}, false
+		return Comment{}, false
 	}
 	deleted := rs.Comments[idx]
 	rs.Comments = append(rs.Comments[:idx], rs.Comments[idx+1:]...)
@@ -114,17 +114,17 @@ func (rs *ReviewState) DeleteSelectedComment() (model.ReviewComment, bool) {
 	return deleted, true
 }
 
-func (rs *ReviewState) SelectedComment() (model.ReviewComment, bool) {
+func (rs *ReviewState) SelectedComment() (Comment, bool) {
 	idx := rs.SelectedCommentIdx
 	if idx < 0 || idx >= len(rs.Comments) {
-		return model.ReviewComment{}, false
+		return Comment{}, false
 	}
 	return rs.Comments[idx], true
 }
 
 func (rs *ReviewState) BeginEditComment() {
 	rs.EditingCommentIdx = rs.SelectedCommentIdx
-	rs.InputMode = model.ReviewInputComment
+	rs.InputMode = InputComment
 	rs.DrawerOpen = true
 	rs.Notice = ""
 }
@@ -135,13 +135,13 @@ func (rs *ReviewState) ApplyEditComment(newBody string) {
 		return
 	}
 	rs.Comments[idx].Body = model.SanitizeMultiline(newBody)
-	rs.EditingCommentIdx = model.NoEditingComment
-	rs.InputMode = model.ReviewInputNone
+	rs.EditingCommentIdx = noEditingComment
+	rs.InputMode = InputNone
 	rs.Notice = "Comment updated."
 }
 
 func (rs *ReviewState) ClearEditingComment() {
-	rs.EditingCommentIdx = model.NoEditingComment
+	rs.EditingCommentIdx = noEditingComment
 }
 
 func (rs *ReviewState) SetNotice(msg string) {
@@ -152,7 +152,7 @@ func (rs *ReviewState) ClearNotice() {
 	rs.Notice = ""
 }
 
-func (rs *ReviewState) MarkRangeStart(anchor model.ReviewRange) {
+func (rs *ReviewState) MarkRangeStart(anchor Range) {
 	copied := anchor
 	rs.RangeStart = &copied
 	rs.DrawerOpen = true
@@ -161,12 +161,12 @@ func (rs *ReviewState) MarkRangeStart(anchor model.ReviewRange) {
 
 func (rs *ReviewState) CycleEvent() {
 	switch rs.Event {
-	case model.ReviewEventComment:
-		rs.Event = model.ReviewEventApprove
-	case model.ReviewEventApprove:
-		rs.Event = model.ReviewEventRequestChanges
+	case EventComment:
+		rs.Event = EventApprove
+	case EventApprove:
+		rs.Event = EventRequestChanges
 	default:
-		rs.Event = model.ReviewEventComment
+		rs.Event = EventComment
 	}
 }
 
@@ -193,7 +193,7 @@ func (rs *ReviewState) reset() {
 	notice := rs.Notice
 	*rs = ReviewState{
 		Notice:            notice,
-		EditingCommentIdx: model.NoEditingComment,
-		Comments:          []model.ReviewComment{},
+		EditingCommentIdx: noEditingComment,
+		Comments:          []Comment{},
 	}
 }

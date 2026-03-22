@@ -164,7 +164,7 @@ func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *review.DrawerInput {
 	}
 	inputMode := gui.review.InputMode()
 	summary := gui.review.Summary()
-	if inputMode == model.ReviewInputSummary {
+	if inputMode == review.InputSummary {
 		summary = gui.review.SummaryValue()
 	}
 	input := &review.DrawerInput{
@@ -191,10 +191,10 @@ func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *review.DrawerInput {
 		})
 	}
 	input.SelectedCommentIdx = gui.review.SelectedCommentIdx()
-	if inputMode == model.ReviewInputComment {
+	if inputMode == review.InputComment {
 		input.CommentInputLines = gui.review.CommentInputLines()
 	}
-	if inputMode == model.ReviewInputSummary {
+	if inputMode == review.InputSummary {
 		input.SummaryInputLines = gui.review.SummaryInputLines()
 	}
 	return input

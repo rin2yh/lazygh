@@ -5,7 +5,6 @@ import (
 	"github.com/rin2yh/lazygh/internal/app/layout"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/model"
 	"github.com/rin2yh/lazygh/internal/pr/diff"
 	"github.com/rin2yh/lazygh/internal/review"
 	"github.com/rin2yh/lazygh/pkg/gui/viewport"
@@ -27,12 +26,12 @@ type ReviewReader interface {
 	CommentInputLines() []string
 	SummaryInputLines() []string
 	IsEditingComment() bool
-	InputMode() model.ReviewInputMode
+	InputMode() review.InputMode
 	Summary() string
 	EventLabel() string
 	Notice() string
-	RangeStart() *model.ReviewRange
-	Comments() []model.ReviewComment
+	RangeStart() *review.Range
+	Comments() []review.Comment
 	SelectedCommentIdx() int
 	HasRangeStart() bool
 	IsInInputMode() bool

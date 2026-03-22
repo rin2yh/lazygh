@@ -106,7 +106,7 @@ func TestApplySubmitResult_ErrorPreservesState(t *testing.T) {
 	c, host, _ := setupControllerWithPR(&testmock.GHClient{}, reviewstub.Selection{})
 	host.beginFetchReviewCalls = 0
 	c.rs.SetContext(1, "PR_1", "abc123", "PRR_1")
-	c.rs.AddComment(model.ReviewComment{Path: "a.go", Body: "hi", Line: 10})
+	c.rs.AddComment(Comment{Path: "a.go", Body: "hi", Line: 10})
 
 	c.SubmitResult(SubmittedMsg{ReviewID: "PRR_1", Err: errors.New("network error")})
 
@@ -124,7 +124,7 @@ func TestApplySubmitResult_ErrorPreservesState(t *testing.T) {
 func TestApplySubmitResult_SuccessClearsReview(t *testing.T) {
 	c, _, focus := setupControllerWithPR(&testmock.GHClient{}, reviewstub.Selection{})
 	c.rs.SetContext(1, "PR_1", "abc123", "PRR_1")
-	c.rs.AddComment(model.ReviewComment{Path: "a.go", Body: "hi", Line: 10})
+	c.rs.AddComment(Comment{Path: "a.go", Body: "hi", Line: 10})
 
 	c.SubmitResult(SubmittedMsg{ReviewID: "PRR_1"})
 
@@ -142,7 +142,7 @@ func TestApplySubmitResult_SuccessClearsReview(t *testing.T) {
 func TestApplyDiscardResult_ErrorPreservesState(t *testing.T) {
 	c, _, _ := setupControllerWithPR(&testmock.GHClient{}, reviewstub.Selection{})
 	c.rs.SetContext(1, "PR_1", "abc123", "PRR_1")
-	c.rs.AddComment(model.ReviewComment{Path: "a.go", Body: "hi", Line: 10})
+	c.rs.AddComment(Comment{Path: "a.go", Body: "hi", Line: 10})
 
 	c.DiscardResult(DiscardedMsg{Err: errors.New("discard failed")})
 
@@ -157,7 +157,7 @@ func TestApplyDiscardResult_ErrorPreservesState(t *testing.T) {
 func TestApplyDiscardResult_SuccessClearsReview(t *testing.T) {
 	c, _, focus := setupControllerWithPR(&testmock.GHClient{}, reviewstub.Selection{})
 	c.rs.SetContext(1, "PR_1", "abc123", "PRR_1")
-	c.rs.AddComment(model.ReviewComment{Path: "a.go", Body: "hi", Line: 10})
+	c.rs.AddComment(Comment{Path: "a.go", Body: "hi", Line: 10})
 	c.rs.SetSummary("my summary")
 
 	c.DiscardResult(DiscardedMsg{})
@@ -200,7 +200,7 @@ func TestApplyCommentResult_SuccessAddsComment(t *testing.T) {
 func TestHandleSubmit_SavesSummaryIfInSummaryMode(t *testing.T) {
 	c, _, _ := setupControllerWithPR(&testmock.GHClient{}, reviewstub.Selection{})
 	c.rs.SetContext(1, "PR_1", "abc", "PRR_1")
-	c.rs.AddComment(model.ReviewComment{Path: "a.go", Body: "hi", Line: 1})
+	c.rs.AddComment(Comment{Path: "a.go", Body: "hi", Line: 1})
 	c.rs.BeginSummaryInput()
 
 	c.summary.editor.SetValue("my summary text")
@@ -212,7 +212,7 @@ func TestHandleSubmit_SavesSummaryIfInSummaryMode(t *testing.T) {
 	if c.rs.Summary != "my summary text" {
 		t.Fatalf("summary not saved, got %q", c.rs.Summary)
 	}
-	if c.rs.InputMode != model.ReviewInputNone {
+	if c.rs.InputMode != InputNone {
 		t.Fatalf("input mode not cleared, got %v", c.rs.InputMode)
 	}
 }

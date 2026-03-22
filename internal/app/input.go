@@ -5,6 +5,7 @@ import (
 	"github.com/rin2yh/lazygh/internal/app/layout"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/review"
 )
 
 func (s *screen) handleReviewInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
@@ -16,7 +17,7 @@ func (s *screen) handleReviewInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 		case config.ActionReviewDiscard:
 			return s.gui.review.Discard(), true
 		case config.ActionReviewSave:
-			if s.gui.review.InputMode() == model.ReviewInputComment {
+			if s.gui.review.InputMode() == review.InputComment {
 				if s.gui.review.IsEditingComment() {
 					return s.gui.review.SaveEditComment(), true
 				}
@@ -104,7 +105,7 @@ func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
 	case config.ActionReviewDiscard:
 		return s.gui.review.Discard()
 	case config.ActionReviewClearComment:
-		if s.gui.review.InputMode() == model.ReviewInputComment {
+		if s.gui.review.InputMode() == review.InputComment {
 			s.gui.review.ClearCommentInput()
 		}
 	case config.ActionReviewEvent:
@@ -146,7 +147,7 @@ func (s *screen) handleFilterKey(msg tea.KeyMsg) tea.Cmd {
 }
 
 func (s *screen) handleCancel() tea.Cmd {
-	if s.gui.review.InputMode() == model.ReviewInputNone && s.gui.review.HasRangeStart() {
+	if s.gui.review.InputMode() == review.InputNone && s.gui.review.HasRangeStart() {
 		s.gui.review.ClearRangeStart()
 		s.gui.review.SetNotice("Range selection cleared.")
 		s.gui.focus = layout.FocusDiffContent
