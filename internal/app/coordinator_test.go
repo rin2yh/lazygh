@@ -168,7 +168,7 @@ func TestPlanEnter_LoadPR(t *testing.T) {
 			}
 			before := c.Overview.Content
 
-			action := c.PlanEnter(true, "")
+			action := c.PlanEnter(true)
 			if action.Kind != tt.wantKind {
 				t.Fatalf("got %v, want %v", action.Kind, tt.wantKind)
 			}

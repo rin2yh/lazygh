@@ -1,8 +1,6 @@
 package app
 
 import (
-	"os"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/app/layout"
 	"github.com/rin2yh/lazygh/internal/config"
@@ -222,7 +220,7 @@ func (s *screen) moveCursor(dir int) tea.Cmd {
 }
 
 func (s *screen) openSelectedPR() tea.Cmd {
-	action := s.gui.coord.PlanEnter(s.gui.client != nil, os.Getenv("LAZYGH_DEBUG_DETAIL_TEXT"))
+	action := s.gui.coord.PlanEnter(s.gui.client != nil)
 	switch action.Kind {
 	case model.EnterLoadPRDiff:
 		return s.loadDetailCmd(action.Repo, action.Number, model.DetailModeDiff)
