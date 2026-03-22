@@ -18,7 +18,7 @@ func RenderOverlay(background []string, sections []Section, keys config.KeyBindi
 
 func buildPanelLines(sections []Section, keys config.KeyBindings, screenWidth int) ([]string, int) {
 	content := buildContent(sections)
-	closeHint := fmt.Sprintf("Press [%s] or [%s] to close", keys.HelpLabel(), keys.Label(config.ActionCancel))
+	closeHint := fmt.Sprintf("Press [%s] or [%s] to close", keys.PrimaryLabel(config.ActionShowHelp), keys.Label(config.ActionCancel))
 
 	panelContent := make([]string, 0, len(content)+4)
 	panelContent = append(panelContent, "")
