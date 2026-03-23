@@ -36,10 +36,7 @@ func (e *editorInput) lines() []string { return editorLines(e.editor) }
 func (e *editorInput) blur()           { e.editor.Blur() }
 func (e *editorInput) focus()          { e.editor.Focus() }
 
-// clear empties the editor content.
-func (e *editorInput) clear() { e.editor.SetValue("") }
-
-// load populates the editor with existing content for editing.
+func (e *editorInput) clear()              { e.editor.SetValue("") }
 func (e *editorInput) load(content string) { e.editor.SetValue(content) }
 
 func (e *editorInput) update(msg tea.KeyMsg) tea.Cmd {
