@@ -19,6 +19,19 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "agent",
+            "prompt": "入力JSON: $ARGUMENTS\n\nbashコマンドが 'git commit' を含む場合のみ、以下を実行すること:\n1. /simplify を実行してステージ済みの変更コードをレビューし、再利用性・品質・効率の観点で問題を修正する\n2. さらにもう一度 /simplify を実行して、追加の改善点をレビューし修正する\n\ngit commit 以外のコマンドの場合は何もしない。",
+            "timeout": 300,
+            "statusMessage": "コミット前に /simplify を2回実行中..."
+          }
+        ]
+      }
     ]
   },
   "permissions": {
