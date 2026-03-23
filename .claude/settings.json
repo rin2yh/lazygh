@@ -25,8 +25,8 @@
         "matcher": "Bash(git add:*)",
         "hooks": [
           {
-            "type": "command",
-            "command": "echo '{\"systemMessage\":\"/simplify\"}'"
+            "type": "prompt",
+            "prompt": "/simplify"
           }
         ]
       }
@@ -36,8 +36,8 @@
         "matcher": "Bash(git add:*)",
         "hooks": [
           {
-            "type": "command",
-            "command": "echo '{\"systemMessage\":\"/simplify\"}'"
+            "type": "prompt",
+            "prompt": "/simplify"
           }
         ]
       }
