@@ -7,17 +7,6 @@ import (
 	"github.com/rin2yh/lazygh/internal/gh"
 )
 
-// PendingReviewClient handles GitHub API calls for the pending review workflow.
-type PendingReviewClient interface {
-	GetReviewContext(repo string, number int) (gh.ReviewContext, error)
-	StartPendingReview(repo string, number int, ctx gh.ReviewContext) (string, error)
-	AddReviewComment(repo string, reviewID string, comment gh.ReviewComment) (string, error)
-	SubmitReview(repo string, reviewID string, event gh.ReviewEvent, body string) error
-	DeletePendingReview(repo string, reviewID string) error
-	DeletePendingReviewComment(commentID string) error
-	UpdatePendingReviewComment(commentID string, body string) error
-}
-
 // Message types returned by async commands.
 
 type CommentSavedMsg struct {
