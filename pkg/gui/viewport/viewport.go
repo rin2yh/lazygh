@@ -5,6 +5,18 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+// Viewport is the interface for scrollable content panels.
+type Viewport interface {
+	Sync(width, height int, body string)
+	Height() int
+	Update(msg tea.KeyMsg) (bool, tea.Cmd)
+	ScrollDown(lines int)
+	ScrollUp(lines int)
+	GotoTop()
+	GotoBottom()
+	View() string
+}
+
 type State struct {
 	vp     viewport.Model
 	width  int

@@ -4,33 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/model"
 )
-
-// FocusTarget identifies which UI panel should receive focus.
-type FocusTarget int
-
-const (
-	FocusDiffContent FocusTarget = iota
-	FocusReviewDrawer
-)
-
-// Selection provides the currently selected diff line/file to the review workflow.
-type Selection interface {
-	CurrentFile() (gh.DiffFile, bool)
-	CurrentLine() (gh.DiffLine, bool)
-	LineSelected() int
-}
-
-// AppState is the minimal interface the review package needs from the host
-// application state (list/detail state).
-type AppState interface {
-	SelectedPR() (model.Item, bool)
-	ListRepo() string
-	BeginFetchReview()
-	ClearFetching()
-	IsDiffMode() bool
-}
 
 // Controller orchestrates the pending-review workflow and directly owns
 // ReviewState (no *state.State reference).
