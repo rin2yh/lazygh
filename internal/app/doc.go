@@ -1,7 +1,6 @@
 // Package app is the BubbleTea adapter layer for lazygh.
 //
-// インターフェースは利用側で定義する Go 慣習に従い interfaces.go にまとめている。
-// review パッケージ側が必要とするインターフェース（Selection, AppState,
-// PendingReviewClient）は循環インポートを避けるため internal/pr/review/interfaces.go
-// に定義されている。
+// ドメインパッケージ（review/、gh/、viewport/）がそれぞれのインターフェースを定義する。
+// review.Selection / review.AppState / review.PendingReviewClient が review/ 側に置かれているのは、
+// app → review の一方向インポートを維持して循環依存を避けるためである。
 package app
