@@ -20,23 +20,11 @@
         ]
       }
     ],
-    "PreToolUse": [
+    "Stop": [
       {
-        "matcher": "Bash(git add:*)",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "/simplify"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash(git add:*)",
-        "hooks": [
-          {
-            "type": "prompt",
+            "type": "agent",
             "prompt": "/simplify"
           }
         ]
