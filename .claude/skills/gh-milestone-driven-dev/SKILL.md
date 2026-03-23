@@ -39,8 +39,8 @@ gh issue edit <number> --add-label "<label1>,<label2>"
 
 ## Workflow
 
-1. `gh issue list --milestone "<name>"` でマイルストーンのオープン Issue を取得し、title・priority・area・size を確認する。
-2. 最も緊急・リスクが高い、または壊れていると明示された Issue を選ぶ。
+1. `gh issue list --milestone "<name>"` でマイルストーンのオープン Issue を取得し、title・priority・area・size・labels を確認する。`blocked` ラベルが付いている Issue は作業対象から除外する。
+2. ブロックされていない Issue の中から、最も緊急・リスクが高い、または壊れていると明示された Issue を選ぶ。
 3. Issue 本文と関連コードを読んでから変更を始める。
 4. Issue を解決する最小限の変更を実装する。
 5. リポジトリの必須検証コマンドを実行する。
@@ -50,6 +50,7 @@ gh issue edit <number> --add-label "<label1>,<label2>"
 
 ## Operating Rules
 
+- Skip any issue with a `blocked` label; do not attempt to resolve it.
 - Prefer milestone issues whose title or labels imply breakage, tech debt, or blocked progress.
 - If the user's wording maps to a specific issue title, confirm that issue first instead of guessing broadly.
 - Treat issue resolution as incomplete until code changes, verification, commit, PR creation, and issue comment are all done.
