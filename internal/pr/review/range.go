@@ -21,12 +21,12 @@ func (f *rangeState) RangeStart() *Range {
 func (f *rangeState) ToggleSelection() bool {
 	line, ok := f.selection.CurrentLine()
 	if !ok || !line.Commentable {
-		f.rs.SetNotice("Current diff line cannot be reviewed.")
+		f.rs.Notify("Current diff line cannot be reviewed.")
 		return false
 	}
 	if f.rs.RangeStart != nil {
 		f.rs.ClearRangeStart()
-		f.rs.SetNotice("Range selection cleared.")
+		f.rs.Notify("Range selection cleared.")
 		return true
 	}
 	anchor := Range{
@@ -40,7 +40,7 @@ func (f *rangeState) ToggleSelection() bool {
 		anchor.Line = line.OldLine
 	}
 	f.rs.MarkRangeStart(anchor)
-	f.rs.SetNotice("Range selection started.")
+	f.rs.Notify("Range selection started.")
 	return true
 }
 

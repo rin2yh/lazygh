@@ -41,19 +41,19 @@ func (rs *ReviewState) OpenDrawer() {
 func (rs *ReviewState) CloseDrawer() {
 	rs.DrawerOpen = false
 	rs.InputMode = InputNone
-	rs.Notice = ""
+	rs.ClearNotice()
 }
 
 func (rs *ReviewState) BeginCommentInput() {
 	rs.DrawerOpen = true
 	rs.InputMode = InputComment
-	rs.Notice = ""
+	rs.ClearNotice()
 }
 
 func (rs *ReviewState) BeginSummaryInput() {
 	rs.DrawerOpen = true
 	rs.InputMode = InputSummary
-	rs.Notice = ""
+	rs.ClearNotice()
 }
 
 func (rs *ReviewState) SetSummary(summary string) {
@@ -78,7 +78,7 @@ func (rs *ReviewState) AddComment(comment Comment) {
 		StartLine: comment.StartLine,
 	})
 	rs.SelectedCommentIdx = len(rs.Comments) - 1
-	rs.Notice = "Review comment added."
+	rs.Notify("Review comment added.")
 	rs.DrawerOpen = true
 	rs.InputMode = InputNone
 	rs.RangeStart = nil
@@ -126,7 +126,7 @@ func (rs *ReviewState) BeginEditComment() {
 	rs.EditingCommentIdx = rs.SelectedCommentIdx
 	rs.InputMode = InputComment
 	rs.DrawerOpen = true
-	rs.Notice = ""
+	rs.ClearNotice()
 }
 
 func (rs *ReviewState) ApplyEditComment(newBody string) {
@@ -137,14 +137,14 @@ func (rs *ReviewState) ApplyEditComment(newBody string) {
 	rs.Comments[idx].Body = model.SanitizeMultiline(newBody)
 	rs.EditingCommentIdx = noEditingComment
 	rs.InputMode = InputNone
-	rs.Notice = "Comment updated."
+	rs.Notify("Comment updated.")
 }
 
 func (rs *ReviewState) ClearEditingComment() {
 	rs.EditingCommentIdx = noEditingComment
 }
 
-func (rs *ReviewState) SetNotice(msg string) {
+func (rs *ReviewState) Notify(msg string) {
 	rs.Notice = model.SanitizeMultiline(msg)
 }
 
@@ -156,7 +156,7 @@ func (rs *ReviewState) MarkRangeStart(anchor Range) {
 	copied := anchor
 	rs.RangeStart = &copied
 	rs.DrawerOpen = true
-	rs.Notice = "Range start selected."
+	rs.Notify("Range start selected.")
 }
 
 func (rs *ReviewState) CycleEvent() {
@@ -174,28 +174,13 @@ func (rs *ReviewState) ClearRangeStart() {
 	rs.RangeStart = nil
 }
 
-func (rs *ReviewState) ResetAfterSubmit(notice string) {
-	rs.resetWithNotice(notice)
-}
-
-func (rs *ReviewState) ResetAfterDiscard(notice string) {
-	rs.resetWithNotice(notice)
-}
-
-func (rs *ReviewState) resetWithNotice(notice string) {
-	rs.reset()
-	rs.Notice = model.SanitizeMultiline(notice)
-}
-
 // Reset clears the review state entirely (e.g. when PR list reloads).
 func (rs *ReviewState) Reset() {
 	rs.reset()
 }
 
 func (rs *ReviewState) reset() {
-	notice := rs.Notice
 	*rs = ReviewState{
-		Notice:            notice,
 		EditingCommentIdx: noEditingComment,
 		Comments:          []Comment{},
 	}

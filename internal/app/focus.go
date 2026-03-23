@@ -9,7 +9,7 @@ const pendingReviewBlockNotice = "Pending review exists. Submit with S or discar
 
 func (gui *Gui) navigate(fn func() bool) bool {
 	if gui.coord.BlocksPRSelectionChange() {
-		gui.review.SetNotice(pendingReviewBlockNotice)
+		gui.review.Notify(pendingReviewBlockNotice)
 		return false
 	}
 	return fn()

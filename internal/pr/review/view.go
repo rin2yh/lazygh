@@ -55,6 +55,6 @@ func (f *view) HandleEsc() bool {
 func (f *view) HandleSummarySave() (FocusTarget, bool) {
 	f.summary.Save()
 	target, ok := f.StopInput()
-	f.rs.SetNotice("Review summary updated.")
+	f.rs.Notify("Review summary updated.")
 	return target, ok
 }
