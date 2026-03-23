@@ -1,48 +1,40 @@
 package review
 
 import (
-	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rin2yh/lazygh/pkg/gui/textarea"
 )
 
 type summary struct {
-	rs     *ReviewState
-	editor textarea.Model
+	rs *ReviewState
+	textarea.State
 }
 
 func newSummary(rs *ReviewState) *summary {
 	return &summary{
-		rs:     rs,
-		editor: newEditor("Review summary"),
+		rs:    rs,
+		State: textarea.New("Review summary"),
 	}
 }
 
-func (f *summary) CurrentValue() string {
-	return f.editor.Value()
-}
-
-func (f *summary) InputLines() []string {
-	return editorLines(f.editor)
-}
-
 func (f *summary) BeginInput() {
-	beginInput(f.rs, &f.editor, f.rs.BeginSummaryInput, f.rs.Summary)
+	f.rs.BeginSummaryInput()
+	f.Load(f.rs.Summary)
+	f.Focus()
 }
 
 func (f *summary) StopInput() {
-	f.editor.Blur()
+	f.Blur()
 }
 
 func (f *summary) HandleKey(msg tea.KeyMsg) (tea.Cmd, bool) {
-	updated, cmd := f.editor.Update(msg)
-	f.editor = updated
-	return cmd, true
+	return f.Update(msg), true
 }
 
 func (f *summary) Save() {
-	f.rs.SetSummary(f.editor.Value())
+	f.rs.SetSummary(f.Text())
 }
 
 func (f *summary) Clear() {
-	f.editor.SetValue("")
+	f.State.Clear()
 }
