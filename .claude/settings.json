@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"/simplify を実行してコードをレビュー・改善してからgit addしてください。\"}}'"
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"/simplify\"}}'"
           }
         ]
       }
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"/simplify を実行してコードをレビュー・改善してください。\"}}'"
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"/simplify\"}}'"
           }
         ]
       }
