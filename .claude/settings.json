@@ -20,12 +20,24 @@
         ]
       }
     ],
-    "Stop": [
+    "PreToolUse": [
       {
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "agent",
-            "prompt": "/simplify"
+            "prompt": "Hook input: $ARGUMENTS\nIf the bash command starts with 'git add', run /simplify to review and fix the changed code before staging. Otherwise exit immediately."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "agent",
+            "prompt": "Hook input: $ARGUMENTS\nIf the bash command starts with 'git add', run /simplify to review and fix the staged code. Otherwise exit immediately."
           }
         ]
       }
