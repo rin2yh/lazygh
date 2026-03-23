@@ -19,6 +19,28 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git add:*)",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "/simplify"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash(git add:*)",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "/simplify"
+          }
+        ]
+      }
     ]
   },
   "permissions": {
