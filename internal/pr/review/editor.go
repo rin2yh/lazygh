@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func newEditor(placeholder string) textarea.Model {
@@ -20,11 +21,24 @@ func editorLines(e textarea.Model) []string {
 	return strings.Split(e.View(), "\n")
 }
 
-// beginInput performs the shared steps to start a review input form:
-// transition state, open drawer, populate editor, and focus it.
-func beginInput(rs *ReviewState, editor *textarea.Model, transitionState func(), initialValue string) {
-	transitionState()
-	rs.OpenDrawer()
-	editor.SetValue(initialValue)
-	editor.Focus()
+// editorInput wraps textarea.Model with common editor operations shared by
+// comment and summary input forms.
+type editorInput struct {
+	editor textarea.Model
+}
+
+func newEditorInput(placeholder string) editorInput {
+	return editorInput{editor: newEditor(placeholder)}
+}
+
+func (e *editorInput) value() string     { return e.editor.Value() }
+func (e *editorInput) lines() []string   { return editorLines(e.editor) }
+func (e *editorInput) blur()             { e.editor.Blur() }
+func (e *editorInput) focus()            { e.editor.Focus() }
+func (e *editorInput) setValue(v string) { e.editor.SetValue(v) }
+
+func (e *editorInput) update(msg tea.KeyMsg) tea.Cmd {
+	updated, cmd := e.editor.Update(msg)
+	e.editor = updated
+	return cmd
 }

@@ -31,12 +31,12 @@ func (f *view) ShouldShowDrawer() bool {
 // StopInput stops any active input and returns the FocusTarget to move to
 // and whether focus should change.
 func (f *view) StopInput() (FocusTarget, bool) {
-	f.comment.editor.Blur()
-	f.summary.editor.Blur()
+	f.comment.blur()
+	f.summary.blur()
 	if f.rs.InputMode == InputComment {
 		f.rs.ClearRangeStart()
 		f.rs.ClearEditingComment()
-		f.comment.editor.SetValue("")
+		f.comment.setValue("")
 	}
 	f.rs.StopInput()
 	if f.ShouldShowDrawer() {

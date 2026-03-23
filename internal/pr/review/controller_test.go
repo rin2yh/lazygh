@@ -203,7 +203,7 @@ func TestHandleSubmit_SavesSummaryIfInSummaryMode(t *testing.T) {
 	c.rs.AddComment(Comment{Path: "a.go", Body: "hi", Line: 1})
 	c.rs.BeginSummaryInput()
 
-	c.summary.editor.SetValue("my summary text")
+	c.summary.setValue("my summary text")
 
 	cmd := c.Submit()
 	if cmd == nil {

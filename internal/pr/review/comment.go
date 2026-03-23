@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
@@ -14,14 +13,14 @@ type comment struct {
 	keys      config.KeyBindings
 	rs        *ReviewState
 	selection Selection
-	editor    textarea.Model
+	editorInput
 }
 
 func newComment(cfg *config.Config, rs *ReviewState) *comment {
 	return &comment{
-		keys:   cfg.KeyBindings,
-		rs:     rs,
-		editor: newEditor("Add review comment"),
+		keys:        cfg.KeyBindings,
+		rs:          rs,
+		editorInput: newEditorInput("Add review comment"),
 	}
 }
 
@@ -30,45 +29,43 @@ func (f *comment) bindSelection(selection Selection) {
 }
 
 func (f *comment) CurrentValue() string {
-	return f.editor.Value()
+	return f.value()
 }
 
-func (f *comment) SetValue(value string) {
-	f.editor.SetValue(value)
+func (f *comment) SetValue(v string) {
+	f.setValue(v)
 }
 
 func (f *comment) InputLines() []string {
-	return editorLines(f.editor)
+	return f.lines()
 }
 
 func (f *comment) BeginInput() {
-	beginInput(f.rs, &f.editor, f.rs.BeginCommentInput, "")
+	f.rs.BeginCommentInput()
+	f.setValue("")
+	f.focus()
 }
 
 func (f *comment) Clear() {
-	f.editor.SetValue("")
+	f.setValue("")
 	f.rs.Notify("Comment input cleared.")
 }
 
 func (f *comment) StartEdit(body string) {
-	f.editor.SetValue(body)
-	f.editor.Focus()
+	f.setValue(body)
+	f.focus()
 }
 
 func (f *comment) StopInput() {
-	f.editor.Blur()
-	f.editor.SetValue("")
+	f.blur()
+	f.setValue("")
 }
 
 func (f *comment) HandleKey(msg tea.KeyMsg) (tea.Cmd, bool) {
-	switch {
-	case f.keys.Matches(msg, config.ActionReviewSave):
+	if f.keys.Matches(msg, config.ActionReviewSave) {
 		return nil, true
 	}
-
-	updated, cmd := f.editor.Update(msg)
-	f.editor = updated
-	return cmd, true
+	return f.update(msg), true
 }
 
 func (f *comment) BuildDraft(body string, start *Range) (gh.ReviewComment, error) {
@@ -111,6 +108,6 @@ func (f *comment) BuildDraft(body string, start *Range) (gh.ReviewComment, error
 }
 
 func (f *comment) ApplySaved() {
-	f.editor.SetValue("")
-	f.editor.Blur()
+	f.setValue("")
+	f.blur()
 }

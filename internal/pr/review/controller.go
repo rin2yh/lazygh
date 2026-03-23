@@ -86,7 +86,7 @@ func (c *Controller) SetCommentValue(value string) {
 }
 
 func (c *Controller) SummaryValue() string {
-	return c.summary.CurrentValue()
+	return c.summary.value()
 }
 
 func (c *Controller) CommentInputLines() []string {
@@ -94,7 +94,7 @@ func (c *Controller) CommentInputLines() []string {
 }
 
 func (c *Controller) SummaryInputLines() []string {
-	return c.summary.InputLines()
+	return c.summary.lines()
 }
 
 func (c *Controller) BeginSummaryInput() {
