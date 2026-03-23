@@ -5,6 +5,19 @@ import (
 	"github.com/rin2yh/lazygh/internal/pr/review"
 )
 
+const pendingReviewBlockNotice = "Pending review exists. Submit with S or discard with X."
+
+func (gui *Gui) navigate(fn func() bool) bool {
+	if gui.coord.BlocksPRSelectionChange() {
+		gui.review.SetNotice(pendingReviewBlockNotice)
+		return false
+	}
+	return fn()
+}
+
+func (gui *Gui) navigateDown() bool { return gui.navigate(gui.coord.NavigateDown) }
+func (gui *Gui) navigateUp() bool   { return gui.navigate(gui.coord.NavigateUp) }
+
 func (gui *Gui) switchToOverview() bool {
 	changed := gui.coord.SwitchToOverview()
 	if changed {

@@ -13,6 +13,21 @@ import (
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 )
 
+func TestNavigatePRList(t *testing.T) {
+	g := mustNewGui(t, &testmock.GHClient{})
+	g.coord.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "a"), testfactory.NewItem(2, "b")}, nil)
+
+	g.navigateDown()
+	if g.coord.Selected != 1 {
+		t.Fatalf("got %d, want %d", g.coord.Selected, 1)
+	}
+
+	g.navigateUp()
+	if g.coord.Selected != 0 {
+		t.Fatalf("got %d, want %d", g.coord.Selected, 0)
+	}
+}
+
 func TestCycleFocus_DiffMode(t *testing.T) {
 	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
 	if err != nil {
