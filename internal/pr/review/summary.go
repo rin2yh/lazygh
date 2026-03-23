@@ -2,38 +2,39 @@ package review
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rin2yh/lazygh/pkg/gui/textarea"
 )
 
 type summary struct {
 	rs *ReviewState
-	editorInput
+	textarea.State
 }
 
 func newSummary(rs *ReviewState) *summary {
 	return &summary{
-		rs:          rs,
-		editorInput: newEditorInput("Review summary"),
+		rs:    rs,
+		State: textarea.New("Review summary"),
 	}
 }
 
 func (f *summary) BeginInput() {
 	f.rs.BeginSummaryInput()
-	f.load(f.rs.Summary)
-	f.focus()
+	f.Load(f.rs.Summary)
+	f.Focus()
 }
 
 func (f *summary) StopInput() {
-	f.blur()
+	f.Blur()
 }
 
 func (f *summary) HandleKey(msg tea.KeyMsg) (tea.Cmd, bool) {
-	return f.update(msg), true
+	return f.Update(msg), true
 }
 
 func (f *summary) Save() {
-	f.rs.SetSummary(f.text())
+	f.rs.SetSummary(f.Text())
 }
 
 func (f *summary) Clear() {
-	f.clear()
+	f.State.Clear()
 }

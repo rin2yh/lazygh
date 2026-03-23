@@ -7,20 +7,21 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
+	"github.com/rin2yh/lazygh/pkg/gui/textarea"
 )
 
 type comment struct {
 	keys      config.KeyBindings
 	rs        *ReviewState
 	selection Selection
-	editorInput
+	textarea.State
 }
 
 func newComment(cfg *config.Config, rs *ReviewState) *comment {
 	return &comment{
-		keys:        cfg.KeyBindings,
-		rs:          rs,
-		editorInput: newEditorInput("Add review comment"),
+		keys:  cfg.KeyBindings,
+		rs:    rs,
+		State: textarea.New("Add review comment"),
 	}
 }
 
@@ -29,43 +30,43 @@ func (f *comment) bindSelection(selection Selection) {
 }
 
 func (f *comment) CurrentValue() string {
-	return f.text()
+	return f.Text()
 }
 
 func (f *comment) SetValue(v string) {
-	f.load(v)
+	f.Load(v)
 }
 
 func (f *comment) InputLines() []string {
-	return f.lines()
+	return f.Lines()
 }
 
 func (f *comment) BeginInput() {
 	f.rs.BeginCommentInput()
-	f.clear()
-	f.focus()
+	f.Clear()
+	f.Focus()
 }
 
 func (f *comment) Clear() {
-	f.clear()
+	f.State.Clear()
 	f.rs.Notify("Comment input cleared.")
 }
 
 func (f *comment) StartEdit(body string) {
-	f.load(body)
-	f.focus()
+	f.Load(body)
+	f.Focus()
 }
 
 func (f *comment) StopInput() {
-	f.blur()
-	f.clear()
+	f.Blur()
+	f.State.Clear()
 }
 
 func (f *comment) HandleKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	if f.keys.Matches(msg, config.ActionReviewSave) {
 		return nil, true
 	}
-	return f.update(msg), true
+	return f.Update(msg), true
 }
 
 func (f *comment) BuildDraft(body string, start *Range) (gh.ReviewComment, error) {
@@ -108,6 +109,6 @@ func (f *comment) BuildDraft(body string, start *Range) (gh.ReviewComment, error
 }
 
 func (f *comment) ApplySaved() {
-	f.clear()
-	f.blur()
+	f.State.Clear()
+	f.Blur()
 }
