@@ -25,8 +25,8 @@
         "matcher": "Bash",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "入力JSON: $ARGUMENTS\n\nbashコマンドが 'git add' を含む場合のみ、次のコンテキストを返すこと: \"ファイルがステージされました。/simplify を2回実行してコードをレビュー・改善してからコミットしてください。\"\n\ngit add 以外のコマンドの場合は何もしない。"
+            "type": "command",
+            "command": "cmd=$(jq -r '.tool_input.command' ); if echo \"$cmd\" | grep -q 'git add'; then echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"ファイルがステージされました。/simplify を2回実行してコードをレビュー・改善してからコミットしてください。\"}}'; fi"
           }
         ]
       }
