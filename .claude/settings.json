@@ -22,22 +22,22 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash",
+        "matcher": "Bash(git add:*)",
         "hooks": [
           {
             "type": "agent",
-            "prompt": "Hook input: $ARGUMENTS\nIf the bash command starts with 'git add', run /simplify to review and fix the changed code before staging. Otherwise exit immediately."
+            "prompt": "/simplify"
           }
         ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Bash",
+        "matcher": "Bash(git add:*)",
         "hooks": [
           {
             "type": "agent",
-            "prompt": "Hook input: $ARGUMENTS\nIf the bash command starts with 'git add', run /simplify to review and fix the staged code. Otherwise exit immediately."
+            "prompt": "/simplify"
           }
         ]
       }
