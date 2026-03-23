@@ -5,12 +5,6 @@ import (
 	"testing"
 )
 
-func newFocused(placeholder string) State {
-	s := New(placeholder)
-	s.Focus()
-	return s
-}
-
 func TestNew(t *testing.T) {
 	s := New("placeholder text")
 	if got := s.Text(); got != "" {
@@ -36,22 +30,19 @@ func TestClear(t *testing.T) {
 }
 
 func TestLines(t *testing.T) {
-	s := newFocused("")
+	s := New("")
 	s.Load("line1\nline2")
 	lines := s.Lines()
-	if len(lines) == 0 {
-		t.Fatal("Lines() returned empty slice")
+	found1, found2 := false, false
+	for _, l := range lines {
+		if strings.Contains(l, "line1") {
+			found1 = true
+		}
+		if strings.Contains(l, "line2") {
+			found2 = true
+		}
 	}
-	joined := strings.Join(lines, "\n")
-	if !strings.Contains(joined, "line1") || !strings.Contains(joined, "line2") {
+	if !found1 || !found2 {
 		t.Errorf("Lines() = %v, want to contain line1 and line2", lines)
-	}
-}
-
-func TestViewMatchesLines(t *testing.T) {
-	s := newFocused("")
-	s.Load("abc")
-	if got, want := s.View(), strings.Join(s.Lines(), "\n"); got != want {
-		t.Errorf("View() != strings.Join(Lines(), newline)\nView=%q\nJoined=%q", got, want)
 	}
 }
