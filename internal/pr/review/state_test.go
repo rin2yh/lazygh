@@ -396,7 +396,7 @@ func TestApplyEditComment(t *testing.T) {
 			if rs.InputMode != tt.wantMode {
 				t.Fatalf("got InputMode %v, want %v", rs.InputMode, tt.wantMode)
 			}
-			if tt.wantIdx != 99 && rs.EditingCommentIdx != tt.wantIdx {
+			if rs.EditingCommentIdx != tt.wantIdx {
 				t.Fatalf("got EditingCommentIdx %d, want %d", rs.EditingCommentIdx, tt.wantIdx)
 			}
 		})

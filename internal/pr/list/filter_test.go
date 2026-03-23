@@ -13,7 +13,6 @@ func TestFilterPanelLines(t *testing.T) {
 		filter      model.PRFilterMask
 		cursor      int
 		wantContain []string
-		wantAbsent  []string
 	}{
 		{
 			name:        "returns lines and positive width",
@@ -64,11 +63,6 @@ func TestFilterPanelLines(t *testing.T) {
 					t.Errorf("expected %q in output", s)
 				}
 			}
-			for _, s := range tt.wantAbsent {
-				if strings.Contains(joined, s) {
-					t.Errorf("expected %q absent from output", s)
-				}
-			}
 		})
 	}
 }
@@ -104,8 +98,10 @@ func TestBuildFilterContent(t *testing.T) {
 				t.Fatalf("expected positive maxW, got %d", maxW)
 			}
 
-			joined := strings.Join(lines, "\n")
-			got := strings.Count(joined, "[x]")
+			got := 0
+			for _, l := range lines {
+				got += strings.Count(l, "[x]")
+			}
 			if got != tt.wantChecked {
 				t.Fatalf("checked count = %d, want %d", got, tt.wantChecked)
 			}
