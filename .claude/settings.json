@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cmd=$(jq -r '.tool_input.command' ); if echo \"$cmd\" | grep -q 'git add'; then echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"ファイルがステージされました。/simplify を2回実行してコードをレビュー・改善してからコミットしてください。\"}}'; fi"
+            "command": "grep -q 'git add' && echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"ファイルがステージされました。/simplify を2回実行してコードをレビュー・改善してからコミットしてください。\"}}'"
           }
         ]
       }
