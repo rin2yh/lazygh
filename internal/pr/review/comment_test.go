@@ -141,7 +141,7 @@ func TestHandleEditorKey_EscCancelsCommentAndClearsRange(t *testing.T) {
 	host := &fakeHost{diffMode: true}
 	c := NewController(config.Default(), host, &testmock.GHClient{}, reviewstub.Selection{}, func(target FocusTarget) {})
 	c.rs.BeginCommentInput()
-	c.rs.MarkRangeStart(Range{Path: "a.txt", Index: 3, Line: 10})
+	c.rs.SetRangeStart(Range{Path: "a.txt", Index: 3, Line: 10})
 	focus := FocusReviewDrawer
 	c.setFocus = func(target FocusTarget) { focus = target }
 	c.SetCommentValue("draft")

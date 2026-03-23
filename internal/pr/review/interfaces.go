@@ -73,7 +73,7 @@ type Handler interface {
 	DeleteComment() tea.Cmd
 	StopInput()
 	ClearCommentInput()
-	CycleReviewEvent()
+	CycleEvent()
 	EditComment() bool
 	SelectNextComment()
 	SelectPrevComment()

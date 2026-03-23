@@ -206,7 +206,8 @@ func (f *pending) HandleDiscard() tea.Cmd {
 	}
 	reviewID := f.rs.ReviewID
 	if reviewID == "" {
-		f.rs.ResetAfterDiscard("Review draft discarded.")
+		f.rs.Reset()
+		f.rs.SetNotice("Review draft discarded.")
 		return nil
 	}
 	f.host.BeginFetchReview()
@@ -269,7 +270,8 @@ func (f *pending) ApplySubmitResult(msg SubmittedMsg) {
 	}
 	f.comment.StopInput()
 	f.summary.StopInput()
-	f.rs.ResetAfterSubmit("Review submitted.")
+	f.rs.Reset()
+	f.rs.SetNotice("Review submitted.")
 }
 
 func (f *pending) ApplyDiscardResult(msg DiscardedMsg) {
@@ -281,5 +283,6 @@ func (f *pending) ApplyDiscardResult(msg DiscardedMsg) {
 	f.comment.StopInput()
 	f.summary.StopInput()
 	f.summary.Clear()
-	f.rs.ResetAfterDiscard("Review draft discarded.")
+	f.rs.Reset()
+	f.rs.SetNotice("Review draft discarded.")
 }

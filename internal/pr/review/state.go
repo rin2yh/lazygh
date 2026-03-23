@@ -152,7 +152,7 @@ func (rs *ReviewState) ClearNotice() {
 	rs.Notice = ""
 }
 
-func (rs *ReviewState) MarkRangeStart(anchor Range) {
+func (rs *ReviewState) SetRangeStart(anchor Range) {
 	copied := anchor
 	rs.RangeStart = &copied
 	rs.DrawerOpen = true
@@ -174,28 +174,13 @@ func (rs *ReviewState) ClearRangeStart() {
 	rs.RangeStart = nil
 }
 
-func (rs *ReviewState) ResetAfterSubmit(notice string) {
-	rs.resetWithNotice(notice)
-}
-
-func (rs *ReviewState) ResetAfterDiscard(notice string) {
-	rs.resetWithNotice(notice)
-}
-
-func (rs *ReviewState) resetWithNotice(notice string) {
-	rs.reset()
-	rs.Notice = model.SanitizeMultiline(notice)
-}
-
 // Reset clears the review state entirely (e.g. when PR list reloads).
 func (rs *ReviewState) Reset() {
 	rs.reset()
 }
 
 func (rs *ReviewState) reset() {
-	notice := rs.Notice
 	*rs = ReviewState{
-		Notice:            notice,
 		EditingCommentIdx: noEditingComment,
 		Comments:          []Comment{},
 	}
