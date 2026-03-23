@@ -29,11 +29,11 @@ func (f *comment) bindSelection(selection Selection) {
 }
 
 func (f *comment) CurrentValue() string {
-	return f.value()
+	return f.text()
 }
 
 func (f *comment) SetValue(v string) {
-	f.setValue(v)
+	f.load(v)
 }
 
 func (f *comment) InputLines() []string {
@@ -42,23 +42,23 @@ func (f *comment) InputLines() []string {
 
 func (f *comment) BeginInput() {
 	f.rs.BeginCommentInput()
-	f.setValue("")
+	f.clear()
 	f.focus()
 }
 
 func (f *comment) Clear() {
-	f.setValue("")
+	f.clear()
 	f.rs.Notify("Comment input cleared.")
 }
 
 func (f *comment) StartEdit(body string) {
-	f.setValue(body)
+	f.load(body)
 	f.focus()
 }
 
 func (f *comment) StopInput() {
 	f.blur()
-	f.setValue("")
+	f.clear()
 }
 
 func (f *comment) HandleKey(msg tea.KeyMsg) (tea.Cmd, bool) {
@@ -108,6 +108,6 @@ func (f *comment) BuildDraft(body string, start *Range) (gh.ReviewComment, error
 }
 
 func (f *comment) ApplySaved() {
-	f.setValue("")
+	f.clear()
 	f.blur()
 }

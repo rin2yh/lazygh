@@ -36,7 +36,7 @@ func (f *view) StopInput() (FocusTarget, bool) {
 	if f.rs.InputMode == InputComment {
 		f.rs.ClearRangeStart()
 		f.rs.ClearEditingComment()
-		f.comment.setValue("")
+		f.comment.clear()
 	}
 	f.rs.StopInput()
 	if f.ShouldShowDrawer() {

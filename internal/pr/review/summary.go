@@ -18,7 +18,7 @@ func newSummary(rs *ReviewState) *summary {
 
 func (f *summary) BeginInput() {
 	f.rs.BeginSummaryInput()
-	f.setValue(f.rs.Summary)
+	f.load(f.rs.Summary)
 	f.focus()
 }
 
@@ -31,9 +31,9 @@ func (f *summary) HandleKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 }
 
 func (f *summary) Save() {
-	f.rs.SetSummary(f.value())
+	f.rs.SetSummary(f.text())
 }
 
 func (f *summary) Clear() {
-	f.setValue("")
+	f.clear()
 }

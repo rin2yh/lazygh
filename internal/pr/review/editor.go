@@ -31,11 +31,16 @@ func newEditorInput(placeholder string) editorInput {
 	return editorInput{editor: newEditor(placeholder)}
 }
 
-func (e *editorInput) value() string     { return e.editor.Value() }
-func (e *editorInput) lines() []string   { return editorLines(e.editor) }
-func (e *editorInput) blur()             { e.editor.Blur() }
-func (e *editorInput) focus()            { e.editor.Focus() }
-func (e *editorInput) setValue(v string) { e.editor.SetValue(v) }
+func (e *editorInput) text() string    { return e.editor.Value() }
+func (e *editorInput) lines() []string { return editorLines(e.editor) }
+func (e *editorInput) blur()           { e.editor.Blur() }
+func (e *editorInput) focus()          { e.editor.Focus() }
+
+// clear empties the editor content.
+func (e *editorInput) clear() { e.editor.SetValue("") }
+
+// load populates the editor with existing content for editing.
+func (e *editorInput) load(content string) { e.editor.SetValue(content) }
 
 func (e *editorInput) update(msg tea.KeyMsg) tea.Cmd {
 	updated, cmd := e.editor.Update(msg)
