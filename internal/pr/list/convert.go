@@ -8,7 +8,7 @@ import (
 )
 
 // Convert transforms a slice of gh.PRItem into model.Item, filtering by the given mask.
-func Convert(prs []gh.PRItem, filter model.PRFilterMask) []model.Item {
+func Convert(prs []gh.PRItem, filter PRFilterMask) []model.Item {
 	items := make([]model.Item, 0, len(prs))
 	for _, pr := range prs {
 		if !filter.Matches(pr.State) {

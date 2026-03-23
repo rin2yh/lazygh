@@ -1,9 +1,8 @@
 package list
 
 import (
-	"testing"
-
 	"github.com/rin2yh/lazygh/internal/model"
+	"testing"
 )
 
 func TestFormatItemSanitizeTitle(t *testing.T) {

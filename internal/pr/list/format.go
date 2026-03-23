@@ -4,14 +4,15 @@ import (
 	"fmt"
 
 	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/pkg/sanitize"
 )
 
 func formatItem(item model.Item) string {
-	return fmt.Sprintf("#%d %s", item.Number, model.SanitizeSingleLine(item.Title))
+	return fmt.Sprintf("#%d %s", item.Number, sanitize.SingleLine(item.Title))
 }
 
 func formatOverview(item model.Item) string {
-	status := model.SanitizeSingleLine(item.Status)
+	status := sanitize.SingleLine(item.Status)
 	if status == "" {
 		status = model.PRStatusOpen
 	}
@@ -20,7 +21,7 @@ func formatOverview(item model.Item) string {
 	first := ""
 	extra := 0
 	for _, name := range item.Assignees {
-		n := model.SanitizeSingleLine(name)
+		n := sanitize.SingleLine(name)
 		if n == "" {
 			continue
 		}
@@ -41,7 +42,7 @@ func formatOverview(item model.Item) string {
 	return fmt.Sprintf(
 		"PR #%d %s\nStatus: %s\nAssignee: %s",
 		item.Number,
-		model.SanitizeSingleLine(item.Title),
+		sanitize.SingleLine(item.Title),
 		status,
 		assignee,
 	)

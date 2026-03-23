@@ -1,11 +1,11 @@
 package list
 
 import (
+	"github.com/rin2yh/lazygh/internal/model"
 	"strings"
 	"testing"
 
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/model"
 )
 
 func TestConvert(t *testing.T) {
@@ -26,7 +26,7 @@ func TestConvert(t *testing.T) {
 			State:   "OPEN",
 			IsDraft: true,
 		},
-	}, model.PRFilterOpen)
+	}, PRFilterOpen)
 
 	if len(items) != 2 {
 		t.Fatalf("got %d, want %d", len(items), 2)

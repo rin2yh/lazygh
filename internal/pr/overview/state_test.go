@@ -4,12 +4,11 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/rin2yh/lazygh/internal/model"
 )
 
 func TestState_ZeroValue(t *testing.T) {
 	var s State
-	want := State{Mode: model.DetailModeOverview, Content: "", Fetching: model.FetchNone}
+	want := State{Mode: DetailModeOverview, Content: "", Fetching: FetchNone}
 	if diff := cmp.Diff(want, s); diff != "" {
 		t.Errorf("(-want +got):\n%s", diff)
 	}
@@ -23,18 +22,18 @@ func TestState_Fields(t *testing.T) {
 	}{
 		{
 			name: "overview mode with content",
-			got:  State{Mode: model.DetailModeOverview, Content: "PR body", Fetching: model.FetchNone},
-			want: State{Mode: model.DetailModeOverview, Content: "PR body", Fetching: model.FetchNone},
+			got:  State{Mode: DetailModeOverview, Content: "PR body", Fetching: FetchNone},
+			want: State{Mode: DetailModeOverview, Content: "PR body", Fetching: FetchNone},
 		},
 		{
 			name: "diff mode fetching",
-			got:  State{Mode: model.DetailModeDiff, Content: "", Fetching: model.FetchingDetail},
-			want: State{Mode: model.DetailModeDiff, Content: "", Fetching: model.FetchingDetail},
+			got:  State{Mode: DetailModeDiff, Content: "", Fetching: FetchingDetail},
+			want: State{Mode: DetailModeDiff, Content: "", Fetching: FetchingDetail},
 		},
 		{
 			name: "empty content",
-			got:  State{Mode: model.DetailModeOverview, Content: "", Fetching: model.FetchNone},
-			want: State{Mode: model.DetailModeOverview, Content: "", Fetching: model.FetchNone},
+			got:  State{Mode: DetailModeOverview, Content: "", Fetching: FetchNone},
+			want: State{Mode: DetailModeOverview, Content: "", Fetching: FetchNone},
 		},
 	}
 	for _, tt := range tests {

@@ -8,7 +8,7 @@ type ListState struct {
 	Items        []model.Item
 	Fetching     bool
 	Selected     int
-	Filter       model.PRFilterMask
+	Filter       PRFilterMask
 	FilterOpen   bool
 	FilterCursor int
 }

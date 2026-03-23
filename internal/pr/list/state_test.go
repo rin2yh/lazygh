@@ -1,10 +1,9 @@
 package list
 
 import (
+	"github.com/rin2yh/lazygh/internal/model"
 	"strings"
 	"testing"
-
-	"github.com/rin2yh/lazygh/internal/model"
 )
 
 func TestSelectedOverview(t *testing.T) {

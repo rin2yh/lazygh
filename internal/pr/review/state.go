@@ -1,6 +1,6 @@
 package review
 
-import "github.com/rin2yh/lazygh/internal/model"
+import "github.com/rin2yh/lazygh/pkg/sanitize"
 
 // ReviewState holds all mutable state for the pending review workflow.
 type ReviewState struct {
@@ -57,24 +57,24 @@ func (rs *ReviewState) BeginSummaryInput() {
 }
 
 func (rs *ReviewState) SetSummary(summary string) {
-	rs.Summary = model.SanitizeMultiline(summary)
+	rs.Summary = sanitize.Multiline(summary)
 }
 
 func (rs *ReviewState) SetContext(prNumber int, pullRequestID string, commitOID string, reviewID string) {
 	rs.PRNumber = prNumber
-	rs.PullRequestID = model.SanitizeSingleLine(pullRequestID)
-	rs.CommitOID = model.SanitizeSingleLine(commitOID)
-	rs.ReviewID = model.SanitizeSingleLine(reviewID)
+	rs.PullRequestID = sanitize.SingleLine(pullRequestID)
+	rs.CommitOID = sanitize.SingleLine(commitOID)
+	rs.ReviewID = sanitize.SingleLine(reviewID)
 }
 
 func (rs *ReviewState) AddComment(comment Comment) {
 	rs.Comments = append(rs.Comments, Comment{
 		CommentID: comment.CommentID,
-		Path:      model.SanitizeSingleLine(comment.Path),
-		Body:      model.SanitizeMultiline(comment.Body),
-		Side:      model.SanitizeSingleLine(comment.Side),
+		Path:      sanitize.SingleLine(comment.Path),
+		Body:      sanitize.Multiline(comment.Body),
+		Side:      sanitize.SingleLine(comment.Side),
 		Line:      comment.Line,
-		StartSide: model.SanitizeSingleLine(comment.StartSide),
+		StartSide: sanitize.SingleLine(comment.StartSide),
 		StartLine: comment.StartLine,
 	})
 	rs.SelectedCommentIdx = len(rs.Comments) - 1
@@ -134,7 +134,7 @@ func (rs *ReviewState) ApplyEditComment(newBody string) {
 	if idx < 0 || idx >= len(rs.Comments) {
 		return
 	}
-	rs.Comments[idx].Body = model.SanitizeMultiline(newBody)
+	rs.Comments[idx].Body = sanitize.Multiline(newBody)
 	rs.EditingCommentIdx = noEditingComment
 	rs.InputMode = InputNone
 	rs.Notify("Comment updated.")
@@ -145,7 +145,7 @@ func (rs *ReviewState) ClearEditingComment() {
 }
 
 func (rs *ReviewState) Notify(msg string) {
-	rs.Notice = model.SanitizeMultiline(msg)
+	rs.Notice = sanitize.Multiline(msg)
 }
 
 func (rs *ReviewState) ClearNotice() {
