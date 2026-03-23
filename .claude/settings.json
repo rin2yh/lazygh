@@ -25,7 +25,7 @@
         "matcher": "Bash(git add:*)",
         "hooks": [
           {
-            "type": "prompt",
+            "type": "agent",
             "prompt": "/simplify"
           }
         ]
@@ -36,7 +36,7 @@
         "matcher": "Bash(git add:*)",
         "hooks": [
           {
-            "type": "prompt",
+            "type": "agent",
             "prompt": "/simplify"
           }
         ]

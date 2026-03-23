@@ -1,6 +1,5 @@
-// Package app is the BubbleTea adapter layer for lazygh.
+// Package app は lazygh の BubbleTea アダプタ層である。
 //
 // ドメインパッケージ（review/、gh/、viewport/）がそれぞれのインターフェースを定義する。
-// review.Selection / review.AppState / review.PendingReviewClient が review/ 側に置かれているのは、
-// app → review の一方向インポートを維持して循環依存を避けるためである。
+// app → review の一方向インポートを維持して循環依存を避けている。
 package app
