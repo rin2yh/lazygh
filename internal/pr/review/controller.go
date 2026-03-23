@@ -227,7 +227,7 @@ func (c *Controller) IsEditingComment() bool {
 	return c.pending.IsEditingComment()
 }
 
-func (c *Controller) CycleEvent() {
+func (c *Controller) CycleReviewEvent() {
 	c.rs.CycleEvent()
 }
 

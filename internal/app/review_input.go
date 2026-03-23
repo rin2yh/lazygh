@@ -48,7 +48,7 @@ func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
 		}
 	case config.ActionReviewEvent:
 		if s.gui.coord.IsDiffMode() {
-			s.gui.review.CycleEvent()
+			s.gui.review.CycleReviewEvent()
 		}
 	case config.ActionReviewDeleteComment:
 		if s.gui.focus == layout.FocusReviewDrawer {

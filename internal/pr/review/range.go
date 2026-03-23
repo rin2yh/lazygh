@@ -39,7 +39,7 @@ func (f *rangeState) ToggleSelection() bool {
 	} else {
 		anchor.Line = line.OldLine
 	}
-	f.rs.SetRangeStart(anchor)
+	f.rs.MarkRangeStart(anchor)
 	f.rs.SetNotice("Range selection started.")
 	return true
 }

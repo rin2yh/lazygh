@@ -152,7 +152,7 @@ func (rs *ReviewState) ClearNotice() {
 	rs.Notice = ""
 }
 
-func (rs *ReviewState) SetRangeStart(anchor Range) {
+func (rs *ReviewState) MarkRangeStart(anchor Range) {
 	copied := anchor
 	rs.RangeStart = &copied
 	rs.DrawerOpen = true
