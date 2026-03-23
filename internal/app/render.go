@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/rin2yh/lazygh/internal/app/layout"
-	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/help"
 	"github.com/rin2yh/lazygh/internal/model"
 	"github.com/rin2yh/lazygh/internal/pr/diff"
@@ -49,7 +48,7 @@ func (gui *Gui) render() string {
 	if isDiff {
 		rightInput.DiffFiles = gui.diff.Files()
 		rightInput.DiffFileSelected = gui.diff.FileSelected()
-		rightInput.DiffContentLines = gui.renderDiffContentLines()
+		rightInput.DiffContentLines = diff.BuildContentLines(&gui.diff, gui.review.IsIndexWithinPendingRange)
 	}
 
 	leftLines := list.RenderLeft(leftInput, screen.RepoHeight, screen.PRHeight,
@@ -60,7 +59,7 @@ func (gui *Gui) render() string {
 	rightPanelLines := gui.renderRight(rightInput, screen, focus)
 
 	lines := widget.JoinColumns(leftLines, screen.LeftWidth, rightPanelLines, screen.RightWidth, screen.MainHeight)
-	drawerInput := gui.buildReviewDrawerInput(showDrawer)
+	drawerInput := gui.review.BuildDrawerInput(showDrawer)
 	if drawerInput != nil && screen.DrawerHeight > 0 {
 		drawerActive := focus == layout.FocusReviewDrawer
 		for _, line := range review.RenderDrawer(*drawerInput, gui.style(drawerActive), screen.Width, screen.DrawerHeight) {
@@ -140,75 +139,7 @@ func (gui *Gui) currentDetailLines(dims layout.Screen, content string) []string 
 	return strings.Split(gui.detail.View(), "\n")
 }
 
-func (gui *Gui) renderDiffContentLines() []diff.ContentLine {
-	file, ok := gui.diff.CurrentFile()
-	if !ok || len(file.Lines) == 0 {
-		return nil
-	}
-	lineSelected := gui.diff.LineSelected()
-	lines := make([]diff.ContentLine, 0, len(file.Lines))
-	for idx, line := range file.Lines {
-		lines = append(lines, diff.ContentLine{
-			Location: gh.FormatDiffLineLocation(line),
-			Text:     diff.ColorizeLine(line.Text),
-			Selected: idx == lineSelected,
-			InRange:  gui.review.IsIndexWithinPendingRange(line.Path, line.Commentable, idx),
-		})
-	}
-	return lines
-}
-
-func (gui *Gui) buildReviewDrawerInput(showDrawer bool) *review.DrawerInput {
-	if !showDrawer {
-		return nil
-	}
-	inputMode := gui.review.InputMode()
-	summary := gui.review.Summary()
-	if inputMode == review.InputSummary {
-		summary = gui.review.SummaryValue()
-	}
-	input := &review.DrawerInput{
-		SummaryLines:     splitNonEmptyLines(summary),
-		CommentModeLabel: review.CommentModeSingleLine,
-		EventLabel:       gui.review.EventLabel(),
-		Notice:           gui.review.Notice(),
-	}
-	if rs := gui.review.RangeStart(); rs != nil {
-		input.CommentModeLabel = review.CommentModeRangeSelecting
-		input.RangeStart = &review.DrawerRange{
-			Path: rs.Path,
-			Line: rs.Line,
-		}
-	}
-	comments := gui.review.Comments()
-	input.Comments = make([]review.DrawerComment, 0, len(comments))
-	for _, comment := range comments {
-		input.Comments = append(input.Comments, review.DrawerComment{
-			Path:      comment.Path,
-			Line:      comment.Line,
-			StartLine: comment.StartLine,
-			Body:      comment.Body,
-		})
-	}
-	input.SelectedCommentIdx = gui.review.SelectedCommentIdx()
-	if inputMode == review.InputComment {
-		input.CommentInputLines = gui.review.CommentInputLines()
-	}
-	if inputMode == review.InputSummary {
-		input.SummaryInputLines = gui.review.SummaryInputLines()
-	}
-	return input
-}
-
 func applyFilterOverlay(background []string, filter model.PRFilterMask, cursor int, screenWidth int) []string {
 	panelLines, panelW := list.FilterPanelLines(filter, cursor)
 	return widget.OverlayPanel(background, panelLines, panelW, screenWidth)
-}
-
-func splitNonEmptyLines(content string) []string {
-	content = strings.TrimSpace(content)
-	if content == "" {
-		return nil
-	}
-	return strings.Split(content, "\n")
 }

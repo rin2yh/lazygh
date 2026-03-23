@@ -61,6 +61,7 @@ type Reader interface {
 	IsInInputMode() bool
 	HasPendingReview() bool
 	PRNumber() int
+	BuildDrawerInput(showDrawer bool) *DrawerInput
 }
 
 // Handler はユーザー入力によるレビュー操作を処理する。
