@@ -12,7 +12,7 @@ go build -o lazygh .
 go test ./...
 
 # 特定パッケージのテスト
-go test ./internal/core/...
+go test ./internal/app/...
 
 # フォーマット
 go fmt ./...
@@ -36,13 +36,22 @@ lazygh (Go TUI)  →  gh CLI  →  GitHub API
 | パッケージ | 責務 |
 |-----------|------|
 | `.` (`main`) | エントリーポイント、設定・App初期化 |
-| `internal/app` | `App` 構造体・`bubbletea` ベースの TUIアダプタ・描画（GUI含む） |
+| `internal/app` | `App` 構造体・`bubbletea` ベースの TUIアダプタ・描画・`Coordinator` による状態管理 |
 | `internal/app/layout` | TUI レイアウト計算・フォーカス状態・ステータスライン描画 |
-| `internal/pr/diff` | PR diff の選択状態管理・カラー描画 |
+| `internal/model` | ドメインモデル定義（PR・アクション種別など） |
 | `internal/gh` | `gh` CLI の `exec` ラッパー。`ClientInterface` でモック可能 |
-| `internal/core` | UI状態遷移とドメインロジック |
 | `internal/config` | テーマ・キーバインド設定の読み込み |
+| `internal/pr/diff` | PR unified diff の解析・表示・選択状態管理 |
+| `internal/pr/list` | PR一覧パネル描画 |
+| `internal/pr/overview` | PR概要パネル描画 |
+| `internal/pr/detail` | PRの詳細情報表示 |
+| `internal/pr/review` | レビュー保留ワークフロー（コメント・サマリー・submit/discard）の状態管理 |
+| `internal/pr/action` | PRアクション（マージ等）パネル |
+| `internal/help` | ヘルプパネル描画 |
 | `pkg/gui/viewport` | 汎用 BubbleTea viewport ラッパー（ドメイン非依存） |
+| `pkg/gui/textarea` | テキスト入力ウィジェット |
+| `pkg/gui/ansi` | ANSIエスケープ処理ユーティリティ |
+| `pkg/gui/widget` | 汎用 UI ウィジェット |
 
 ### テスト戦略
 
