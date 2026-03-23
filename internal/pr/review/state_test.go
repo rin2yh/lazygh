@@ -18,14 +18,23 @@ func TestNewReviewState(t *testing.T) {
 }
 
 func TestHasPendingReview(t *testing.T) {
-	rs := newReviewState()
-
-	if rs.HasPendingReview() {
-		t.Fatal("expected false when ReviewID is empty")
+	tests := []struct {
+		name     string
+		reviewID string
+		want     bool
+	}{
+		{"empty ReviewID", "", false},
+		{"non-empty ReviewID", "PRR_1", true},
 	}
-	rs.ReviewID = "PRR_1"
-	if !rs.HasPendingReview() {
-		t.Fatal("expected true when ReviewID is set")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rs := newReviewState()
+			rs.ReviewID = tt.reviewID
+			if got := rs.HasPendingReview(); got != tt.want {
+				t.Fatalf("got %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 
@@ -70,37 +79,33 @@ func TestOpenAndCloseDrawer(t *testing.T) {
 	}
 }
 
-func TestBeginCommentInput(t *testing.T) {
-	rs := newReviewState()
-	rs.Notice = "old notice"
-
-	rs.BeginCommentInput()
-
-	if !rs.DrawerOpen {
-		t.Fatal("expected DrawerOpen = true")
+func TestBeginInput(t *testing.T) {
+	tests := []struct {
+		name     string
+		begin    func(*ReviewState)
+		wantMode InputMode
+	}{
+		{"comment input", (*ReviewState).BeginCommentInput, InputComment},
+		{"summary input", (*ReviewState).BeginSummaryInput, InputSummary},
 	}
-	if rs.InputMode != InputComment {
-		t.Fatalf("got %v, want InputComment", rs.InputMode)
-	}
-	if rs.Notice != "" {
-		t.Fatalf("expected Notice cleared, got %q", rs.Notice)
-	}
-}
 
-func TestBeginSummaryInput(t *testing.T) {
-	rs := newReviewState()
-	rs.Notice = "old notice"
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rs := newReviewState()
+			rs.Notice = "old notice"
 
-	rs.BeginSummaryInput()
+			tt.begin(rs)
 
-	if !rs.DrawerOpen {
-		t.Fatal("expected DrawerOpen = true")
-	}
-	if rs.InputMode != InputSummary {
-		t.Fatalf("got %v, want InputSummary", rs.InputMode)
-	}
-	if rs.Notice != "" {
-		t.Fatalf("expected Notice cleared, got %q", rs.Notice)
+			if !rs.DrawerOpen {
+				t.Fatal("expected DrawerOpen = true")
+			}
+			if rs.InputMode != tt.wantMode {
+				t.Fatalf("got %v, want %v", rs.InputMode, tt.wantMode)
+			}
+			if rs.Notice != "" {
+				t.Fatalf("expected Notice cleared, got %q", rs.Notice)
+			}
+		})
 	}
 }
 
@@ -161,37 +166,63 @@ func TestAddComment_SelectsLastAdded(t *testing.T) {
 }
 
 func TestSelectNextAndPrevComment(t *testing.T) {
-	rs := newReviewState()
-	rs.AddComment(Comment{Path: "a.go", Body: "c1", Line: 1})
-	rs.AddComment(Comment{Path: "a.go", Body: "c2", Line: 2})
-	rs.AddComment(Comment{Path: "a.go", Body: "c3", Line: 3})
-	rs.SelectedCommentIdx = 0
-
-	rs.SelectNextComment()
-	if rs.SelectedCommentIdx != 1 {
-		t.Fatalf("got %d, want 1", rs.SelectedCommentIdx)
+	tests := []struct {
+		name       string
+		initialIdx int
+		ops        []func(*ReviewState)
+		wantIdx    int
+	}{
+		{
+			name:       "next from first",
+			initialIdx: 0,
+			ops:        []func(*ReviewState){(*ReviewState).SelectNextComment},
+			wantIdx:    1,
+		},
+		{
+			name:       "next at boundary does not exceed last",
+			initialIdx: 2,
+			ops:        []func(*ReviewState){(*ReviewState).SelectNextComment},
+			wantIdx:    2,
+		},
+		{
+			name:       "prev from last",
+			initialIdx: 2,
+			ops:        []func(*ReviewState){(*ReviewState).SelectPrevComment},
+			wantIdx:    1,
+		},
+		{
+			name:       "prev at boundary stays at zero",
+			initialIdx: 0,
+			ops:        []func(*ReviewState){(*ReviewState).SelectPrevComment},
+			wantIdx:    0,
+		},
+		{
+			name:       "next then prev returns to original",
+			initialIdx: 1,
+			ops: []func(*ReviewState){
+				(*ReviewState).SelectNextComment,
+				(*ReviewState).SelectPrevComment,
+			},
+			wantIdx: 1,
+		},
 	}
 
-	rs.SelectNextComment()
-	if rs.SelectedCommentIdx != 2 {
-		t.Fatalf("got %d, want 2", rs.SelectedCommentIdx)
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rs := newReviewState()
+			rs.AddComment(Comment{Path: "a.go", Body: "c1", Line: 1})
+			rs.AddComment(Comment{Path: "a.go", Body: "c2", Line: 2})
+			rs.AddComment(Comment{Path: "a.go", Body: "c3", Line: 3})
+			rs.SelectedCommentIdx = tt.initialIdx
 
-	// should not go past last
-	rs.SelectNextComment()
-	if rs.SelectedCommentIdx != 2 {
-		t.Fatalf("got %d, want 2 (at boundary)", rs.SelectedCommentIdx)
-	}
+			for _, op := range tt.ops {
+				op(rs)
+			}
 
-	rs.SelectPrevComment()
-	if rs.SelectedCommentIdx != 1 {
-		t.Fatalf("got %d, want 1", rs.SelectedCommentIdx)
-	}
-
-	rs.SelectPrevComment()
-	rs.SelectPrevComment()
-	if rs.SelectedCommentIdx != 0 {
-		t.Fatalf("got %d, want 0 (at boundary)", rs.SelectedCommentIdx)
+			if rs.SelectedCommentIdx != tt.wantIdx {
+				t.Fatalf("got %d, want %d", rs.SelectedCommentIdx, tt.wantIdx)
+			}
+		})
 	}
 }
 
@@ -202,12 +233,11 @@ func TestSelectNextComment_Empty(t *testing.T) {
 
 func TestDeleteSelectedComment(t *testing.T) {
 	tests := []struct {
-		name           string
-		setup          func(*ReviewState)
-		wantLen        int
-		wantSelected   int
-		wantDeletedIdx int
-		wantOk         bool
+		name         string
+		setup        func(*ReviewState)
+		wantLen      int
+		wantSelected int
+		wantOk       bool
 	}{
 		{
 			name:    "no comments",
@@ -269,22 +299,40 @@ func TestDeleteSelectedComment(t *testing.T) {
 }
 
 func TestSelectedComment(t *testing.T) {
-	rs := newReviewState()
-
-	_, ok := rs.SelectedComment()
-	if ok {
-		t.Fatal("expected false when no comments")
+	tests := []struct {
+		name     string
+		setup    func(*ReviewState)
+		wantOk   bool
+		wantBody string
+	}{
+		{
+			name:   "no comments",
+			setup:  func(rs *ReviewState) {},
+			wantOk: false,
+		},
+		{
+			name: "valid selection",
+			setup: func(rs *ReviewState) {
+				rs.AddComment(Comment{Path: "a.go", Body: "hi", Line: 5})
+				rs.SelectedCommentIdx = 0
+			},
+			wantOk: true, wantBody: "hi",
+		},
 	}
 
-	rs.AddComment(Comment{Path: "a.go", Body: "hi", Line: 5})
-	rs.SelectedCommentIdx = 0
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rs := newReviewState()
+			tt.setup(rs)
 
-	c, ok := rs.SelectedComment()
-	if !ok {
-		t.Fatal("expected true when comment exists")
-	}
-	if c.Body != "hi" {
-		t.Fatalf("got %q, want %q", c.Body, "hi")
+			c, ok := rs.SelectedComment()
+			if ok != tt.wantOk {
+				t.Fatalf("ok = %v, want %v", ok, tt.wantOk)
+			}
+			if tt.wantOk && c.Body != tt.wantBody {
+				t.Fatalf("got %q, want %q", c.Body, tt.wantBody)
+			}
+		})
 	}
 }
 
@@ -369,54 +417,67 @@ func TestNotifyAndClearNotice(t *testing.T) {
 	}
 }
 
-func TestMarkRangeStart(t *testing.T) {
-	rs := newReviewState()
-	anchor := Range{Path: "a.go", Index: 3, Line: 10}
-
-	rs.MarkRangeStart(anchor)
-
-	if rs.RangeStart == nil {
-		t.Fatal("expected RangeStart set")
+func TestMarkAndClearRangeStart(t *testing.T) {
+	tests := []struct {
+		name       string
+		op         func(*ReviewState)
+		wantSet    bool
+		wantDrawer bool
+	}{
+		{
+			name:       "mark sets RangeStart and opens drawer",
+			op:         func(rs *ReviewState) { rs.MarkRangeStart(Range{Path: "a.go", Index: 3, Line: 10}) },
+			wantSet:    true,
+			wantDrawer: true,
+		},
+		{
+			name: "clear removes RangeStart",
+			op: func(rs *ReviewState) {
+				rs.MarkRangeStart(Range{Path: "a.go", Index: 1, Line: 5})
+				rs.ClearRangeStart()
+			},
+			wantSet: false,
+		},
 	}
-	if *rs.RangeStart != anchor {
-		t.Fatalf("got %+v, want %+v", *rs.RangeStart, anchor)
-	}
-	if !rs.DrawerOpen {
-		t.Fatal("expected DrawerOpen = true")
-	}
-}
 
-func TestClearRangeStart(t *testing.T) {
-	rs := newReviewState()
-	rs.MarkRangeStart(Range{Path: "a.go", Index: 1, Line: 5})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rs := newReviewState()
+			tt.op(rs)
 
-	rs.ClearRangeStart()
-
-	if rs.RangeStart != nil {
-		t.Fatal("expected RangeStart cleared")
+			if tt.wantSet && rs.RangeStart == nil {
+				t.Fatal("expected RangeStart set")
+			}
+			if !tt.wantSet && rs.RangeStart != nil {
+				t.Fatal("expected RangeStart cleared")
+			}
+			if tt.wantDrawer && !rs.DrawerOpen {
+				t.Fatal("expected DrawerOpen = true")
+			}
+		})
 	}
 }
 
 func TestCycleEvent(t *testing.T) {
-	rs := newReviewState()
-
-	if rs.Event != EventComment {
-		t.Fatalf("initial event should be EventComment, got %v", rs.Event)
+	tests := []struct {
+		name  string
+		start Event
+		want  Event
+	}{
+		{"comment cycles to approve", EventComment, EventApprove},
+		{"approve cycles to request changes", EventApprove, EventRequestChanges},
+		{"request changes cycles back to comment", EventRequestChanges, EventComment},
 	}
 
-	rs.CycleEvent()
-	if rs.Event != EventApprove {
-		t.Fatalf("got %v, want EventApprove", rs.Event)
-	}
-
-	rs.CycleEvent()
-	if rs.Event != EventRequestChanges {
-		t.Fatalf("got %v, want EventRequestChanges", rs.Event)
-	}
-
-	rs.CycleEvent()
-	if rs.Event != EventComment {
-		t.Fatalf("got %v, want EventComment", rs.Event)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rs := newReviewState()
+			rs.Event = tt.start
+			rs.CycleEvent()
+			if rs.Event != tt.want {
+				t.Fatalf("got %v, want %v", rs.Event, tt.want)
+			}
+		})
 	}
 }
 
