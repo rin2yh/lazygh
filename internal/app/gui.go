@@ -10,6 +10,13 @@ import (
 	"github.com/rin2yh/lazygh/pkg/gui/viewport"
 )
 
+type prClient interface {
+	ResolveCurrentRepo() (string, error)
+	ListPRs(repo string, state string) ([]gh.PRItem, error)
+	ViewPR(repo string, number int) (string, error)
+	DiffPR(repo string, number int) (string, error)
+}
+
 type reviewController interface {
 	review.Reader
 	review.Handler
@@ -19,7 +26,7 @@ type reviewController interface {
 type Gui struct {
 	config *config.Config
 	coord  *Coordinator
-	client gh.PRClient
+	client prClient
 
 	focus    layout.Focus
 	showHelp bool
@@ -30,7 +37,7 @@ type Gui struct {
 	review reviewController
 }
 
-func NewGui(cfg *config.Config, coord *Coordinator, prClient gh.PRClient, reviewClient review.PendingReviewClient) (*Gui, error) {
+func NewGui(cfg *config.Config, coord *Coordinator, prClient prClient, reviewClient review.PendingReviewClient) (*Gui, error) {
 	vp := viewport.New()
 	g := &Gui{
 		config: cfg,

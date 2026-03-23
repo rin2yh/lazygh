@@ -7,14 +7,6 @@ import (
 	"strings"
 )
 
-// PRClient is the interface for PR-related GitHub API operations.
-type PRClient interface {
-	ResolveCurrentRepo() (string, error)
-	ListPRs(repo string, state string) ([]PRItem, error)
-	ViewPR(repo string, number int) (string, error)
-	DiffPR(repo string, number int) (string, error)
-}
-
 // PRItem represents a pull request item from gh CLI.
 type PRItem struct {
 	Number    int      `json:"number"`
