@@ -61,12 +61,12 @@ func newPending(rs *ReviewState, host AppState, client PendingReviewClient, sele
 func (f *pending) HandleCommentSave() tea.Cmd {
 	item, ok := f.host.SelectedPR()
 	if !ok {
-		f.rs.SetNotice("No pull request selected.")
+		f.rs.Notify("No pull request selected.")
 		return nil
 	}
 	comment, err := f.comment.BuildDraft(f.comment.CurrentValue(), f.rs.RangeStart)
 	if err != nil {
-		f.rs.SetNotice(err.Error())
+		f.rs.Notify(err.Error())
 		return nil
 	}
 	repo := f.host.ListRepo()
@@ -126,12 +126,12 @@ func (f *pending) SelectPrevComment() {
 func (f *pending) HandleDeleteComment() tea.Cmd {
 	comment, ok := f.rs.SelectedComment()
 	if !ok {
-		f.rs.SetNotice("No comment selected.")
+		f.rs.Notify("No comment selected.")
 		return nil
 	}
 	if comment.CommentID == "" {
 		f.rs.DeleteSelectedComment()
-		f.rs.SetNotice("Comment deleted.")
+		f.rs.Notify("Comment deleted.")
 		return nil
 	}
 	commentID := comment.CommentID
@@ -145,12 +145,12 @@ func (f *pending) HandleDeleteComment() tea.Cmd {
 func (f *pending) HandleEditCommentSave() tea.Cmd {
 	idx := f.rs.EditingCommentIdx
 	if idx < 0 || idx >= len(f.rs.Comments) {
-		f.rs.SetNotice("No comment being edited.")
+		f.rs.Notify("No comment being edited.")
 		return nil
 	}
 	body := strings.TrimSpace(f.comment.CurrentValue())
 	if body == "" {
-		f.rs.SetNotice("Comment body is empty.")
+		f.rs.Notify("Comment body is empty.")
 		return nil
 	}
 	comment := f.rs.Comments[idx]
@@ -174,7 +174,7 @@ func (f *pending) HandleSubmit() tea.Cmd {
 		f.rs.StopInput()
 	}
 	if !f.rs.HasPendingReview() {
-		f.rs.SetNotice("No pending review to submit.")
+		f.rs.Notify("No pending review to submit.")
 		return nil
 	}
 	f.host.BeginFetchReview()
@@ -207,7 +207,7 @@ func (f *pending) HandleDiscard() tea.Cmd {
 	reviewID := f.rs.ReviewID
 	if reviewID == "" {
 		f.rs.Reset()
-		f.rs.SetNotice("Review draft discarded.")
+		f.rs.Notify("Review draft discarded.")
 		return nil
 	}
 	f.host.BeginFetchReview()
@@ -226,7 +226,7 @@ func (f *pending) ApplyCommentResult(msg CommentSavedMsg) bool {
 		f.rs.SetContext(msg.PRNumber, msg.Context.PullRequestID, msg.Context.CommitOID, msg.ReviewID)
 	}
 	if msg.Err != nil {
-		f.rs.SetNotice(msg.Err.Error())
+		f.rs.Notify(msg.Err.Error())
 		return false
 	}
 	f.rs.AddComment(Comment{
@@ -245,17 +245,17 @@ func (f *pending) ApplyCommentResult(msg CommentSavedMsg) bool {
 func (f *pending) ApplyDeleteCommentResult(msg CommentDeletedMsg) {
 	f.host.ClearFetching()
 	if msg.Err != nil {
-		f.rs.SetNotice(msg.Err.Error())
+		f.rs.Notify(msg.Err.Error())
 		return
 	}
 	f.rs.DeleteSelectedComment()
-	f.rs.SetNotice("Comment deleted.")
+	f.rs.Notify("Comment deleted.")
 }
 
 func (f *pending) ApplyEditCommentResult(msg CommentUpdatedMsg) {
 	f.host.ClearFetching()
 	if msg.Err != nil {
-		f.rs.SetNotice(msg.Err.Error())
+		f.rs.Notify(msg.Err.Error())
 		return
 	}
 	f.rs.ApplyEditComment(msg.Body)
@@ -265,24 +265,24 @@ func (f *pending) ApplyEditCommentResult(msg CommentUpdatedMsg) {
 func (f *pending) ApplySubmitResult(msg SubmittedMsg) {
 	f.host.ClearFetching()
 	if msg.Err != nil {
-		f.rs.SetNotice(msg.Err.Error())
+		f.rs.Notify(msg.Err.Error())
 		return
 	}
 	f.comment.StopInput()
 	f.summary.StopInput()
 	f.rs.Reset()
-	f.rs.SetNotice("Review submitted.")
+	f.rs.Notify("Review submitted.")
 }
 
 func (f *pending) ApplyDiscardResult(msg DiscardedMsg) {
 	f.host.ClearFetching()
 	if msg.Err != nil {
-		f.rs.SetNotice(msg.Err.Error())
+		f.rs.Notify(msg.Err.Error())
 		return
 	}
 	f.comment.StopInput()
 	f.summary.StopInput()
 	f.summary.Clear()
 	f.rs.Reset()
-	f.rs.SetNotice("Review draft discarded.")
+	f.rs.Notify("Review draft discarded.")
 }

@@ -64,7 +64,7 @@ func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
 
 func (s *screen) requireDiffMode(notice string, fn func()) tea.Cmd {
 	if !s.gui.coord.IsDiffMode() {
-		s.gui.review.SetNotice(notice)
+		s.gui.review.Notify(notice)
 		return nil
 	}
 	fn()

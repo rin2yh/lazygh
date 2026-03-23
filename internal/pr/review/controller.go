@@ -52,7 +52,7 @@ func (c *Controller) HasRangeStart() bool     { return c.rs.RangeStart != nil }
 func (c *Controller) IsInInputMode() bool     { return c.rs.InputMode != InputNone }
 func (c *Controller) HasPendingReview() bool  { return c.rs.HasPendingReview() }
 func (c *Controller) PRNumber() int           { return c.rs.PRNumber }
-func (c *Controller) SetNotice(msg string)    { c.rs.SetNotice(msg) }
+func (c *Controller) Notify(msg string)       { c.rs.Notify(msg) }
 func (c *Controller) ClearRangeStart()        { c.rs.ClearRangeStart() }
 
 // Reset clears review state (called when the PR list reloads).

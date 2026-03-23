@@ -80,7 +80,7 @@ type Handler interface {
 	ToggleRangeSelection()
 	BeginCommentFlow()
 	BeginSummaryInput()
-	SetNotice(msg string)
+	Notify(msg string)
 	ClearRangeStart()
 }
 

@@ -47,7 +47,7 @@ func (f *comment) BeginInput() {
 
 func (f *comment) Clear() {
 	f.editor.SetValue("")
-	f.rs.SetNotice("Comment input cleared.")
+	f.rs.Notify("Comment input cleared.")
 }
 
 func (f *comment) StartEdit(body string) {
