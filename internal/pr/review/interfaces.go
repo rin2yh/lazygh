@@ -69,7 +69,7 @@ type Reader interface {
 type Handler interface {
 	EditorKey(msg tea.KeyMsg) (tea.Cmd, bool)
 	HandleInputKey(msg tea.KeyMsg) (tea.Cmd, bool)
-	HandleAction(action config.Action, isFocusDrawer bool) tea.Cmd
+	HandleAction(action config.Action) tea.Cmd
 	Submit() tea.Cmd
 	Discard() tea.Cmd
 	SaveComment() tea.Cmd

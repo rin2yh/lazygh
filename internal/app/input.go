@@ -247,5 +247,11 @@ func (s *screen) handleReviewInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 }
 
 func (s *screen) handleReviewAction(action config.Action) tea.Cmd {
-	return s.gui.review.HandleAction(action, s.gui.focus == layout.FocusReviewDrawer)
+	switch action {
+	case config.ActionReviewDeleteComment, config.ActionReviewEditComment:
+		if s.gui.focus != layout.FocusReviewDrawer {
+			return nil
+		}
+	}
+	return s.gui.review.HandleAction(action)
 }

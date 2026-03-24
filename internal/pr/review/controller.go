@@ -304,7 +304,7 @@ func (c *Controller) HandleInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	return nil, false
 }
 
-func (c *Controller) HandleAction(action config.Action, isFocusDrawer bool) tea.Cmd {
+func (c *Controller) HandleAction(action config.Action) tea.Cmd {
 	switch action {
 	case config.ActionReviewRange:
 		return c.requireDiffMode("Review range selection is only available in diff view.", c.ToggleRangeSelection)
@@ -325,13 +325,9 @@ func (c *Controller) HandleAction(action config.Action, isFocusDrawer bool) tea.
 			c.CycleReviewEvent()
 		}
 	case config.ActionReviewDeleteComment:
-		if isFocusDrawer {
-			return c.DeleteComment()
-		}
+		return c.DeleteComment()
 	case config.ActionReviewEditComment:
-		if isFocusDrawer {
-			c.EditComment()
-		}
+		c.EditComment()
 	}
 	return nil
 }
