@@ -21,6 +21,7 @@ type reviewController interface {
 	review.Reader
 	review.Handler
 	review.Applier
+	MarkStaleComments(files []gh.DiffFile)
 }
 
 type Gui struct {

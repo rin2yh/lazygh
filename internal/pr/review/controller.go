@@ -235,6 +235,43 @@ func (c *Controller) CycleReviewEvent() {
 	c.rs.CycleEvent()
 }
 
+// MarkStaleComments marks pending comments whose anchor position no longer
+// exists in files as stale. Call this whenever the diff is refreshed.
+func (c *Controller) MarkStaleComments(files []gh.DiffFile) {
+	if len(c.rs.Comments) == 0 {
+		return
+	}
+	type pos struct {
+		side gh.DiffSide
+		line int
+	}
+	valid := make(map[string]map[pos]bool, len(files))
+	for _, file := range files {
+		m := make(map[pos]bool)
+		for _, l := range file.Lines {
+			if !l.Commentable {
+				continue
+			}
+			if l.NewLine > 0 {
+				m[pos{gh.DiffSideRight, l.NewLine}] = true
+			}
+			if l.OldLine > 0 {
+				m[pos{gh.DiffSideLeft, l.OldLine}] = true
+			}
+		}
+		valid[file.Path] = m
+	}
+	for i := range c.rs.Comments {
+		comment := &c.rs.Comments[i]
+		m, ok := valid[comment.Path]
+		if !ok {
+			comment.Stale = true
+			continue
+		}
+		comment.Stale = !m[pos{gh.DiffSide(comment.Side), comment.Line}]
+	}
+}
+
 func (c *Controller) BeginCommentFlow() {
 	c.comment.BeginInput()
 	c.setFocus(FocusReviewDrawer)
@@ -260,6 +297,7 @@ func (c *Controller) BuildDrawerInput(showDrawer bool) *Input {
 	if rs := c.rs.RangeStart; rs != nil {
 		input.CommentModeLabel = CommentModeRangeSelecting
 		input.RangeStart = &DrawerRange{Path: rs.Path, Line: rs.Line}
+		input.AnchorConflict = c.rng.HasConflict()
 	}
 	comments := c.rs.Comments
 	input.Comments = make([]DrawerComment, 0, len(comments))
@@ -269,6 +307,7 @@ func (c *Controller) BuildDrawerInput(showDrawer bool) *Input {
 			Line:      comment.Line,
 			StartLine: comment.StartLine,
 			Body:      comment.Body,
+			Stale:     comment.Stale,
 		})
 	}
 	input.SelectedCommentIdx = c.rs.SelectedCommentIdx

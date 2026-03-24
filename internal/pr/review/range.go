@@ -44,6 +44,20 @@ func (f *rangeState) ToggleSelection() bool {
 	return true
 }
 
+// HasConflict reports whether the range start is in a different file than the
+// current cursor, making range-based commenting impossible without clearing it.
+func (f *rangeState) HasConflict() bool {
+	start := f.rs.RangeStart
+	if start == nil {
+		return false
+	}
+	file, ok := f.selection.CurrentFile()
+	if !ok {
+		return false
+	}
+	return file.Path != start.Path
+}
+
 func (f *rangeState) IsIndexWithinPendingRange(path string, commentable bool, idx int) bool {
 	start := f.rs.RangeStart
 	if start == nil || start.Path != path || !commentable {
