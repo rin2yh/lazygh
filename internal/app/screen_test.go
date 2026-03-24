@@ -57,19 +57,18 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 			g := mustNewGui(t, &testmock.GHClient{})
 			g.coord.ApplyPRsResult("owner/repo", prs, nil)
 			g.focus = tt.startFocus
-			g.coord.Selected = tt.startIndex
-			g.coord.Overview.Content = "PR #1 one\nStatus: \nAssignee: -"
+			g.coord.Overview.ShowContent("PR #1 one\nStatus: \nAssignee: -")
 			m := &screen{gui: g}
 
 			_, cmd := m.Update(tt.key)
 			if (cmd != nil) != tt.wantCmd {
 				t.Fatalf("cmd returned = %v, want %v", cmd != nil, tt.wantCmd)
 			}
-			if g.coord.Selected != tt.wantIndex {
-				t.Fatalf("got selected %d, want %d", g.coord.Selected, tt.wantIndex)
+			if g.coord.Selected() != tt.wantIndex {
+				t.Fatalf("got selected %d, want %d", g.coord.Selected(), tt.wantIndex)
 			}
-			if g.coord.Overview.Content != tt.wantDetail {
-				t.Fatalf("got detail %q, want %q", g.coord.Overview.Content, tt.wantDetail)
+			if g.coord.Overview.Content() != tt.wantDetail {
+				t.Fatalf("got detail %q, want %q", g.coord.Overview.Content(), tt.wantDetail)
 			}
 		})
 	}
@@ -90,8 +89,8 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 		if cmd == nil {
 			t.Fatal("expected reload command")
 		}
-		if g.coord.Selected != 1 {
-			t.Fatalf("got selected %d, want %d", g.coord.Selected, 1)
+		if g.coord.Selected() != 1 {
+			t.Fatalf("got selected %d, want %d", g.coord.Selected(), 1)
 		}
 
 		msg := cmd().(detailLoadedMsg)
@@ -117,8 +116,8 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 		if cmd != nil {
 			t.Fatal("did not expect command")
 		}
-		if g.coord.Selected != 0 {
-			t.Fatalf("got selected %d, want %d", g.coord.Selected, 0)
+		if g.coord.Selected() != 0 {
+			t.Fatalf("got selected %d, want %d", g.coord.Selected(), 0)
 		}
 	})
 
@@ -142,8 +141,8 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 		if cmd != nil {
 			t.Fatal("did not expect command")
 		}
-		if g.coord.Selected != 0 {
-			t.Fatalf("got selected %d, want %d", g.coord.Selected, 0)
+		if g.coord.Selected() != 0 {
+			t.Fatalf("got selected %d, want %d", g.coord.Selected(), 0)
 		}
 		if g.diff.LineSelected() == 0 {
 			t.Fatal("expected diff line selection to move")

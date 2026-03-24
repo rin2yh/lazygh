@@ -18,13 +18,13 @@ func TestNavigatePRList(t *testing.T) {
 	g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "a"), testfactory.NewItem(2, "b")}, nil)
 
 	g.navigateDown()
-	if g.coord.Selected != 1 {
-		t.Fatalf("got %d, want %d", g.coord.Selected, 1)
+	if g.coord.Selected() != 1 {
+		t.Fatalf("got %d, want %d", g.coord.Selected(), 1)
 	}
 
 	g.navigateUp()
-	if g.coord.Selected != 0 {
-		t.Fatalf("got %d, want %d", g.coord.Selected, 0)
+	if g.coord.Selected() != 0 {
+		t.Fatalf("got %d, want %d", g.coord.Selected(), 0)
 	}
 }
 

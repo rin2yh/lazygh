@@ -22,13 +22,13 @@ func TestNavigateDown(t *testing.T) {
 		},
 		{
 			name:    "at last item",
-			ls:      State{Items: []pr.Item{{}, {}}, Selected: 1},
+			ls:      State{items: []pr.Item{{}, {}}, selected: 1},
 			wantOk:  false,
 			wantSel: 1,
 		},
 		{
 			name:    "normal move",
-			ls:      State{Items: []pr.Item{{}, {}}, Selected: 0},
+			ls:      State{items: []pr.Item{{}, {}}, selected: 0},
 			wantOk:  true,
 			wantSel: 1,
 		},
@@ -39,8 +39,8 @@ func TestNavigateDown(t *testing.T) {
 			if ok != tt.wantOk {
 				t.Fatalf("ok = %v, want %v", ok, tt.wantOk)
 			}
-			if tt.ls.Selected != tt.wantSel {
-				t.Fatalf("Selected = %d, want %d", tt.ls.Selected, tt.wantSel)
+			if tt.ls.selected != tt.wantSel {
+				t.Fatalf("Selected = %d, want %d", tt.ls.selected, tt.wantSel)
 			}
 		})
 	}
@@ -55,13 +55,13 @@ func TestNavigateUp(t *testing.T) {
 	}{
 		{
 			name:    "at top",
-			ls:      State{Items: []pr.Item{{}, {}}, Selected: 0},
+			ls:      State{items: []pr.Item{{}, {}}, selected: 0},
 			wantOk:  false,
 			wantSel: 0,
 		},
 		{
 			name:    "normal move",
-			ls:      State{Items: []pr.Item{{}, {}}, Selected: 1},
+			ls:      State{items: []pr.Item{{}, {}}, selected: 1},
 			wantOk:  true,
 			wantSel: 0,
 		},
@@ -72,8 +72,8 @@ func TestNavigateUp(t *testing.T) {
 			if ok != tt.wantOk {
 				t.Fatalf("ok = %v, want %v", ok, tt.wantOk)
 			}
-			if tt.ls.Selected != tt.wantSel {
-				t.Fatalf("Selected = %d, want %d", tt.ls.Selected, tt.wantSel)
+			if tt.ls.selected != tt.wantSel {
+				t.Fatalf("Selected = %d, want %d", tt.ls.selected, tt.wantSel)
 			}
 		})
 	}
@@ -93,25 +93,25 @@ func TestSelectedOverview(t *testing.T) {
 		},
 		{
 			name:   "selected out of range",
-			ls:     &State{Items: []pr.Item{{Number: 1, Title: "PR 1"}}, Selected: 5},
+			ls:     &State{items: []pr.Item{{Number: 1, Title: "PR 1"}}, selected: 5},
 			wantOk: false,
 		},
 		{
 			name:   "selected negative",
-			ls:     &State{Items: []pr.Item{{Number: 1, Title: "PR 1"}}, Selected: -1},
+			ls:     &State{items: []pr.Item{{Number: 1, Title: "PR 1"}}, selected: -1},
 			wantOk: false,
 		},
 		{
 			name:    "first item selected",
-			ls:      &State{Items: []pr.Item{{Number: 1, Title: "Fix bug", Status: "OPEN"}}, Selected: 0},
+			ls:      &State{items: []pr.Item{{Number: 1, Title: "Fix bug", Status: "OPEN"}}, selected: 0},
 			wantOk:  true,
 			wantSub: "PR #1",
 		},
 		{
 			name: "second item selected",
 			ls: &State{
-				Items:    []pr.Item{{Number: 1, Title: "First"}, {Number: 2, Title: "Second", Status: "MERGED"}},
-				Selected: 1,
+				items:    []pr.Item{{Number: 1, Title: "First"}, {Number: 2, Title: "Second", Status: "MERGED"}},
+				selected: 1,
 			},
 			wantOk:  true,
 			wantSub: "PR #2",

@@ -159,20 +159,20 @@ func TestGuiApplyPRsResult(t *testing.T) {
 
 			g.applyPRsResult(tt.msg)
 
-			if g.coord.Fetching {
+			if g.coord.IsFetching() {
 				t.Fatal("expected PRsLoading=false")
 			}
-			if g.coord.Overview.Fetching != overview.FetchNone {
-				t.Fatalf("got %v, want %v", g.coord.Overview.Fetching, overview.FetchNone)
+			if k := g.coord.Overview.FetchKind(); k != overview.FetchNone {
+				t.Fatalf("got %v, want %v", k, overview.FetchNone)
 			}
-			if g.coord.Repo != tt.want.repo {
-				t.Fatalf("got %q, want %q", g.coord.Repo, tt.want.repo)
+			if g.coord.Repo() != tt.want.repo {
+				t.Fatalf("got %q, want %q", g.coord.Repo(), tt.want.repo)
 			}
-			if diff := cmp.Diff(tt.want.prs, g.coord.Items, cmpopts.EquateEmpty()); diff != "" {
+			if diff := cmp.Diff(tt.want.prs, g.coord.Items(), cmpopts.EquateEmpty()); diff != "" {
 				t.Fatalf("prs mismatch (-want +got)\n%s", diff)
 			}
-			if g.coord.Overview.Content != tt.want.detail {
-				t.Fatalf("got %q, want %q", g.coord.Overview.Content, tt.want.detail)
+			if g.coord.Overview.Content() != tt.want.detail {
+				t.Fatalf("got %q, want %q", g.coord.Overview.Content(), tt.want.detail)
 			}
 		})
 	}
@@ -219,15 +219,15 @@ func TestGuiApplyDetailResult(t *testing.T) {
 				t.Fatalf("NewGui failed: %v", err)
 			}
 			g.coord.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1, Title: "Fix bug"}}, nil)
-			g.coord.Overview.Fetching = overview.FetchingDetail
+			g.coord.Overview.StartFetching(overview.FetchingDetail)
 
 			g.applyDetailResult(tt.msg)
 
-			if g.coord.Overview.Fetching != overview.FetchNone {
-				t.Fatalf("got %v, want %v", g.coord.Overview.Fetching, overview.FetchNone)
+			if k := g.coord.Overview.FetchKind(); k != overview.FetchNone {
+				t.Fatalf("got %v, want %v", k, overview.FetchNone)
 			}
-			if g.coord.Overview.Content != tt.want.detail {
-				t.Fatalf("got %q, want %q", g.coord.Overview.Content, tt.want.detail)
+			if g.coord.Overview.Content() != tt.want.detail {
+				t.Fatalf("got %q, want %q", g.coord.Overview.Content(), tt.want.detail)
 			}
 		})
 	}
@@ -240,7 +240,7 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 	}
 	g.coord.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1, Title: "Fix bug"}}, nil)
 	g.switchToDiff()
-	g.coord.Overview.Fetching = overview.FetchingDetail
+	g.coord.Overview.StartFetching(overview.FetchingDetail)
 
 	raw := strings.Join([]string{
 		"diff --git a/a.txt b/a.txt",
@@ -257,8 +257,8 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 		content: raw,
 	})
 
-	if strings.Contains(g.coord.Overview.Content, "\x1b") {
-		t.Fatalf("detail content should be sanitized: %q", g.coord.Overview.Content)
+	if strings.Contains(g.coord.Overview.Content(), "\x1b") {
+		t.Fatalf("detail content should be sanitized: %q", g.coord.Overview.Content())
 	}
 	if len(g.diff.Files()) != 1 {
 		t.Fatalf("got %d, want %d", len(g.diff.Files()), 1)

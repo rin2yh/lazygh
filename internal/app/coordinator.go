@@ -59,14 +59,14 @@ func (c *Coordinator) SetReviewHook(h ReviewHook) {
 
 // BeginFetchPRs は PR 一覧ロード開始時にリスト・詳細の両状態を更新する。
 func (c *Coordinator) BeginFetchPRs() {
-	c.Fetching = true
-	c.Overview.Fetching = overview.FetchingPRs
+	c.State.StartLoading()
+	c.Overview.StartFetching(overview.FetchingPRs)
 }
 
 // ApplyPRsResult は PR 一覧結果を反映し、review をリセットする。
 func (c *Coordinator) ApplyPRsResult(repo string, items []pr.Item, err error) {
-	c.Fetching = false
-	c.Overview.Fetching = overview.FetchNone
+	c.State.StopLoading()
+	c.Overview.StopFetching()
 	if err != nil {
 		c.showError("Error fetching PRs", err)
 		if c.review != nil {
@@ -75,14 +75,12 @@ func (c *Coordinator) ApplyPRsResult(repo string, items []pr.Item, err error) {
 		return
 	}
 
-	c.Repo = repo
-	c.Items = items
-	c.Selected = 0
-	c.Overview.Mode = overview.DetailModeOverview
+	c.State.Load(repo, items)
+	c.Overview.EnterOverviewMode()
 	if len(items) == 0 {
-		c.Overview.Content = "No pull requests"
+		c.Overview.ShowContent("No pull requests")
 	} else if content, ok := c.SelectedOverview(); ok {
-		c.Overview.Content = content
+		c.Overview.ShowContent(content)
 	}
 	if c.review != nil {
 		c.review.Reset()
@@ -101,10 +99,10 @@ func (c *Coordinator) BlocksPRSelectionChange() bool {
 // --- review.AppState インターフェースの実装 ---
 
 func (c *Coordinator) SelectedPR() (pr.Item, bool) { return c.selectedPR() }
-func (c *Coordinator) ListRepo() string            { return c.Repo }
-func (c *Coordinator) BeginFetchReview()           { c.Overview.Fetching = overview.FetchingReview }
-func (c *Coordinator) ClearFetching()              { c.Overview.Fetching = overview.FetchNone }
-func (c *Coordinator) IsDiffMode() bool            { return c.Overview.Mode == overview.DetailModeDiff }
+func (c *Coordinator) ListRepo() string            { return c.Repo() }
+func (c *Coordinator) BeginFetchReview()           { c.Overview.StartFetching(overview.FetchingReview) }
+func (c *Coordinator) ClearFetching()              { c.Overview.StopFetching() }
+func (c *Coordinator) IsDiffMode() bool            { return c.Overview.Mode() == overview.DetailModeDiff }
 
 // --- その他の state メソッド ---
 
@@ -126,13 +124,12 @@ func (c *Coordinator) applyLoadedContent(errPrefix, content string, err error) {
 		c.showError(errPrefix, err)
 		return
 	}
-	c.Overview.Fetching = overview.FetchNone
-	c.Overview.Content = sanitize.Multiline(content)
+	c.Overview.LoadResult(sanitize.Multiline(content))
 }
 
 func (c *Coordinator) NavigateDown() bool {
 	changed := c.State.NavigateDown()
-	if changed && c.Overview.Mode == overview.DetailModeOverview {
+	if changed && c.Overview.Mode() == overview.DetailModeOverview {
 		c.refreshOverviewPreview()
 	}
 	return changed
@@ -140,33 +137,31 @@ func (c *Coordinator) NavigateDown() bool {
 
 func (c *Coordinator) NavigateUp() bool {
 	changed := c.State.NavigateUp()
-	if changed && c.Overview.Mode == overview.DetailModeOverview {
+	if changed && c.Overview.Mode() == overview.DetailModeOverview {
 		c.refreshOverviewPreview()
 	}
 	return changed
 }
 
 func (c *Coordinator) SwitchToOverview() bool {
-	if c.Overview.Mode == overview.DetailModeOverview {
+	if c.Overview.Mode() == overview.DetailModeOverview {
 		return false
 	}
-	c.Overview.Mode = overview.DetailModeOverview
-	c.Overview.Fetching = overview.FetchNone
+	c.Overview.EnterOverviewMode()
 	c.refreshOverviewPreview()
 	return true
 }
 
 func (c *Coordinator) SwitchToDiff() bool {
-	if c.Overview.Mode == overview.DetailModeDiff {
+	if c.Overview.Mode() == overview.DetailModeDiff {
 		return false
 	}
-	c.Overview.Mode = overview.DetailModeDiff
-	c.Overview.Fetching = overview.FetchNone
+	c.Overview.EnterDiffMode()
 	return true
 }
 
 func (c *Coordinator) ShouldApplyDetailResult(mode overview.DetailMode, number int) bool {
-	if c.Overview.Mode != mode {
+	if c.Overview.Mode() != mode {
 		return false
 	}
 	item, ok := c.selectedPR()
@@ -177,37 +172,35 @@ func (c *Coordinator) ShouldApplyDetailResult(mode overview.DetailMode, number i
 }
 
 func (c *Coordinator) PlanEnter(hasClient bool) EnterAction {
-	if !hasClient || c.Fetching {
+	if !hasClient || c.IsFetching() {
 		return EnterAction{}
 	}
 	item, ok := c.selectedPR()
 	if !ok {
 		return EnterAction{}
 	}
-	c.Overview.Fetching = overview.FetchingDetail
-	if c.Overview.Mode == overview.DetailModeDiff {
-		return EnterAction{Kind: EnterLoadPRDiff, Repo: c.Repo, Number: item.Number}
+	c.Overview.StartFetching(overview.FetchingDetail)
+	if c.Overview.Mode() == overview.DetailModeDiff {
+		return EnterAction{Kind: EnterLoadPRDiff, Repo: c.Repo(), Number: item.Number}
 	}
-	return EnterAction{Kind: EnterLoadPRDetail, Repo: c.Repo, Number: item.Number}
+	return EnterAction{Kind: EnterLoadPRDetail, Repo: c.Repo(), Number: item.Number}
 }
 
 func (c *Coordinator) refreshOverviewPreview() {
 	if content, ok := c.SelectedOverview(); ok {
-		c.Overview.Content = content
+		c.Overview.ShowContent(content)
 	}
 }
 
 func (c *Coordinator) selectedPR() (pr.Item, bool) {
-	if len(c.Items) == 0 {
+	items := c.Items()
+	sel := c.Selected()
+	if len(items) == 0 || sel < 0 || sel >= len(items) {
 		return pr.Item{}, false
 	}
-	if c.Selected < 0 || c.Selected >= len(c.Items) {
-		return pr.Item{}, false
-	}
-	return c.Items[c.Selected], true
+	return items[sel], true
 }
 
 func (c *Coordinator) showError(msg string, err error) {
-	c.Overview.Fetching = overview.FetchNone
-	c.Overview.Content = sanitize.Multiline(fmt.Sprintf("%s: %v", msg, err))
+	c.Overview.LoadResult(sanitize.Multiline(fmt.Sprintf("%s: %v", msg, err)))
 }

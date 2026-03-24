@@ -1,46 +1,91 @@
 package overview
 
-import (
-	"testing"
-
-	"github.com/google/go-cmp/cmp"
-)
+import "testing"
 
 func TestState_ZeroValue(t *testing.T) {
 	var s State
-	want := State{Mode: DetailModeOverview, Content: "", Fetching: FetchNone}
-	if diff := cmp.Diff(want, s); diff != "" {
-		t.Errorf("(-want +got):\n%s", diff)
+	if s.Mode() != DetailModeOverview {
+		t.Errorf("Mode = %v, want %v", s.Mode(), DetailModeOverview)
+	}
+	if s.Content() != "" {
+		t.Errorf("Content = %q, want empty", s.Content())
+	}
+	if s.IsFetching() {
+		t.Errorf("IsFetching = true, want false")
 	}
 }
 
-func TestState_Fields(t *testing.T) {
+func TestState_StartAndStopFetching(t *testing.T) {
 	tests := []struct {
 		name string
-		got  State
-		want State
+		kind FetchKind
 	}{
-		{
-			name: "overview mode with content",
-			got:  State{Mode: DetailModeOverview, Content: "PR body", Fetching: FetchNone},
-			want: State{Mode: DetailModeOverview, Content: "PR body", Fetching: FetchNone},
-		},
-		{
-			name: "diff mode fetching",
-			got:  State{Mode: DetailModeDiff, Content: "", Fetching: FetchingDetail},
-			want: State{Mode: DetailModeDiff, Content: "", Fetching: FetchingDetail},
-		},
-		{
-			name: "empty content",
-			got:  State{Mode: DetailModeOverview, Content: "", Fetching: FetchNone},
-			want: State{Mode: DetailModeOverview, Content: "", Fetching: FetchNone},
-		},
+		{"PRs", FetchingPRs},
+		{"detail", FetchingDetail},
+		{"review", FetchingReview},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if diff := cmp.Diff(tt.want, tt.got); diff != "" {
-				t.Errorf("(-want +got):\n%s", diff)
+			var s State
+			s.StartFetching(tt.kind)
+			if !s.IsFetching() {
+				t.Error("IsFetching = false after StartFetching")
+			}
+			if s.FetchKind() != tt.kind {
+				t.Errorf("FetchKind = %v, want %v", s.FetchKind(), tt.kind)
+			}
+			s.StopFetching()
+			if s.IsFetching() {
+				t.Error("IsFetching = true after StopFetching")
 			}
 		})
+	}
+}
+
+func TestState_LoadResult(t *testing.T) {
+	var s State
+	s.StartFetching(FetchingDetail)
+	s.LoadResult("body")
+	if s.IsFetching() {
+		t.Error("IsFetching = true after LoadResult")
+	}
+	if s.Content() != "body" {
+		t.Errorf("Content = %q, want %q", s.Content(), "body")
+	}
+}
+
+func TestState_ShowContent_DoesNotClearFetching(t *testing.T) {
+	var s State
+	s.StartFetching(FetchingPRs)
+	s.ShowContent("preview")
+	if !s.IsFetching() {
+		t.Error("IsFetching = false after ShowContent, want true")
+	}
+	if s.Content() != "preview" {
+		t.Errorf("Content = %q, want %q", s.Content(), "preview")
+	}
+}
+
+func TestState_EnterOverviewMode(t *testing.T) {
+	var s State
+	s.StartFetching(FetchingDetail)
+	s.EnterOverviewMode()
+	if s.Mode() != DetailModeOverview {
+		t.Errorf("Mode = %v, want %v", s.Mode(), DetailModeOverview)
+	}
+	if s.IsFetching() {
+		t.Error("IsFetching = true after EnterOverviewMode")
+	}
+}
+
+func TestState_EnterDiffMode(t *testing.T) {
+	var s State
+	s.StartFetching(FetchingPRs)
+	s.EnterDiffMode()
+	if s.Mode() != DetailModeDiff {
+		t.Errorf("Mode = %v, want %v", s.Mode(), DetailModeDiff)
+	}
+	if s.IsFetching() {
+		t.Error("IsFetching = true after EnterDiffMode")
 	}
 }

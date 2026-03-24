@@ -69,7 +69,7 @@ func (gui *Gui) applyDetailResult(msg detailLoadedMsg) {
 			gui.resetDiffFocusIfOnFiles()
 			return
 		}
-		gui.updateDiffFiles(gui.coord.Overview.Content)
+		gui.updateDiffFiles(gui.coord.Overview.Content())
 		return
 	}
 	gui.coord.ApplyDetailResult(msg.content, msg.err)
@@ -79,10 +79,10 @@ func (gui *Gui) currentDiffContent() string {
 	files := gui.diff.Files()
 	selected := gui.diff.FileSelected()
 	if len(files) == 0 {
-		return gui.coord.Overview.Content
+		return gui.coord.Overview.Content()
 	}
 	if selected < 0 || selected >= len(files) {
-		return gui.coord.Overview.Content
+		return gui.coord.Overview.Content()
 	}
 	return files[selected].Content
 }
