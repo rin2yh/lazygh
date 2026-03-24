@@ -43,238 +43,15 @@ func NewController(cfg *config.Config, app AppState, client PendingReviewClient,
 	}
 }
 
-// --- state accessors for the gui layer ---
+// --- Reader interface ---
 
-func (c *Controller) InputMode() InputMode    { return c.rs.InputMode }
-func (c *Controller) Summary() string         { return c.rs.Summary }
-func (c *Controller) EventLabel() string      { return c.rs.Event.Label() }
-func (c *Controller) Notice() string          { return c.rs.Notice }
-func (c *Controller) RangeStart() *Range      { return c.rs.RangeStart }
-func (c *Controller) Comments() []Comment     { return c.rs.Comments }
-func (c *Controller) SelectedCommentIdx() int { return c.rs.SelectedCommentIdx }
-func (c *Controller) HasRangeStart() bool     { return c.rs.RangeStart != nil }
-func (c *Controller) IsInInputMode() bool     { return c.rs.InputMode != InputNone }
-func (c *Controller) HasPendingReview() bool  { return c.rs.HasPendingReview() }
-func (c *Controller) PRNumber() int           { return c.rs.PRNumber }
-func (c *Controller) Notify(msg string)       { c.rs.Notify(msg) }
-func (c *Controller) ClearRangeStart()        { c.rs.ClearRangeStart() }
-
-// Reset clears review state (called when the PR list reloads).
-func (c *Controller) Reset() { c.rs.Reset() }
-
-// SetContext sets the pending review context (PR number, IDs).
-func (c *Controller) SetContext(prNumber int, pullRequestID, commitOID, reviewID string) {
-	c.rs.SetContext(prNumber, pullRequestID, commitOID, reviewID)
-}
-
-// OpenDrawer opens the review drawer.
-func (c *Controller) OpenDrawer() { c.rs.OpenDrawer() }
-
-// BeginCommentInput puts the drawer into comment input mode.
-func (c *Controller) BeginCommentInput() { c.rs.BeginCommentInput() }
-
-// --- view ---
-
-func (c *Controller) ShouldShowDrawer() bool {
-	return c.view.ShouldShowDrawer()
-}
-
-// --- comment editor ---
-
-func (c *Controller) CommentValue() string {
-	return c.comment.CurrentValue()
-}
-
-func (c *Controller) SetCommentValue(value string) {
-	c.comment.SetValue(value)
-}
-
-func (c *Controller) SummaryValue() string {
-	return c.summary.Text()
-}
-
-func (c *Controller) CommentInputLines() []string {
-	return c.comment.InputLines()
-}
-
-func (c *Controller) SummaryInputLines() []string {
-	return c.summary.Lines()
-}
-
-func (c *Controller) BeginSummaryInput() {
-	c.summary.BeginInput()
-	c.setFocus(FocusReviewDrawer)
-}
-
-func (c *Controller) StopInput() {
-	if t, ok := c.view.StopInput(); ok {
-		c.setFocus(t)
-	}
-}
-
-func (c *Controller) ClearCommentInput() {
-	c.comment.Clear()
-}
-
-func (c *Controller) EditorKey(msg tea.KeyMsg) (tea.Cmd, bool) {
-	switch msg.Type {
-	case tea.KeyEsc:
-		handled := c.view.HandleEsc()
-		if handled {
-			c.setFocus(FocusDiffContent)
-		}
-		return nil, handled
-	}
-	if c.keys.Matches(msg, config.ActionReviewSave) && c.view.InputMode() == InputSummary {
-		if t, ok := c.view.HandleSummarySave(); ok {
-			c.setFocus(t)
-		}
-		return nil, true
-	}
-
-	switch c.view.InputMode() {
-	case InputComment:
-		return c.comment.HandleKey(msg)
-	case InputSummary:
-		return c.summary.HandleKey(msg)
-	default:
-		return nil, false
-	}
-}
-
-// --- range ---
-
-func (c *Controller) ToggleRangeSelection() {
-	if c.rng.ToggleSelection() {
-		c.setFocus(FocusDiffContent)
-	}
-}
+func (c *Controller) InputMode() InputMode   { return c.rs.InputMode }
+func (c *Controller) IsInInputMode() bool    { return c.rs.InputMode != InputNone }
+func (c *Controller) RangeStart() *Range     { return c.rs.RangeStart }
+func (c *Controller) ShouldShowDrawer() bool { return c.view.ShouldShowDrawer() }
 
 func (c *Controller) IsIndexWithinPendingRange(path string, commentable bool, idx int) bool {
 	return c.rng.IsIndexWithinPendingRange(path, commentable, idx)
-}
-
-// --- pending review actions ---
-
-func (c *Controller) BuildCommentDraft(body string) (gh.ReviewComment, error) {
-	return c.comment.BuildDraft(body, c.rng.RangeStart())
-}
-
-func (c *Controller) SaveComment() tea.Cmd {
-	return c.pending.HandleCommentSave()
-}
-
-func (c *Controller) Submit() tea.Cmd {
-	return c.pending.HandleSubmit()
-}
-
-func (c *Controller) Discard() tea.Cmd {
-	return c.pending.HandleDiscard()
-}
-
-func (c *Controller) CommentResult(msg CommentSavedMsg) {
-	if c.pending.ApplyCommentResult(msg) {
-		c.setFocus(FocusReviewDrawer)
-	}
-}
-
-func (c *Controller) SubmitResult(msg SubmittedMsg) {
-	c.pending.ApplySubmitResult(msg)
-	if msg.Err == nil {
-		c.setFocus(FocusDiffContent)
-	}
-}
-
-func (c *Controller) DiscardResult(msg DiscardedMsg) {
-	c.pending.ApplyDiscardResult(msg)
-	if msg.Err == nil {
-		c.setFocus(FocusDiffContent)
-	}
-}
-
-func (c *Controller) DeleteComment() tea.Cmd {
-	return c.pending.HandleDeleteComment()
-}
-
-func (c *Controller) EditComment() bool {
-	if !c.pending.BeginEditComment() {
-		return false
-	}
-	c.setFocus(FocusDiffContent)
-	return true
-}
-
-func (c *Controller) SaveEditComment() tea.Cmd {
-	return c.pending.HandleEditCommentSave()
-}
-
-func (c *Controller) DeleteCommentResult(msg CommentDeletedMsg) {
-	c.pending.ApplyDeleteCommentResult(msg)
-}
-
-func (c *Controller) EditCommentResult(msg CommentUpdatedMsg) {
-	c.pending.ApplyEditCommentResult(msg)
-	if msg.Err == nil {
-		c.setFocus(FocusReviewDrawer)
-	}
-}
-
-func (c *Controller) SelectNextComment() {
-	c.pending.SelectNextComment()
-}
-
-func (c *Controller) SelectPrevComment() {
-	c.pending.SelectPrevComment()
-}
-
-func (c *Controller) IsEditingComment() bool {
-	return c.pending.IsEditingComment()
-}
-
-func (c *Controller) CycleReviewEvent() {
-	c.rs.CycleEvent()
-}
-
-// MarkStaleComments marks pending comments whose anchor position no longer
-// exists in files as stale. Call this whenever the diff is refreshed.
-func (c *Controller) MarkStaleComments(files []gh.DiffFile) {
-	if len(c.rs.Comments) == 0 || len(files) == 0 {
-		return
-	}
-	type pos struct {
-		side gh.DiffSide
-		line int
-	}
-	valid := make(map[string]map[pos]bool, len(files))
-	for _, file := range files {
-		m := make(map[pos]bool)
-		for _, l := range file.Lines {
-			if !l.Commentable {
-				continue
-			}
-			if l.NewLine > 0 {
-				m[pos{gh.DiffSideRight, l.NewLine}] = true
-			}
-			if l.OldLine > 0 {
-				m[pos{gh.DiffSideLeft, l.OldLine}] = true
-			}
-		}
-		valid[file.Path] = m
-	}
-	for i := range c.rs.Comments {
-		comment := &c.rs.Comments[i]
-		m, ok := valid[comment.Path]
-		if !ok {
-			comment.Stale = true
-			continue
-		}
-		comment.Stale = !m[pos{gh.DiffSide(comment.Side), comment.Line}]
-	}
-}
-
-func (c *Controller) BeginCommentFlow() {
-	c.comment.BeginInput()
-	c.setFocus(FocusReviewDrawer)
 }
 
 // BuildDrawerInput assembles an Input from the current review state.
@@ -320,24 +97,53 @@ func (c *Controller) BuildDrawerInput(showDrawer bool) *Input {
 	return input
 }
 
+// --- ReviewHook (coordinator.ReviewHook) ---
+
+func (c *Controller) HasPendingReview() bool { return c.rs.HasPendingReview() }
+func (c *Controller) PRNumber() int          { return c.rs.PRNumber }
+func (c *Controller) Reset()                 { c.rs.Reset() }
+
+// --- Handler interface ---
+
+// Notify shows a notice message in the review drawer.
+func (c *Controller) Notify(msg string) { c.rs.Notify(msg) }
+
+// HandleCancel handles review-specific cancel logic, returning true if consumed.
+// Clears an active range selection or stops an active input mode.
+// Focus is moved to FocusDiffContent via the injected setFocus callback.
+func (c *Controller) HandleCancel() bool {
+	if c.rs.InputMode == InputNone && c.rs.RangeStart != nil {
+		c.rs.ClearRangeStart()
+		c.rs.Notify("Range selection cleared.")
+		c.setFocus(FocusDiffContent)
+		return true
+	}
+	if c.rs.InputMode != InputNone {
+		c.view.StopInput()
+		c.setFocus(FocusDiffContent)
+		return true
+	}
+	return false
+}
+
 func (c *Controller) HandleInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	action, ok := c.keys.ActionFor(msg)
 	if ok {
 		switch action {
 		case config.ActionReviewSubmit:
-			return c.Submit(), true
+			return c.pending.HandleSubmit(), true
 		case config.ActionReviewDiscard:
-			return c.Discard(), true
+			return c.pending.HandleDiscard(), true
 		case config.ActionReviewSave:
 			if c.rs.InputMode == InputComment {
-				if c.IsEditingComment() {
-					return c.SaveEditComment(), true
+				if c.pending.IsEditingComment() {
+					return c.pending.HandleEditCommentSave(), true
 				}
-				return c.SaveComment(), true
+				return c.pending.HandleCommentSave(), true
 			}
 		}
 	}
-	if cmd, handled := c.EditorKey(msg); handled {
+	if cmd, handled := c.editorKey(msg); handled {
 		return cmd, true
 	}
 	return nil, false
@@ -346,34 +152,182 @@ func (c *Controller) HandleInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 func (c *Controller) HandleAction(action config.Action) tea.Cmd {
 	switch action {
 	case config.ActionReviewRange:
-		return c.requireDiffMode("Review range selection is only available in diff view.", c.ToggleRangeSelection)
+		return c.requireDiffMode("Review range selection is only available in diff view.", c.toggleRangeSelection)
 	case config.ActionReviewComment:
-		return c.requireDiffMode("Review comments are only available in diff view.", c.BeginCommentFlow)
+		return c.requireDiffMode("Review comments are only available in diff view.", c.beginCommentFlow)
 	case config.ActionReviewSummary:
-		return c.requireDiffMode("Review summary is only available in diff view.", c.BeginSummaryInput)
+		return c.requireDiffMode("Review summary is only available in diff view.", c.beginSummaryInput)
 	case config.ActionReviewSubmit:
-		return c.Submit()
+		return c.pending.HandleSubmit()
 	case config.ActionReviewDiscard:
-		return c.Discard()
+		return c.pending.HandleDiscard()
 	case config.ActionReviewClearComment:
 		if c.rs.InputMode == InputComment {
-			c.ClearCommentInput()
+			c.comment.Clear()
 		}
 	case config.ActionReviewEvent:
 		if c.isDiffMode() {
-			c.CycleReviewEvent()
+			c.rs.CycleEvent()
 		}
 	case config.ActionReviewDeleteComment:
-		return c.DeleteComment()
+		return c.pending.HandleDeleteComment()
 	case config.ActionReviewEditComment:
-		c.EditComment()
+		c.editComment()
 	}
 	return nil
 }
 
+func (c *Controller) SelectNextComment() { c.pending.SelectNextComment() }
+func (c *Controller) SelectPrevComment() { c.pending.SelectPrevComment() }
+
+// --- Applier interface ---
+
+func (c *Controller) CommentResult(msg CommentSavedMsg) {
+	if c.pending.ApplyCommentResult(msg) {
+		c.setFocus(FocusReviewDrawer)
+	}
+}
+
+func (c *Controller) SubmitResult(msg SubmittedMsg) {
+	c.pending.ApplySubmitResult(msg)
+	if msg.Err == nil {
+		c.setFocus(FocusDiffContent)
+	}
+}
+
+func (c *Controller) DiscardResult(msg DiscardedMsg) {
+	c.pending.ApplyDiscardResult(msg)
+	if msg.Err == nil {
+		c.setFocus(FocusDiffContent)
+	}
+}
+
+func (c *Controller) DeleteCommentResult(msg CommentDeletedMsg) {
+	c.pending.ApplyDeleteCommentResult(msg)
+}
+
+func (c *Controller) EditCommentResult(msg CommentUpdatedMsg) {
+	c.pending.ApplyEditCommentResult(msg)
+	if msg.Err == nil {
+		c.setFocus(FocusReviewDrawer)
+	}
+}
+
+// MarkStaleComments marks pending comments whose anchor position no longer
+// exists in files as stale. Call this whenever the diff is refreshed.
+func (c *Controller) MarkStaleComments(files []gh.DiffFile) {
+	if len(c.rs.Comments) == 0 || len(files) == 0 {
+		return
+	}
+	type pos struct {
+		side gh.DiffSide
+		line int
+	}
+	valid := make(map[string]map[pos]bool, len(files))
+	for _, file := range files {
+		m := make(map[pos]bool)
+		for _, l := range file.Lines {
+			if !l.Commentable {
+				continue
+			}
+			if l.NewLine > 0 {
+				m[pos{gh.DiffSideRight, l.NewLine}] = true
+			}
+			if l.OldLine > 0 {
+				m[pos{gh.DiffSideLeft, l.OldLine}] = true
+			}
+		}
+		valid[file.Path] = m
+	}
+	for i := range c.rs.Comments {
+		comment := &c.rs.Comments[i]
+		m, ok := valid[comment.Path]
+		if !ok {
+			comment.Stale = true
+			continue
+		}
+		comment.Stale = !m[pos{gh.DiffSide(comment.Side), comment.Line}]
+	}
+}
+
+// --- Lifecycle (not in interfaces; accessed via concrete type in tests) ---
+
+// SetContext sets the pending review context (PR number, IDs).
+func (c *Controller) SetContext(prNumber int, pullRequestID, commitOID, reviewID string) {
+	c.rs.SetContext(prNumber, pullRequestID, commitOID, reviewID)
+}
+
+// OpenDrawer opens the review drawer.
+func (c *Controller) OpenDrawer() { c.rs.OpenDrawer() }
+
+// BeginCommentInput puts the drawer into comment input mode.
+func (c *Controller) BeginCommentInput() { c.rs.BeginCommentInput() }
+
+// --- Test support (not in interfaces) ---
+
+func (c *Controller) CommentValue() string         { return c.comment.CurrentValue() }
+func (c *Controller) SetCommentValue(value string) { c.comment.SetValue(value) }
+func (c *Controller) SummaryValue() string         { return c.summary.Text() }
+
+// --- internal ---
+
+func (c *Controller) editorKey(msg tea.KeyMsg) (tea.Cmd, bool) {
+	switch msg.Type {
+	case tea.KeyEsc:
+		handled := c.view.HandleEsc()
+		if handled {
+			c.setFocus(FocusDiffContent)
+		}
+		return nil, handled
+	}
+	if c.keys.Matches(msg, config.ActionReviewSave) && c.view.InputMode() == InputSummary {
+		if t, ok := c.view.HandleSummarySave(); ok {
+			c.setFocus(t)
+		}
+		return nil, true
+	}
+
+	switch c.view.InputMode() {
+	case InputComment:
+		return c.comment.HandleKey(msg)
+	case InputSummary:
+		return c.summary.HandleKey(msg)
+	default:
+		return nil, false
+	}
+}
+
+func (c *Controller) toggleRangeSelection() {
+	if c.rng.ToggleSelection() {
+		c.setFocus(FocusDiffContent)
+	}
+}
+
+func (c *Controller) beginCommentFlow() {
+	c.comment.BeginInput()
+	c.setFocus(FocusReviewDrawer)
+}
+
+func (c *Controller) beginSummaryInput() {
+	c.summary.BeginInput()
+	c.setFocus(FocusReviewDrawer)
+}
+
+func (c *Controller) editComment() bool {
+	if !c.pending.BeginEditComment() {
+		return false
+	}
+	c.setFocus(FocusDiffContent)
+	return true
+}
+
+// saveComment and submit are unexported but called directly from tests.
+func (c *Controller) saveComment() tea.Cmd { return c.pending.HandleCommentSave() }
+func (c *Controller) submit() tea.Cmd      { return c.pending.HandleSubmit() }
+
 func (c *Controller) requireDiffMode(notice string, fn func()) tea.Cmd {
 	if !c.isDiffMode() {
-		c.Notify(notice)
+		c.rs.Notify(notice)
 		return nil
 	}
 	fn()

@@ -43,49 +43,27 @@ type PendingReviewClient interface {
 	UpdatePendingReviewComment(commentID string, body string) error
 }
 
-// Reader はレビュー状態の読み取り専用インターフェース。ISP に従い Handler / Applier と分離している。
+// Reader はGUIレイヤーが参照するレビュー状態の読み取りインターフェース。
+// BuildDrawerInput が描画用DTOを一括提供するため、個々の状態フィールドは含めない。
 type Reader interface {
 	ShouldShowDrawer() bool
 	IsIndexWithinPendingRange(path string, commentable bool, idx int) bool
-	SummaryValue() string
-	CommentInputLines() []string
-	SummaryInputLines() []string
-	IsEditingComment() bool
 	InputMode() InputMode
-	Summary() string
-	EventLabel() string
-	Notice() string
-	RangeStart() *Range
-	Comments() []Comment
-	SelectedCommentIdx() int
-	HasRangeStart() bool
 	IsInInputMode() bool
-	HasPendingReview() bool
-	PRNumber() int
+	RangeStart() *Range
 	BuildDrawerInput(showDrawer bool) *Input
 }
 
 // Handler はユーザー入力によるレビュー操作を処理する。
 type Handler interface {
-	EditorKey(msg tea.KeyMsg) (tea.Cmd, bool)
 	HandleInputKey(msg tea.KeyMsg) (tea.Cmd, bool)
 	HandleAction(action config.Action) tea.Cmd
-	Submit() tea.Cmd
-	Discard() tea.Cmd
-	SaveComment() tea.Cmd
-	SaveEditComment() tea.Cmd
-	DeleteComment() tea.Cmd
-	StopInput()
-	ClearCommentInput()
-	CycleReviewEvent()
-	EditComment() bool
+	// HandleCancel はレビュー固有のキャンセル処理を行う。
+	// range選択中またはinput mode中であれば処理してtrueを返す。
+	HandleCancel() bool
 	SelectNextComment()
 	SelectPrevComment()
-	ToggleRangeSelection()
-	BeginCommentFlow()
-	BeginSummaryInput()
 	Notify(msg string)
-	ClearRangeStart()
 }
 
 // Applier は外部から得た結果をレビュー状態に適用する。

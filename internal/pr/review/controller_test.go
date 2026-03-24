@@ -48,7 +48,7 @@ func TestHandleCommentSave_NoPRSelected(t *testing.T) {
 	host := &fakeHost{}
 	c := NewController(defaultTestConfig(), host, &testmock.GHClient{}, reviewstub.Selection{}, func(FocusTarget) {})
 
-	cmd := c.SaveComment()
+	cmd := c.saveComment()
 	if cmd != nil {
 		t.Fatal("expected nil cmd when no PR selected")
 	}
@@ -64,7 +64,7 @@ func TestHandleCommentSave_BuildDraftError(t *testing.T) {
 	c, _, _ := setupControllerWithPR(&testmock.GHClient{}, sel)
 	c.SetCommentValue("")
 
-	cmd := c.SaveComment()
+	cmd := c.saveComment()
 	if cmd != nil {
 		t.Fatal("expected nil cmd on draft error")
 	}
@@ -80,7 +80,7 @@ func TestHandleCommentSave_InvalidLine(t *testing.T) {
 	c, _, _ := setupControllerWithPR(&testmock.GHClient{}, sel)
 	c.SetCommentValue("hello")
 
-	cmd := c.SaveComment()
+	cmd := c.saveComment()
 	if cmd != nil {
 		t.Fatal("expected nil cmd on non-commentable line")
 	}
@@ -93,7 +93,7 @@ func TestHandleSubmit_NoPendingReview(t *testing.T) {
 	host := &fakeHost{}
 	c := NewController(defaultTestConfig(), host, &testmock.GHClient{}, reviewstub.Selection{}, func(FocusTarget) {})
 
-	cmd := c.Submit()
+	cmd := c.submit()
 	if cmd != nil {
 		t.Fatal("expected nil cmd when no pending review")
 	}
@@ -205,7 +205,7 @@ func TestHandleSubmit_SavesSummaryIfInSummaryMode(t *testing.T) {
 
 	c.summary.Load("my summary text")
 
-	cmd := c.Submit()
+	cmd := c.submit()
 	if cmd == nil {
 		t.Fatal("expected non-nil cmd for submit")
 	}

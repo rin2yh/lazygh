@@ -6,7 +6,6 @@ import (
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/pr/list"
 	"github.com/rin2yh/lazygh/internal/pr/overview"
-	"github.com/rin2yh/lazygh/internal/pr/review"
 )
 
 // --- メインキー入力ディスパッチャ ---
@@ -60,14 +59,10 @@ func (s *screen) handleGlobalAction(action config.Action) (tea.Cmd, bool) {
 }
 
 func (s *screen) handleCancel() tea.Cmd {
-	if s.gui.review.InputMode() == review.InputNone && s.gui.review.HasRangeStart() {
-		s.gui.review.ClearRangeStart()
-		s.gui.review.Notify("Range selection cleared.")
-		s.gui.focus = layout.FocusDiffContent
+	if s.gui.review.HandleCancel() {
 		return nil
 	}
 	if s.gui.focus == layout.FocusReviewDrawer {
-		s.gui.review.StopInput()
 		s.gui.focus = layout.FocusDiffContent
 		return nil
 	}

@@ -25,7 +25,7 @@ func TestToggleRangeSelection_StartsAndClearsRange(t *testing.T) {
 		focus = target
 	})
 
-	controller.ToggleRangeSelection()
+	controller.toggleRangeSelection()
 	if controller.rs.RangeStart == nil {
 		t.Fatal("expected range start")
 	}
@@ -36,7 +36,7 @@ func TestToggleRangeSelection_StartsAndClearsRange(t *testing.T) {
 		t.Fatalf("got %v, want %v", focus, FocusDiffContent)
 	}
 
-	controller.ToggleRangeSelection()
+	controller.toggleRangeSelection()
 	if controller.rs.RangeStart != nil {
 		t.Fatal("expected range selection cleared")
 	}

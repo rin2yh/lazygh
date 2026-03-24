@@ -58,7 +58,7 @@ func TestHandleDeleteComment_WithCommentID(t *testing.T) {
 	c.rs.AddComment(Comment{CommentID: "IC_1", Path: "a.go", Body: "hi", Line: 1})
 	c.rs.SelectedCommentIdx = 0
 
-	cmd := c.DeleteComment()
+	cmd := c.pending.HandleDeleteComment()
 	if cmd == nil {
 		t.Fatal("expected non-nil cmd")
 	}
