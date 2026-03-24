@@ -11,15 +11,15 @@ import (
 // Controller orchestrates the pending-review workflow and directly owns
 // ReviewState (no *state.State reference).
 type Controller struct {
-	rs       *ReviewState
-	host     AppState
-	keys     config.KeyBindings
-	comment  *comment
-	summary  *summary
-	rng      *rangeState
-	pending  *pending
-	view     *view
-	setFocus func(FocusTarget)
+	rs         *ReviewState
+	isDiffMode func() bool
+	keys       config.KeyBindings
+	comment    *comment
+	summary    *summary
+	rng        *rangeState
+	pending    *pending
+	view       *view
+	setFocus   func(FocusTarget)
 }
 
 // NewController creates a Controller. host provides list/detail context;
@@ -31,15 +31,15 @@ func NewController(cfg *config.Config, host AppState, client PendingReviewClient
 	rng := newRange(rs, selection)
 	v := newView(rs, host, c, s)
 	return &Controller{
-		rs:       rs,
-		host:     host,
-		keys:     cfg.KeyBindings,
-		comment:  c,
-		summary:  s,
-		rng:      rng,
-		pending:  newPending(rs, host, client, selection, c, s),
-		view:     v,
-		setFocus: setFocus,
+		rs:         rs,
+		isDiffMode: host.IsDiffMode,
+		keys:       cfg.KeyBindings,
+		comment:    c,
+		summary:    s,
+		rng:        rng,
+		pending:    newPending(rs, host, client, selection, c, s),
+		view:       v,
+		setFocus:   setFocus,
 	}
 }
 
@@ -321,7 +321,7 @@ func (c *Controller) HandleAction(action config.Action, isFocusDrawer bool) tea.
 			c.ClearCommentInput()
 		}
 	case config.ActionReviewEvent:
-		if c.host.IsDiffMode() {
+		if c.isDiffMode() {
 			c.CycleReviewEvent()
 		}
 	case config.ActionReviewDeleteComment:
@@ -337,7 +337,7 @@ func (c *Controller) HandleAction(action config.Action, isFocusDrawer bool) tea.
 }
 
 func (c *Controller) requireDiffMode(notice string, fn func()) tea.Cmd {
-	if !c.host.IsDiffMode() {
+	if !c.isDiffMode() {
 		c.Notify(notice)
 		return nil
 	}
