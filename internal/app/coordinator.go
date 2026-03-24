@@ -45,13 +45,8 @@ type Coordinator struct {
 
 func NewCoordinator() *Coordinator {
 	return &Coordinator{
-		State: list.State{
-			Items:  []pr.Item{},
-			Filter: list.PRFilterOpen,
-		},
-		Overview: overview.State{
-			Mode: overview.DetailModeOverview,
-		},
+		State:    list.NewState(),
+		Overview: overview.NewState(),
 	}
 }
 

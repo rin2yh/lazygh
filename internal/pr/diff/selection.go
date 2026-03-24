@@ -2,6 +2,11 @@ package diff
 
 import "github.com/rin2yh/lazygh/internal/gh"
 
+// NewState returns an initialized diff State.
+func NewState() *State {
+	return &State{}
+}
+
 type State struct {
 	files        []gh.DiffFile
 	fileSelected int
