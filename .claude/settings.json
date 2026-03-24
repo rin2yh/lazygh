@@ -20,18 +20,18 @@
         ]
       }
     ],
-    "PreToolUse": [
+    "PreToolUse": [],
+    "PostToolUse": [
       {
         "matcher": "Bash",
         "hooks": [
           {
             "type": "agent",
-            "prompt": "実行しようとしている Bash コマンドを確認してください。コマンドに 'git add' が含まれている場合（&& チェーンの一部でも可）、/simplify を実行して変更済みコードを整理してください。含まれていない場合は何もせず即座に終了してください。"
+            "prompt": "実行された Bash コマンドを確認してください。コマンドに 'go build' が含まれている場合（&& チェーンの一部でも可）、/simplify を実行して変更済みコードを整理してください。含まれていない場合は何もせず即座に終了してください。"
           }
         ]
       }
-    ],
-    "PostToolUse": []
+    ]
   },
   "permissions": {
     "allow": [
