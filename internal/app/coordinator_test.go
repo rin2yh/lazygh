@@ -61,8 +61,8 @@ func TestApplyPRsResult(t *testing.T) {
 			if c.IsFetching() {
 				t.Fatal("prs should not be loading")
 			}
-			if c.Overview.IsFetching() {
-				t.Fatalf("got %v, want %v", c.Overview.FetchKind(), overview.FetchNone)
+			if k := c.Overview.FetchKind(); k != overview.FetchNone {
+				t.Fatalf("got %v, want %v", k, overview.FetchNone)
 			}
 			if c.Repo() != tt.want.repo {
 				t.Fatalf("got %q, want %q", c.Repo(), tt.want.repo)
@@ -225,8 +225,8 @@ func TestApplyDetailResult(t *testing.T) {
 
 			c.ApplyDetailResult(tt.content, tt.err)
 
-			if c.Overview.IsFetching() {
-				t.Fatalf("got %v, want %v", c.Overview.FetchKind(), overview.FetchNone)
+			if k := c.Overview.FetchKind(); k != overview.FetchNone {
+				t.Fatalf("got %v, want %v", k, overview.FetchNone)
 			}
 			if c.Overview.Content() != tt.want.detail {
 				t.Fatalf("got %q, want %q", c.Overview.Content(), tt.want.detail)
@@ -269,8 +269,8 @@ func TestApplyDiffResult(t *testing.T) {
 
 			c.ApplyDiffResult(tt.content, tt.err)
 
-			if c.Overview.IsFetching() {
-				t.Fatalf("got %v, want %v", c.Overview.FetchKind(), overview.FetchNone)
+			if k := c.Overview.FetchKind(); k != overview.FetchNone {
+				t.Fatalf("got %v, want %v", k, overview.FetchNone)
 			}
 			if c.Overview.Content() != tt.want.detail {
 				t.Fatalf("got %q, want %q", c.Overview.Content(), tt.want.detail)

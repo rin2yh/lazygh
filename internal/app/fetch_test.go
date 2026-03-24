@@ -162,8 +162,8 @@ func TestGuiApplyPRsResult(t *testing.T) {
 			if g.coord.IsFetching() {
 				t.Fatal("expected PRsLoading=false")
 			}
-			if g.coord.Overview.IsFetching() {
-				t.Fatalf("got %v, want %v", g.coord.Overview.FetchKind(), overview.FetchNone)
+			if k := g.coord.Overview.FetchKind(); k != overview.FetchNone {
+				t.Fatalf("got %v, want %v", k, overview.FetchNone)
 			}
 			if g.coord.Repo() != tt.want.repo {
 				t.Fatalf("got %q, want %q", g.coord.Repo(), tt.want.repo)
@@ -223,8 +223,8 @@ func TestGuiApplyDetailResult(t *testing.T) {
 
 			g.applyDetailResult(tt.msg)
 
-			if g.coord.Overview.IsFetching() {
-				t.Fatalf("got %v, want %v", g.coord.Overview.FetchKind(), overview.FetchNone)
+			if k := g.coord.Overview.FetchKind(); k != overview.FetchNone {
+				t.Fatalf("got %v, want %v", k, overview.FetchNone)
 			}
 			if g.coord.Overview.Content() != tt.want.detail {
 				t.Fatalf("got %q, want %q", g.coord.Overview.Content(), tt.want.detail)

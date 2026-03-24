@@ -22,14 +22,9 @@ type State struct {
 	FilterCursor int
 }
 
-// Repo returns the current repository name.
-func (ls *State) Repo() string { return ls.repo }
-
-// Items returns the current PR item list.
+func (ls *State) Repo() string     { return ls.repo }
 func (ls *State) Items() []pr.Item { return ls.items }
-
-// Selected returns the current selection index.
-func (ls *State) Selected() int { return ls.selected }
+func (ls *State) Selected() int    { return ls.selected }
 
 // IsFetching reports whether a PR fetch is in progress.
 func (ls *State) IsFetching() bool { return ls.loading }
@@ -41,11 +36,8 @@ func (ls *State) Load(repo string, items []pr.Item) {
 	ls.selected = 0
 }
 
-// StartLoading marks that PRs are being fetched.
 func (ls *State) StartLoading() { ls.loading = true }
-
-// StopLoading marks the fetch as complete.
-func (ls *State) StopLoading() { ls.loading = false }
+func (ls *State) StopLoading()  { ls.loading = false }
 
 // SelectedOverview returns the formatted overview string for the currently
 // selected PR. Returns false if no item is selected.
