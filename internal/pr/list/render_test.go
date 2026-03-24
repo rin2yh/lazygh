@@ -10,6 +10,28 @@ import (
 	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
+func TestSplitHeight(t *testing.T) {
+	tests := []struct {
+		total    int
+		wantRepo int
+		wantPR   int
+	}{
+		{10, 4, 6},
+		{5, 4, 1},
+		{2, 1, 1},
+		{1, 0, 1},
+	}
+	for _, tt := range tests {
+		repoH, prH := splitHeight(tt.total)
+		if repoH != tt.wantRepo {
+			t.Errorf("splitHeight(%d) repoH = %d, want %d", tt.total, repoH, tt.wantRepo)
+		}
+		if prH != tt.wantPR {
+			t.Errorf("splitHeight(%d) prH = %d, want %d", tt.total, prH, tt.wantPR)
+		}
+	}
+}
+
 func TestStatusPrefix(t *testing.T) {
 	tests := []struct {
 		status string
@@ -38,14 +60,13 @@ func TestRenderLeftPanelsSeparated(t *testing.T) {
 		Selected: 0,
 		Filter:   "Open",
 	}
-	active := func(f layout.Focus) bool { return f == layout.FocusRepo }
-	style := func(a bool) widget.PanelStyle {
-		if a {
+	style := func(f layout.Focus) widget.PanelStyle {
+		if f == layout.FocusRepo {
 			return widget.PanelStyle{BorderColor: "green", TitleColor: "green"}
 		}
 		return widget.PanelStyle{BorderColor: "white"}
 	}
-	lines := RenderLeft(input, screen.RepoHeight, screen.PRHeight, active, style, screen.LeftWidth)
+	lines := RenderLeft(input, style, screen.LeftWidth, screen.MainHeight)
 	if len(lines) < 5 {
 		t.Fatalf("got %d lines, want at least 5", len(lines))
 	}

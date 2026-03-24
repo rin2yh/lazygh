@@ -11,7 +11,6 @@ const (
 	statusLineHeight      = 1
 	reviewDrawerDivisor   = 3
 	reviewDrawerMinHeight = 8
-	repoPanelHeight       = 4
 
 	diffSplitMinWidth = 20
 	diffFilesRatio    = 30
@@ -47,8 +46,6 @@ type Screen struct {
 	ContentHeight int
 	MainHeight    int
 	DrawerHeight  int
-	RepoHeight    int
-	PRHeight      int
 }
 
 func New(width int, height int, diffMode bool, hasReviewDrawer bool) Screen {
@@ -101,19 +98,6 @@ func New(width int, height int, diffMode bool, hasReviewDrawer bool) Screen {
 		mainHeight = 1
 	}
 
-	repoHeight := repoPanelHeight
-	if mainHeight < repoHeight+1 {
-		repoHeight = mainHeight / 2
-	}
-	if repoHeight < 1 {
-		repoHeight = 1
-	}
-	prHeight := mainHeight - repoHeight
-	if prHeight < 1 {
-		prHeight = 1
-		repoHeight = mainHeight - prHeight
-	}
-
 	return Screen{
 		Width:         w,
 		Height:        h,
@@ -122,8 +106,6 @@ func New(width int, height int, diffMode bool, hasReviewDrawer bool) Screen {
 		ContentHeight: contentHeight,
 		MainHeight:    mainHeight,
 		DrawerHeight:  drawerHeight,
-		RepoHeight:    repoHeight,
-		PRHeight:      prHeight,
 	}
 }
 

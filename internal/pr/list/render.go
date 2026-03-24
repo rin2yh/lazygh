@@ -15,6 +15,8 @@ type Input struct {
 	Filter   string
 }
 
+const repoPanelHeight = 4
+
 var (
 	prefixOpen   = widget.Colorize("O", "green")
 	prefixDraft  = widget.Colorize("D", "gray")
@@ -35,12 +37,28 @@ func statusPrefix(status string) string {
 	}
 }
 
+func splitHeight(total int) (repoH, prH int) {
+	repoH = repoPanelHeight
+	if total < repoH+1 {
+		repoH = total / 2
+	}
+	if repoH < 1 {
+		repoH = 1
+	}
+	prH = total - repoH
+	if prH < 1 {
+		prH = 1
+		repoH = total - prH
+	}
+	return repoH, prH
+}
+
 // RenderLeft renders the Repository and PR panels on the left side.
-func RenderLeft(input Input, repoHeight, prHeight int, active func(layout.Focus) bool, style func(bool) widget.PanelStyle, width int) []string {
-	height := repoHeight + prHeight
-	repoLines := widget.FramePanel("Repository", renderRepo(input), width, repoHeight, style(active(layout.FocusRepo)))
+func RenderLeft(input Input, style func(layout.Focus) widget.PanelStyle, width, height int) []string {
+	repoHeight, prHeight := splitHeight(height)
+	repoLines := widget.FramePanel("Repository", renderRepo(input), width, repoHeight, style(layout.FocusRepo))
 	prTitle := "PR [" + input.Filter + "]"
-	prLines := widget.FramePanel(prTitle, renderPRs(input), width, prHeight, style(active(layout.FocusPRs)))
+	prLines := widget.FramePanel(prTitle, renderPRs(input), width, prHeight, style(layout.FocusPRs))
 	lines := make([]string, 0, height)
 	lines = append(lines, repoLines...)
 	lines = append(lines, prLines...)

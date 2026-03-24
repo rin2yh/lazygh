@@ -44,13 +44,3 @@ func TestDiffSplitWidths(t *testing.T) {
 		})
 	}
 }
-
-func TestComputeLeftPanels(t *testing.T) {
-	got := New(120, 11, false, false)
-	if got.RepoHeight != 4 {
-		t.Fatalf("repo panel height: got %d, want %d", got.RepoHeight, 4)
-	}
-	if got.PRHeight != 6 {
-		t.Fatalf("pr panel height: got %d, want %d", got.PRHeight, 6)
-	}
-}
