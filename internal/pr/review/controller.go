@@ -11,33 +11,35 @@ import (
 // Controller orchestrates the pending-review workflow and directly owns
 // ReviewState (no *state.State reference).
 type Controller struct {
-	rs       *ReviewState
-	keys     config.KeyBindings
-	comment  *comment
-	summary  *summary
-	rng      *rangeState
-	pending  *pending
-	view     *view
-	setFocus func(FocusTarget)
+	rs         *ReviewState
+	isDiffMode func() bool
+	keys       config.KeyBindings
+	comment    *comment
+	summary    *summary
+	rng        *rangeState
+	pending    *pending
+	view       *view
+	setFocus   func(FocusTarget)
 }
 
-// NewController creates a Controller. host provides list/detail context;
+// NewController creates a Controller. app provides list/detail context;
 // client handles GitHub API calls.
-func NewController(cfg *config.Config, host AppState, client PendingReviewClient, selection Selection, setFocus func(FocusTarget)) *Controller {
+func NewController(cfg *config.Config, app AppState, client PendingReviewClient, selection Selection, setFocus func(FocusTarget)) *Controller {
 	rs := newReviewState()
 	c := newComment(cfg, rs)
 	s := newSummary(rs)
 	rng := newRange(rs, selection)
-	v := newView(rs, host, c, s)
+	v := newView(rs, app, c, s)
 	return &Controller{
-		rs:       rs,
-		keys:     cfg.KeyBindings,
-		comment:  c,
-		summary:  s,
-		rng:      rng,
-		pending:  newPending(rs, host, client, selection, c, s),
-		view:     v,
-		setFocus: setFocus,
+		rs:         rs,
+		isDiffMode: app.IsDiffMode,
+		keys:       cfg.KeyBindings,
+		comment:    c,
+		summary:    s,
+		rng:        rng,
+		pending:    newPending(rs, app, client, selection, c, s),
+		view:       v,
+		setFocus:   setFocus,
 	}
 }
 
@@ -277,6 +279,66 @@ func (c *Controller) BuildDrawerInput(showDrawer bool) *DrawerInput {
 		input.SummaryInputLines = c.summary.Lines()
 	}
 	return input
+}
+
+func (c *Controller) HandleInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
+	action, ok := c.keys.ActionFor(msg)
+	if ok {
+		switch action {
+		case config.ActionReviewSubmit:
+			return c.Submit(), true
+		case config.ActionReviewDiscard:
+			return c.Discard(), true
+		case config.ActionReviewSave:
+			if c.rs.InputMode == InputComment {
+				if c.IsEditingComment() {
+					return c.SaveEditComment(), true
+				}
+				return c.SaveComment(), true
+			}
+		}
+	}
+	if cmd, handled := c.EditorKey(msg); handled {
+		return cmd, true
+	}
+	return nil, false
+}
+
+func (c *Controller) HandleAction(action config.Action) tea.Cmd {
+	switch action {
+	case config.ActionReviewRange:
+		return c.requireDiffMode("Review range selection is only available in diff view.", c.ToggleRangeSelection)
+	case config.ActionReviewComment:
+		return c.requireDiffMode("Review comments are only available in diff view.", c.BeginCommentFlow)
+	case config.ActionReviewSummary:
+		return c.requireDiffMode("Review summary is only available in diff view.", c.BeginSummaryInput)
+	case config.ActionReviewSubmit:
+		return c.Submit()
+	case config.ActionReviewDiscard:
+		return c.Discard()
+	case config.ActionReviewClearComment:
+		if c.rs.InputMode == InputComment {
+			c.ClearCommentInput()
+		}
+	case config.ActionReviewEvent:
+		if c.isDiffMode() {
+			c.CycleReviewEvent()
+		}
+	case config.ActionReviewDeleteComment:
+		return c.DeleteComment()
+	case config.ActionReviewEditComment:
+		c.EditComment()
+	}
+	return nil
+}
+
+func (c *Controller) requireDiffMode(notice string, fn func()) tea.Cmd {
+	if !c.isDiffMode() {
+		c.Notify(notice)
+		return nil
+	}
+	fn()
+	return nil
 }
 
 func splitLines(content string) []string {

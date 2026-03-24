@@ -2,15 +2,15 @@ package review
 
 type view struct {
 	rs      *ReviewState
-	host    AppState
+	app     AppState
 	comment *comment
 	summary *summary
 }
 
-func newView(rs *ReviewState, host AppState, comment *comment, summary *summary) *view {
+func newView(rs *ReviewState, app AppState, comment *comment, summary *summary) *view {
 	return &view{
 		rs:      rs,
-		host:    host,
+		app:     app,
 		comment: comment,
 		summary: summary,
 	}
@@ -21,7 +21,7 @@ func (f *view) InputMode() InputMode {
 }
 
 func (f *view) ShouldShowDrawer() bool {
-	if !f.host.IsDiffMode() {
+	if !f.app.IsDiffMode() {
 		return false
 	}
 	rs := f.rs

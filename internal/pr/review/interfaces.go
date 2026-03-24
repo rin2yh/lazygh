@@ -2,6 +2,7 @@ package review
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/pr"
 )
@@ -21,7 +22,7 @@ type Selection interface {
 	LineSelected() int
 }
 
-// AppState is the minimal interface the review package needs from the host
+// AppState is the minimal interface the review package needs from the app
 // application state (list/detail state).
 type AppState interface {
 	SelectedPR() (pr.Item, bool)
@@ -67,6 +68,8 @@ type Reader interface {
 // Handler はユーザー入力によるレビュー操作を処理する。
 type Handler interface {
 	EditorKey(msg tea.KeyMsg) (tea.Cmd, bool)
+	HandleInputKey(msg tea.KeyMsg) (tea.Cmd, bool)
+	HandleAction(action config.Action) tea.Cmd
 	Submit() tea.Cmd
 	Discard() tea.Cmd
 	SaveComment() tea.Cmd
