@@ -11,6 +11,7 @@ import (
 
 const (
 	commentSummaryMaxLen      = 48
+	commentStalePrefix        = "[stale] "
 	CommentModeSingleLine     = "single-line"
 	CommentModeRangeSelecting = "range-selecting"
 )
@@ -46,7 +47,7 @@ func (c DrawerComment) Summary() string {
 	}
 	summary := location + " " + body
 	if c.Stale {
-		summary = "[stale] " + summary
+		summary = commentStalePrefix + summary
 	}
 	return summary
 }

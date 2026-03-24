@@ -238,7 +238,7 @@ func (c *Controller) CycleReviewEvent() {
 // MarkStaleComments marks pending comments whose anchor position no longer
 // exists in files as stale. Call this whenever the diff is refreshed.
 func (c *Controller) MarkStaleComments(files []gh.DiffFile) {
-	if len(c.rs.Comments) == 0 {
+	if len(c.rs.Comments) == 0 || len(files) == 0 {
 		return
 	}
 	type pos struct {
