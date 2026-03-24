@@ -22,7 +22,7 @@ type Selection interface {
 	LineSelected() int
 }
 
-// AppState is the minimal interface the review package needs from the host
+// AppState is the minimal interface the review package needs from the app
 // application state (list/detail state).
 type AppState interface {
 	SelectedPR() (pr.Item, bool)

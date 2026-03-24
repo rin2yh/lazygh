@@ -39,18 +39,18 @@ type DiscardedMsg struct {
 
 type pending struct {
 	rs        *ReviewState
-	host      AppState
+	app       AppState
 	client    PendingReviewClient
 	selection Selection
 	comment   *comment
 	summary   *summary
 }
 
-func newPending(rs *ReviewState, host AppState, client PendingReviewClient, selection Selection, comment *comment, summary *summary) *pending {
+func newPending(rs *ReviewState, app AppState, client PendingReviewClient, selection Selection, comment *comment, summary *summary) *pending {
 	comment.bindSelection(selection)
 	return &pending{
 		rs:        rs,
-		host:      host,
+		app:       app,
 		client:    client,
 		selection: selection,
 		comment:   comment,
@@ -59,7 +59,7 @@ func newPending(rs *ReviewState, host AppState, client PendingReviewClient, sele
 }
 
 func (f *pending) HandleCommentSave() tea.Cmd {
-	item, ok := f.host.SelectedPR()
+	item, ok := f.app.SelectedPR()
 	if !ok {
 		f.rs.Notify("No pull request selected.")
 		return nil
@@ -69,14 +69,14 @@ func (f *pending) HandleCommentSave() tea.Cmd {
 		f.rs.Notify(err.Error())
 		return nil
 	}
-	repo := f.host.ListRepo()
+	repo := f.app.ListRepo()
 	reviewID := f.rs.ReviewID
 	ctx := gh.ReviewContext{
 		PullRequestID: f.rs.PullRequestID,
 		CommitOID:     f.rs.CommitOID,
 	}
 
-	f.host.BeginFetchReview()
+	f.app.BeginFetchReview()
 	return func() tea.Msg {
 		var runErr error
 		if reviewID == "" {
@@ -135,7 +135,7 @@ func (f *pending) HandleDeleteComment() tea.Cmd {
 		return nil
 	}
 	commentID := comment.CommentID
-	f.host.BeginFetchReview()
+	f.app.BeginFetchReview()
 	return func() tea.Msg {
 		err := f.client.DeletePendingReviewComment(commentID)
 		return CommentDeletedMsg{CommentID: commentID, Err: err}
@@ -160,7 +160,7 @@ func (f *pending) HandleEditCommentSave() tea.Cmd {
 		return nil
 	}
 	commentID := comment.CommentID
-	f.host.BeginFetchReview()
+	f.app.BeginFetchReview()
 	return func() tea.Msg {
 		err := f.client.UpdatePendingReviewComment(commentID, body)
 		return CommentUpdatedMsg{Body: body, Err: err}
@@ -177,10 +177,10 @@ func (f *pending) HandleSubmit() tea.Cmd {
 		f.rs.Notify("No pending review to submit.")
 		return nil
 	}
-	f.host.BeginFetchReview()
+	f.app.BeginFetchReview()
 	reviewID := f.rs.ReviewID
 	body := f.rs.Summary
-	repo := f.host.ListRepo()
+	repo := f.app.ListRepo()
 	event := coreEventToGH(f.rs.Event)
 	return func() tea.Msg {
 		err := f.client.SubmitReview(repo, reviewID, event, body)
@@ -210,8 +210,8 @@ func (f *pending) HandleDiscard() tea.Cmd {
 		f.rs.Notify("Review draft discarded.")
 		return nil
 	}
-	f.host.BeginFetchReview()
-	repo := f.host.ListRepo()
+	f.app.BeginFetchReview()
+	repo := f.app.ListRepo()
 	return func() tea.Msg {
 		err := f.client.DeletePendingReview(repo, reviewID)
 		return DiscardedMsg{Err: err}
@@ -221,7 +221,7 @@ func (f *pending) HandleDiscard() tea.Cmd {
 // ApplyCommentResult applies the result of a comment save operation and returns
 // true if the comment was saved successfully (caller should set focus to FocusReviewDrawer).
 func (f *pending) ApplyCommentResult(msg CommentSavedMsg) bool {
-	f.host.ClearFetching()
+	f.app.ClearFetching()
 	if msg.ReviewID != "" || msg.Context.PullRequestID != "" || msg.Context.CommitOID != "" {
 		f.rs.SetContext(msg.PRNumber, msg.Context.PullRequestID, msg.Context.CommitOID, msg.ReviewID)
 	}
@@ -243,7 +243,7 @@ func (f *pending) ApplyCommentResult(msg CommentSavedMsg) bool {
 }
 
 func (f *pending) ApplyDeleteCommentResult(msg CommentDeletedMsg) {
-	f.host.ClearFetching()
+	f.app.ClearFetching()
 	if msg.Err != nil {
 		f.rs.Notify(msg.Err.Error())
 		return
@@ -253,7 +253,7 @@ func (f *pending) ApplyDeleteCommentResult(msg CommentDeletedMsg) {
 }
 
 func (f *pending) ApplyEditCommentResult(msg CommentUpdatedMsg) {
-	f.host.ClearFetching()
+	f.app.ClearFetching()
 	if msg.Err != nil {
 		f.rs.Notify(msg.Err.Error())
 		return
@@ -263,7 +263,7 @@ func (f *pending) ApplyEditCommentResult(msg CommentUpdatedMsg) {
 }
 
 func (f *pending) ApplySubmitResult(msg SubmittedMsg) {
-	f.host.ClearFetching()
+	f.app.ClearFetching()
 	if msg.Err != nil {
 		f.rs.Notify(msg.Err.Error())
 		return
@@ -275,7 +275,7 @@ func (f *pending) ApplySubmitResult(msg SubmittedMsg) {
 }
 
 func (f *pending) ApplyDiscardResult(msg DiscardedMsg) {
-	f.host.ClearFetching()
+	f.app.ClearFetching()
 	if msg.Err != nil {
 		f.rs.Notify(msg.Err.Error())
 		return

@@ -22,22 +22,22 @@ type Controller struct {
 	setFocus   func(FocusTarget)
 }
 
-// NewController creates a Controller. host provides list/detail context;
+// NewController creates a Controller. app provides list/detail context;
 // client handles GitHub API calls.
-func NewController(cfg *config.Config, host AppState, client PendingReviewClient, selection Selection, setFocus func(FocusTarget)) *Controller {
+func NewController(cfg *config.Config, app AppState, client PendingReviewClient, selection Selection, setFocus func(FocusTarget)) *Controller {
 	rs := newReviewState()
 	c := newComment(cfg, rs)
 	s := newSummary(rs)
 	rng := newRange(rs, selection)
-	v := newView(rs, host, c, s)
+	v := newView(rs, app, c, s)
 	return &Controller{
 		rs:         rs,
-		isDiffMode: host.IsDiffMode,
+		isDiffMode: app.IsDiffMode,
 		keys:       cfg.KeyBindings,
 		comment:    c,
 		summary:    s,
 		rng:        rng,
-		pending:    newPending(rs, host, client, selection, c, s),
+		pending:    newPending(rs, app, client, selection, c, s),
 		view:       v,
 		setFocus:   setFocus,
 	}
