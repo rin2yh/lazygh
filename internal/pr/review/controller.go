@@ -321,7 +321,6 @@ func (c *Controller) editComment() bool {
 	return true
 }
 
-// saveComment and submit are unexported but called directly from tests.
 func (c *Controller) saveComment() tea.Cmd { return c.pending.HandleCommentSave() }
 func (c *Controller) submit() tea.Cmd      { return c.pending.HandleSubmit() }
 
