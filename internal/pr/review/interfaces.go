@@ -88,16 +88,12 @@ type Handler interface {
 	ClearRangeStart()
 }
 
-// Applier は非同期操作の結果をレビュー状態に適用する。
+// Applier は外部から得た結果をレビュー状態に適用する。
 type Applier interface {
 	CommentResult(msg CommentSavedMsg)
 	DeleteCommentResult(msg CommentDeletedMsg)
 	EditCommentResult(msg CommentUpdatedMsg)
 	SubmitResult(msg SubmittedMsg)
 	DiscardResult(msg DiscardedMsg)
-}
-
-// DiffSyncer は diff の更新をレビュー状態に同期する。
-type DiffSyncer interface {
 	MarkStaleComments(files []gh.DiffFile)
 }
