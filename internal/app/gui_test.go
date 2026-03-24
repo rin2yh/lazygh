@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
+	"github.com/rin2yh/lazygh/internal/pr/review"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 )
 
@@ -97,4 +98,19 @@ func waitUntil(t *testing.T, cond func() bool, msg string) {
 		time.Sleep(10 * time.Millisecond)
 	}
 	t.Fatal(msg)
+}
+
+func mustNewGui(t *testing.T, client *testmock.GHClient) *Gui {
+	t.Helper()
+	g, err := NewGui(config.Default(), NewCoordinator(), client, client)
+	if err != nil {
+		t.Fatalf("NewGui failed: %v", err)
+	}
+	return g
+}
+
+// reviewCtrl はテスト用に Gui の ReviewController を具体型にキャストして返す。
+// インターフェースに含めるほどでない初期化メソッド（SetContext 等）へのアクセスに使用する。
+func reviewCtrl(g *Gui) *review.Controller {
+	return g.review.(*review.Controller)
 }
