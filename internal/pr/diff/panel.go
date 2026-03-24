@@ -108,3 +108,25 @@ func startIndex(sel, visible int) int {
 	}
 	return sel - visible + 1
 }
+
+// BuildContentLines converts the current diff selection into a slice of
+// ContentLine values ready for rendering. isInRange reports whether the line
+// at the given path/commentable/index position falls within the pending review
+// range; callers typically pass review.Controller.IsIndexWithinPendingRange.
+func BuildContentLines(sel *Selection, isInRange func(path string, commentable bool, idx int) bool) []ContentLine {
+	file, ok := sel.CurrentFile()
+	if !ok || len(file.Lines) == 0 {
+		return nil
+	}
+	lineSelected := sel.LineSelected()
+	lines := make([]ContentLine, 0, len(file.Lines))
+	for idx, line := range file.Lines {
+		lines = append(lines, ContentLine{
+			Location: gh.FormatDiffLineLocation(line),
+			Text:     ColorizeLine(line.Text),
+			Selected: idx == lineSelected,
+			InRange:  isInRange(line.Path, line.Commentable, idx),
+		})
+	}
+	return lines
+}

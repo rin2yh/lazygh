@@ -1,6 +1,8 @@
 package review
 
 import (
+	"strings"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
@@ -234,4 +236,53 @@ func (c *Controller) CycleReviewEvent() {
 func (c *Controller) BeginCommentFlow() {
 	c.comment.BeginInput()
 	c.setFocus(FocusReviewDrawer)
+}
+
+// BuildDrawerInput assembles a DrawerInput from the current review state.
+// Returns nil when showDrawer is false.
+func (c *Controller) BuildDrawerInput(showDrawer bool) *DrawerInput {
+	if !showDrawer {
+		return nil
+	}
+	inputMode := c.rs.InputMode
+	summary := c.rs.Summary
+	if inputMode == InputSummary {
+		summary = c.summary.Text()
+	}
+	input := &DrawerInput{
+		SummaryLines:     splitLines(summary),
+		CommentModeLabel: CommentModeSingleLine,
+		EventLabel:       c.rs.Event.Label(),
+		Notice:           c.rs.Notice,
+	}
+	if rs := c.rs.RangeStart; rs != nil {
+		input.CommentModeLabel = CommentModeRangeSelecting
+		input.RangeStart = &DrawerRange{Path: rs.Path, Line: rs.Line}
+	}
+	comments := c.rs.Comments
+	input.Comments = make([]DrawerComment, 0, len(comments))
+	for _, comment := range comments {
+		input.Comments = append(input.Comments, DrawerComment{
+			Path:      comment.Path,
+			Line:      comment.Line,
+			StartLine: comment.StartLine,
+			Body:      comment.Body,
+		})
+	}
+	input.SelectedCommentIdx = c.rs.SelectedCommentIdx
+	if inputMode == InputComment {
+		input.CommentInputLines = c.comment.InputLines()
+	}
+	if inputMode == InputSummary {
+		input.SummaryInputLines = c.summary.Lines()
+	}
+	return input
+}
+
+func splitLines(content string) []string {
+	content = strings.TrimSpace(content)
+	if content == "" {
+		return nil
+	}
+	return strings.Split(content, "\n")
 }
