@@ -23,11 +23,11 @@
     "PreToolUse": [],
     "PostToolUse": [
       {
-        "matcher": "Bash",
+        "matcher": "Bash(go build:*)",
         "hooks": [
           {
             "type": "agent",
-            "prompt": "実行された Bash コマンドを確認してください。コマンドに 'go build' が含まれている場合（&& チェーンの一部でも可）、/simplify を実行して変更済みコードを整理してください。含まれていない場合は何もせず即座に終了してください。"
+            "prompt": "/simplify を実行して変更済みコードを整理してください。"
           }
         ]
       }
