@@ -96,3 +96,8 @@ type Applier interface {
 	SubmitResult(msg SubmittedMsg)
 	DiscardResult(msg DiscardedMsg)
 }
+
+// DiffSyncer は diff の更新をレビュー状態に同期する。
+type DiffSyncer interface {
+	MarkStaleComments(files []gh.DiffFile)
+}
