@@ -10,6 +10,17 @@ import (
 	"github.com/rin2yh/lazygh/pkg/gui/textarea"
 )
 
+// Comment holds a single pending review comment.
+type Comment struct {
+	CommentID string
+	Path      string
+	Body      string
+	Side      string
+	Line      int
+	StartSide string
+	StartLine int
+}
+
 type comment struct {
 	keys      config.KeyBindings
 	rs        *ReviewState
@@ -99,7 +110,7 @@ func (f *comment) BuildDraft(body string, start *Range) (gh.ReviewComment, error
 	}
 	if start.Index != f.selection.LineSelected() {
 		c.StartLine = start.Line
-		c.StartSide = gh.DiffSide(start.Side)
+		c.StartSide = start.Side
 		if start.Index > f.selection.LineSelected() {
 			c.StartLine, c.Line = c.Line, c.StartLine
 			c.StartSide, c.Side = c.Side, c.StartSide

@@ -1,5 +1,17 @@
 package review
 
+import "github.com/rin2yh/lazygh/internal/gh"
+
+// Range identifies a diff line position for range-based comments.
+type Range struct {
+	Path      string
+	Index     int
+	Side      gh.DiffSide
+	Line      int
+	StartSide gh.DiffSide
+	StartLine int
+}
+
 type rangeState struct {
 	rs        *ReviewState
 	selection Selection
@@ -32,7 +44,7 @@ func (f *rangeState) ToggleSelection() bool {
 	anchor := Range{
 		Path:  line.Path,
 		Index: f.selection.LineSelected(),
-		Side:  string(line.Side),
+		Side:  line.Side,
 	}
 	if line.NewLine > 0 {
 		anchor.Line = line.NewLine

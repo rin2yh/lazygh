@@ -2,6 +2,8 @@ package review
 
 import "github.com/rin2yh/lazygh/pkg/sanitize"
 
+const noEditingComment = -1
+
 // ReviewState holds all mutable state for the pending review workflow.
 type ReviewState struct {
 	PRNumber           int
@@ -176,10 +178,6 @@ func (rs *ReviewState) ClearRangeStart() {
 
 // Reset clears the review state entirely (e.g. when PR list reloads).
 func (rs *ReviewState) Reset() {
-	rs.reset()
-}
-
-func (rs *ReviewState) reset() {
 	*rs = ReviewState{
 		EditingCommentIdx: noEditingComment,
 		Comments:          []Comment{},
