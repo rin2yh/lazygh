@@ -8,7 +8,7 @@ import (
 )
 
 func TestSelectionSelectNextFileResetsLineAndKeepsValidSelection(t *testing.T) {
-	selection := Selection{}
+	selection := State{}
 	selection.SetFiles([]gh.DiffFile{
 		{
 			Path: "a.txt",
@@ -38,7 +38,7 @@ func TestSelectionSelectNextFileResetsLineAndKeepsValidSelection(t *testing.T) {
 }
 
 func TestSelectionLineNavigation(t *testing.T) {
-	selection := Selection{}
+	selection := State{}
 	selection.SetFiles(ParseFilesMust(strings.Join([]string{
 		"diff --git a/a.txt b/a.txt",
 		"--- a/a.txt",
@@ -79,7 +79,7 @@ func TestSelectionLineNavigation(t *testing.T) {
 }
 
 func TestSelectionCurrentAccessors(t *testing.T) {
-	selection := Selection{}
+	selection := State{}
 	selection.SetFiles([]gh.DiffFile{
 		{
 			Path: "a.txt",

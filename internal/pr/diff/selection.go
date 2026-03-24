@@ -2,47 +2,47 @@ package diff
 
 import "github.com/rin2yh/lazygh/internal/gh"
 
-type Selection struct {
+type State struct {
 	files        []gh.DiffFile
 	fileSelected int
 	lineSelected int
 }
 
-func (s *Selection) Reset() {
+func (s *State) Reset() {
 	s.files = nil
 	s.fileSelected = 0
 	s.lineSelected = 0
 }
 
-func (s *Selection) Files() []gh.DiffFile {
+func (s *State) Files() []gh.DiffFile {
 	return s.files
 }
 
-func (s *Selection) SetFiles(files []gh.DiffFile) {
+func (s *State) SetFiles(files []gh.DiffFile) {
 	s.files = files
 }
 
-func (s *Selection) FileSelected() int {
+func (s *State) FileSelected() int {
 	return s.fileSelected
 }
 
-func (s *Selection) SetFileSelected(selected int) {
+func (s *State) SetFileSelected(selected int) {
 	s.fileSelected = selected
 }
 
-func (s *Selection) LineSelected() int {
+func (s *State) LineSelected() int {
 	return s.lineSelected
 }
 
-func (s *Selection) SetLineSelected(selected int) {
+func (s *State) SetLineSelected(selected int) {
 	s.lineSelected = selected
 }
 
-func (s *Selection) CurrentFile() (gh.DiffFile, bool) {
+func (s *State) CurrentFile() (gh.DiffFile, bool) {
 	return CurrentFile(s.files, s.fileSelected)
 }
 
-func (s *Selection) CurrentLine() (gh.DiffLine, bool) {
+func (s *State) CurrentLine() (gh.DiffLine, bool) {
 	file, ok := s.CurrentFile()
 	if !ok {
 		return gh.DiffLine{}, false
@@ -50,7 +50,7 @@ func (s *Selection) CurrentLine() (gh.DiffLine, bool) {
 	return CurrentLine(file, s.lineSelected)
 }
 
-func (s *Selection) EnsureLineSelection() {
+func (s *State) EnsureLineSelection() {
 	file, ok := s.CurrentFile()
 	if !ok {
 		s.lineSelected = 0
@@ -59,7 +59,7 @@ func (s *Selection) EnsureLineSelection() {
 	s.lineSelected = EnsureLineSelection(file, s.lineSelected)
 }
 
-func (s *Selection) SelectNextFile() bool {
+func (s *State) SelectNextFile() bool {
 	if len(s.files) == 0 || s.fileSelected >= len(s.files)-1 {
 		return false
 	}
@@ -69,7 +69,7 @@ func (s *Selection) SelectNextFile() bool {
 	return true
 }
 
-func (s *Selection) SelectPrevFile() bool {
+func (s *State) SelectPrevFile() bool {
 	if len(s.files) == 0 || s.fileSelected <= 0 {
 		return false
 	}
@@ -79,7 +79,7 @@ func (s *Selection) SelectPrevFile() bool {
 	return true
 }
 
-func (s *Selection) SelectNextLine(step int) bool {
+func (s *State) SelectNextLine(step int) bool {
 	file, ok := s.CurrentFile()
 	if !ok {
 		return false
@@ -92,7 +92,7 @@ func (s *Selection) SelectNextLine(step int) bool {
 	return true
 }
 
-func (s *Selection) SelectPrevLine(step int) bool {
+func (s *State) SelectPrevLine(step int) bool {
 	file, ok := s.CurrentFile()
 	if !ok {
 		return false
@@ -105,7 +105,7 @@ func (s *Selection) SelectPrevLine(step int) bool {
 	return true
 }
 
-func (s *Selection) GotoFirstLine() bool {
+func (s *State) GotoFirstLine() bool {
 	next, changed := GotoFirstLine(s.lineSelected)
 	if !changed {
 		return false
@@ -114,7 +114,7 @@ func (s *Selection) GotoFirstLine() bool {
 	return true
 }
 
-func (s *Selection) GotoLastLine() bool {
+func (s *State) GotoLastLine() bool {
 	file, ok := s.CurrentFile()
 	if !ok {
 		return false
