@@ -50,11 +50,9 @@ func (gui *Gui) render() string {
 		rightInput.DiffContentLines = diff.BuildContentLines(&gui.diff, gui.review.IsIndexWithinPendingRange)
 	}
 
-	leftLines := list.RenderLeft(leftInput, screen.RepoHeight, screen.PRHeight,
-		func(f layout.Focus) bool { return focus == f },
-		gui.style,
-		screen.LeftWidth,
-	)
+	leftLines := list.RenderLeft(leftInput, func(f layout.Focus) widget.PanelStyle {
+		return gui.style(focus == f)
+	}, screen.LeftWidth, screen.MainHeight)
 	rightPanelLines := gui.renderRight(rightInput, screen, focus)
 
 	lines := widget.JoinColumns(leftLines, screen.LeftWidth, rightPanelLines, screen.RightWidth, screen.MainHeight)
