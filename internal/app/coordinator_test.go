@@ -58,23 +58,23 @@ func TestApplyPRsResult(t *testing.T) {
 			c.BeginFetchPRs()
 			c.ApplyPRsResult(tt.repo, tt.prs, tt.err)
 
-			if c.Fetching {
+			if c.IsFetching() {
 				t.Fatal("prs should not be loading")
 			}
-			if c.Overview.Fetching != overview.FetchNone {
-				t.Fatalf("got %v, want %v", c.Overview.Fetching, overview.FetchNone)
+			if c.Overview.IsFetching() {
+				t.Fatalf("got %v, want %v", c.Overview.FetchKind(), overview.FetchNone)
 			}
-			if c.Repo != tt.want.repo {
-				t.Fatalf("got %q, want %q", c.Repo, tt.want.repo)
+			if c.Repo() != tt.want.repo {
+				t.Fatalf("got %q, want %q", c.Repo(), tt.want.repo)
 			}
-			if len(c.Items) != tt.want.prCount {
-				t.Fatalf("got %d, want %d", len(c.Items), tt.want.prCount)
+			if len(c.Items()) != tt.want.prCount {
+				t.Fatalf("got %d, want %d", len(c.Items()), tt.want.prCount)
 			}
-			if c.Overview.Content != tt.want.detail {
-				t.Fatalf("got %q, want %q", c.Overview.Content, tt.want.detail)
+			if c.Overview.Content() != tt.want.detail {
+				t.Fatalf("got %q, want %q", c.Overview.Content(), tt.want.detail)
 			}
-			if c.Overview.Mode != overview.DetailModeOverview {
-				t.Fatalf("got %v, want %v", c.Overview.Mode, overview.DetailModeOverview)
+			if c.Overview.Mode() != overview.DetailModeOverview {
+				t.Fatalf("got %v, want %v", c.Overview.Mode(), overview.DetailModeOverview)
 			}
 		})
 	}
@@ -82,18 +82,18 @@ func TestApplyPRsResult(t *testing.T) {
 
 func TestBeginFetchPRs_OnlySetsLoadingState(t *testing.T) {
 	c := NewCoordinator()
-	c.Overview.Content = "keep"
+	c.Overview.ShowContent("keep")
 
 	c.BeginFetchPRs()
 
-	if !c.Fetching {
+	if !c.IsFetching() {
 		t.Fatal("expected PRsLoading to be true")
 	}
-	if c.Overview.Fetching != overview.FetchingPRs {
-		t.Fatalf("got %v, want %v", c.Overview.Fetching, overview.FetchingPRs)
+	if c.Overview.FetchKind() != overview.FetchingPRs {
+		t.Fatalf("got %v, want %v", c.Overview.FetchKind(), overview.FetchingPRs)
 	}
-	if c.Overview.Content != "keep" {
-		t.Fatalf("got %q, want %q", c.Overview.Content, "keep")
+	if c.Overview.Content() != "keep" {
+		t.Fatalf("got %q, want %q", c.Overview.Content(), "keep")
 	}
 }
 
@@ -105,40 +105,40 @@ func TestNavigatePRs(t *testing.T) {
 	if !changed {
 		t.Fatal("expected selection change")
 	}
-	if c.Selected != 1 {
-		t.Fatalf("got %d, want %d", c.Selected, 1)
+	if c.Selected() != 1 {
+		t.Fatalf("got %d, want %d", c.Selected(), 1)
 	}
-	if c.Overview.Content != "PR #2 two\nStatus: OPEN\nAssignee: unassigned" {
-		t.Fatalf("got %q, want %q", c.Overview.Content, "PR #2 two\nStatus: OPEN\nAssignee: unassigned")
+	if c.Overview.Content() != "PR #2 two\nStatus: OPEN\nAssignee: unassigned" {
+		t.Fatalf("got %q, want %q", c.Overview.Content(), "PR #2 two\nStatus: OPEN\nAssignee: unassigned")
 	}
 
 	changed = c.NavigateUp()
 	if !changed {
 		t.Fatal("expected selection change")
 	}
-	if c.Selected != 0 {
-		t.Fatalf("got %d, want %d", c.Selected, 0)
+	if c.Selected() != 0 {
+		t.Fatalf("got %d, want %d", c.Selected(), 0)
 	}
-	if c.Overview.Content != "PR #1 one\nStatus: OPEN\nAssignee: unassigned" {
-		t.Fatalf("got %q, want %q", c.Overview.Content, "PR #1 one\nStatus: OPEN\nAssignee: unassigned")
+	if c.Overview.Content() != "PR #1 one\nStatus: OPEN\nAssignee: unassigned" {
+		t.Fatalf("got %q, want %q", c.Overview.Content(), "PR #1 one\nStatus: OPEN\nAssignee: unassigned")
 	}
 }
 
 func TestNavigatePRs_DiffModeDoesNotOverwriteContent(t *testing.T) {
 	c := NewCoordinator()
 	c.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
-	c.Overview.Content = "diff-body"
+	c.Overview.ShowContent("diff-body")
 	c.SwitchToDiff()
 
 	changed := c.NavigateDown()
 	if !changed {
 		t.Fatal("expected selection change")
 	}
-	if c.Selected != 1 {
-		t.Fatalf("got %d, want %d", c.Selected, 1)
+	if c.Selected() != 1 {
+		t.Fatalf("got %d, want %d", c.Selected(), 1)
 	}
-	if c.Overview.Content != "diff-body" {
-		t.Fatalf("got %q, want %q", c.Overview.Content, "diff-body")
+	if c.Overview.Content() != "diff-body" {
+		t.Fatalf("got %q, want %q", c.Overview.Content(), "diff-body")
 	}
 }
 
@@ -167,7 +167,7 @@ func TestPlanEnter_LoadPR(t *testing.T) {
 			if tt.switchDiff {
 				c.SwitchToDiff()
 			}
-			before := c.Overview.Content
+			before := c.Overview.Content()
 
 			action := c.PlanEnter(true)
 			if action.Kind != tt.wantKind {
@@ -179,12 +179,12 @@ func TestPlanEnter_LoadPR(t *testing.T) {
 			if action.Number != 7 {
 				t.Fatalf("got %d, want %d", action.Number, 7)
 			}
-			if c.Overview.Fetching != overview.FetchingDetail {
-				t.Fatalf("got %v, want %v", c.Overview.Fetching, overview.FetchingDetail)
+			if c.Overview.FetchKind() != overview.FetchingDetail {
+				t.Fatalf("got %v, want %v", c.Overview.FetchKind(), overview.FetchingDetail)
 			}
 			if tt.wantKind == EnterLoadPRDetail {
-				if c.Overview.Content != before {
-					t.Fatalf("got %q, want %q", c.Overview.Content, before)
+				if c.Overview.Content() != before {
+					t.Fatalf("got %q, want %q", c.Overview.Content(), before)
 				}
 			}
 		})
@@ -221,15 +221,15 @@ func TestApplyDetailResult(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCoordinator()
-			c.Overview.Fetching = overview.FetchingDetail
+			c.Overview.StartFetching(overview.FetchingDetail)
 
 			c.ApplyDetailResult(tt.content, tt.err)
 
-			if c.Overview.Fetching != overview.FetchNone {
-				t.Fatalf("got %v, want %v", c.Overview.Fetching, overview.FetchNone)
+			if c.Overview.IsFetching() {
+				t.Fatalf("got %v, want %v", c.Overview.FetchKind(), overview.FetchNone)
 			}
-			if c.Overview.Content != tt.want.detail {
-				t.Fatalf("got %q, want %q", c.Overview.Content, tt.want.detail)
+			if c.Overview.Content() != tt.want.detail {
+				t.Fatalf("got %q, want %q", c.Overview.Content(), tt.want.detail)
 			}
 		})
 	}
@@ -265,15 +265,15 @@ func TestApplyDiffResult(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCoordinator()
-			c.Overview.Fetching = overview.FetchingDetail
+			c.Overview.StartFetching(overview.FetchingDetail)
 
 			c.ApplyDiffResult(tt.content, tt.err)
 
-			if c.Overview.Fetching != overview.FetchNone {
-				t.Fatalf("got %v, want %v", c.Overview.Fetching, overview.FetchNone)
+			if c.Overview.IsFetching() {
+				t.Fatalf("got %v, want %v", c.Overview.FetchKind(), overview.FetchNone)
 			}
-			if c.Overview.Content != tt.want.detail {
-				t.Fatalf("got %q, want %q", c.Overview.Content, tt.want.detail)
+			if c.Overview.Content() != tt.want.detail {
+				t.Fatalf("got %q, want %q", c.Overview.Content(), tt.want.detail)
 			}
 		})
 	}
@@ -282,22 +282,22 @@ func TestApplyDiffResult(t *testing.T) {
 func TestSwitchMode(t *testing.T) {
 	c := NewCoordinator()
 	c.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1, Title: "one"}}, nil)
-	c.Overview.Content = "from-overview"
+	c.Overview.ShowContent("from-overview")
 
 	if !c.SwitchToDiff() {
 		t.Fatal("expected switch to diff")
 	}
-	if c.Overview.Mode != overview.DetailModeDiff {
-		t.Fatalf("got %v, want %v", c.Overview.Mode, overview.DetailModeDiff)
+	if c.Overview.Mode() != overview.DetailModeDiff {
+		t.Fatalf("got %v, want %v", c.Overview.Mode(), overview.DetailModeDiff)
 	}
 	if !c.SwitchToOverview() {
 		t.Fatal("expected switch to overview")
 	}
-	if c.Overview.Mode != overview.DetailModeOverview {
-		t.Fatalf("got %v, want %v", c.Overview.Mode, overview.DetailModeOverview)
+	if c.Overview.Mode() != overview.DetailModeOverview {
+		t.Fatalf("got %v, want %v", c.Overview.Mode(), overview.DetailModeOverview)
 	}
-	if c.Overview.Content != "PR #1 one\nStatus: OPEN\nAssignee: unassigned" {
-		t.Fatalf("got %q, want %q", c.Overview.Content, "PR #1 one\nStatus: OPEN\nAssignee: unassigned")
+	if c.Overview.Content() != "PR #1 one\nStatus: OPEN\nAssignee: unassigned" {
+		t.Fatalf("got %q, want %q", c.Overview.Content(), "PR #1 one\nStatus: OPEN\nAssignee: unassigned")
 	}
 }
 

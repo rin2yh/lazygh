@@ -8,7 +8,6 @@ import (
 	"github.com/rin2yh/lazygh/internal/pr/diff"
 	prhelp "github.com/rin2yh/lazygh/internal/pr/help"
 	"github.com/rin2yh/lazygh/internal/pr/list"
-	"github.com/rin2yh/lazygh/internal/pr/overview"
 	"github.com/rin2yh/lazygh/internal/pr/review"
 	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
@@ -19,7 +18,7 @@ func (gui *Gui) render() string {
 	screen := layout.New(gui.coord.Width, gui.coord.Height, isDiff, showDrawer)
 	focus := gui.focus
 	statusLine := layout.Status{
-		Fetching:  gui.coord.Overview.Fetching != overview.FetchNone,
+		Fetching:  gui.coord.Overview.IsFetching(),
 		DiffMode:  isDiff,
 		Focus:     layout.Focus(focus),
 		InputMode: gui.review.InputMode(),
@@ -27,10 +26,10 @@ func (gui *Gui) render() string {
 	}.String()
 
 	leftInput := list.Input{
-		Repo:     gui.coord.Repo,
-		Fetching: gui.coord.Fetching,
-		Items:    gui.coord.Items,
-		Selected: gui.coord.Selected,
+		Repo:     gui.coord.Repo(),
+		Fetching: gui.coord.IsFetching(),
+		Items:    gui.coord.Items(),
+		Selected: gui.coord.Selected(),
 		Filter:   gui.coord.Filter.Label(),
 	}
 
@@ -38,7 +37,7 @@ func (gui *Gui) render() string {
 	if isDiff {
 		rightLines = gui.currentDetailLines(screen, diff.ColorizeContent(gui.currentDiffContent()))
 	} else {
-		rightLines = gui.currentDetailLines(screen, gui.coord.Overview.Content)
+		rightLines = gui.currentDetailLines(screen, gui.coord.Overview.Content())
 	}
 	rightInput := diff.Input{
 		DiffMode:      isDiff,

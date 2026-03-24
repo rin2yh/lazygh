@@ -5,57 +5,71 @@ import "github.com/rin2yh/lazygh/internal/pr"
 // NewState returns an initialized list State with default filter and empty items.
 func NewState() State {
 	return State{
-		Items:  []pr.Item{},
+		items:  []pr.Item{},
 		Filter: PRFilterOpen,
 	}
 }
 
 // State holds PR list, selection, and filter state.
 type State struct {
-	Repo         string
-	Items        []pr.Item
-	Fetching     bool
-	Selected     int
+	repo     string
+	items    []pr.Item
+	loading  bool
+	selected int
+
 	Filter       PRFilterMask
 	FilterOpen   bool
 	FilterCursor int
 }
 
+// Repo returns the current repository name.
+func (ls *State) Repo() string { return ls.repo }
+
+// Items returns the current PR item list.
+func (ls *State) Items() []pr.Item { return ls.items }
+
+// Selected returns the current selection index.
+func (ls *State) Selected() int { return ls.selected }
+
+// IsFetching reports whether a PR fetch is in progress.
+func (ls *State) IsFetching() bool { return ls.loading }
+
+// Load replaces the PR list with the given repo and items, and resets the selection to 0.
+func (ls *State) Load(repo string, items []pr.Item) {
+	ls.repo = repo
+	ls.items = items
+	ls.selected = 0
+}
+
+// StartLoading marks that PRs are being fetched.
+func (ls *State) StartLoading() { ls.loading = true }
+
+// StopLoading marks the fetch as complete.
+func (ls *State) StopLoading() { ls.loading = false }
+
 // SelectedOverview returns the formatted overview string for the currently
 // selected PR. Returns false if no item is selected.
 func (ls *State) SelectedOverview() (string, bool) {
-	if ls.Selected < 0 || ls.Selected >= len(ls.Items) {
+	if ls.selected < 0 || ls.selected >= len(ls.items) {
 		return "", false
 	}
-	return formatOverview(ls.Items[ls.Selected]), true
+	return formatOverview(ls.items[ls.selected]), true
 }
-
-// SetFetching sets the fetching state.
-func (ls *State) SetFetching(v bool) { ls.Fetching = v }
-
-// SetRepo sets the repository name.
-func (ls *State) SetRepo(repo string) { ls.Repo = repo }
-
-// SetItems replaces the PR item list.
-func (ls *State) SetItems(items []pr.Item) { ls.Items = items }
-
-// SetSelected sets the selected index.
-func (ls *State) SetSelected(i int) { ls.Selected = i }
 
 // NavigateDown moves the selection down by one. Returns true if selection changed.
 func (ls *State) NavigateDown() bool {
-	if ls.Selected >= len(ls.Items)-1 {
+	if ls.selected >= len(ls.items)-1 {
 		return false
 	}
-	ls.Selected++
+	ls.selected++
 	return true
 }
 
 // NavigateUp moves the selection up by one. Returns true if selection changed.
 func (ls *State) NavigateUp() bool {
-	if ls.Selected <= 0 {
+	if ls.selected <= 0 {
 		return false
 	}
-	ls.Selected--
+	ls.selected--
 	return true
 }

@@ -21,23 +21,43 @@ const (
 
 // NewState returns an initialized overview State with default mode.
 func NewState() State {
-	return State{
-		Mode: DetailModeOverview,
-	}
+	return State{mode: DetailModeOverview}
 }
 
 // State holds overview panel display and fetching state.
 type State struct {
-	Mode     DetailMode
-	Content  string
-	Fetching FetchKind
+	mode     DetailMode
+	content  string
+	fetching FetchKind
 }
 
-// SetMode sets the detail display mode.
-func (s *State) SetMode(m DetailMode) { s.Mode = m }
+// Mode returns the current detail display mode.
+func (s *State) Mode() DetailMode { return s.mode }
 
-// SetContent sets the overview content string.
-func (s *State) SetContent(content string) { s.Content = content }
+// Content returns the current overview content string.
+func (s *State) Content() string { return s.content }
 
-// SetFetching sets the fetch kind.
-func (s *State) SetFetching(k FetchKind) { s.Fetching = k }
+// FetchKind returns the kind of fetch currently in progress.
+func (s *State) FetchKind() FetchKind { return s.fetching }
+
+// IsFetching reports whether any fetch is in progress.
+func (s *State) IsFetching() bool { return s.fetching != FetchNone }
+
+// StartFetching marks that a fetch of kind k is in progress.
+func (s *State) StartFetching(k FetchKind) { s.fetching = k }
+
+// StopFetching marks the current fetch as complete.
+func (s *State) StopFetching() { s.fetching = FetchNone }
+
+// ShowContent updates the displayed content without affecting fetch state.
+// Use for preview updates (e.g. selection change).
+func (s *State) ShowContent(c string) { s.content = c }
+
+// LoadResult sets content from a completed fetch and clears fetching state.
+func (s *State) LoadResult(c string) { s.fetching = FetchNone; s.content = c }
+
+// EnterOverviewMode switches to overview mode and clears fetching state.
+func (s *State) EnterOverviewMode() { s.mode = DetailModeOverview; s.fetching = FetchNone }
+
+// EnterDiffMode switches to diff mode and clears fetching state.
+func (s *State) EnterDiffMode() { s.mode = DetailModeDiff; s.fetching = FetchNone }
