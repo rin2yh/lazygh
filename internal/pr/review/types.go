@@ -39,6 +39,9 @@ type Comment struct {
 	Line      int
 	StartSide string
 	StartLine int
+	// Stale is set when the comment's anchor position no longer exists in the
+	// current diff (e.g. after the PR is updated with new commits).
+	Stale bool
 }
 
 // Range identifies a diff line position for range-based comments.

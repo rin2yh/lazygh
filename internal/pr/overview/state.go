@@ -52,13 +52,12 @@ func (s *State) LoadResult(c string) {
 }
 
 // EnterOverviewMode switches to overview mode and clears fetching state.
-func (s *State) EnterOverviewMode() {
-	s.mode = DetailModeOverview
-	s.fetching = FetchNone
-}
+func (s *State) EnterOverviewMode() { s.enterMode(DetailModeOverview) }
 
 // EnterDiffMode switches to diff mode and clears fetching state.
-func (s *State) EnterDiffMode() {
-	s.mode = DetailModeDiff
+func (s *State) EnterDiffMode() { s.enterMode(DetailModeDiff) }
+
+func (s *State) enterMode(m DetailMode) {
+	s.mode = m
 	s.fetching = FetchNone
 }

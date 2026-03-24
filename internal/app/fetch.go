@@ -99,4 +99,5 @@ func (gui *Gui) updateDiffFiles(content string) {
 	gui.diff.SetFileSelected(selected)
 	gui.diff.SetLineSelected(lineSelected)
 	gui.diff.EnsureLineSelection()
+	gui.review.MarkStaleComments(files)
 }
