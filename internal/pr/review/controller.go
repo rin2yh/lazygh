@@ -281,8 +281,6 @@ func (c *Controller) BuildDrawerInput(showDrawer bool) *DrawerInput {
 	return input
 }
 
-// HandleInputKey processes a key message when the review is in input mode.
-// It handles submit/discard/save shortcuts and falls through to the editor.
 func (c *Controller) HandleInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	action, ok := c.keys.ActionFor(msg)
 	if ok {
@@ -306,8 +304,6 @@ func (c *Controller) HandleInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 	return nil, false
 }
 
-// HandleAction dispatches a review action. isFocusDrawer indicates whether
-// the review drawer currently has focus.
 func (c *Controller) HandleAction(action config.Action, isFocusDrawer bool) tea.Cmd {
 	switch action {
 	case config.ActionReviewRange:
