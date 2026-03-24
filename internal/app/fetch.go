@@ -3,7 +3,7 @@ package app
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/app/layout"
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr"
 	"github.com/rin2yh/lazygh/internal/pr/diff"
 	"github.com/rin2yh/lazygh/internal/pr/list"
 	"github.com/rin2yh/lazygh/internal/pr/overview"
@@ -11,7 +11,7 @@ import (
 
 type prsLoadedMsg struct {
 	repo string
-	prs  []model.Item
+	prs  []pr.Item
 	err  error
 }
 

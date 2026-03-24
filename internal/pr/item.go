@@ -1,5 +1,5 @@
-// Package model defines shared PR domain types.
-package model
+// Package pr defines shared pull request domain types.
+package pr
 
 // Item represents a pull request.
 type Item struct {

@@ -3,7 +3,7 @@ package app
 import (
 	"fmt"
 
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr"
 	"github.com/rin2yh/lazygh/internal/pr/list"
 	"github.com/rin2yh/lazygh/internal/pr/overview"
 	"github.com/rin2yh/lazygh/pkg/sanitize"
@@ -46,7 +46,7 @@ type Coordinator struct {
 func NewCoordinator() *Coordinator {
 	return &Coordinator{
 		ListState: list.ListState{
-			Items:  []model.Item{},
+			Items:  []pr.Item{},
 			Filter: list.PRFilterOpen,
 		},
 		Overview: overview.State{
@@ -69,7 +69,7 @@ func (c *Coordinator) BeginFetchPRs() {
 }
 
 // ApplyPRsResult は PR 一覧結果を反映し、review をリセットする。
-func (c *Coordinator) ApplyPRsResult(repo string, items []model.Item, err error) {
+func (c *Coordinator) ApplyPRsResult(repo string, items []pr.Item, err error) {
 	c.Fetching = false
 	c.Overview.Fetching = overview.FetchNone
 	if err != nil {
@@ -105,11 +105,11 @@ func (c *Coordinator) BlocksPRSelectionChange() bool {
 
 // --- review.AppState インターフェースの実装 ---
 
-func (c *Coordinator) SelectedPR() (model.Item, bool) { return c.selectedPR() }
-func (c *Coordinator) ListRepo() string               { return c.Repo }
-func (c *Coordinator) BeginFetchReview()              { c.Overview.Fetching = overview.FetchingReview }
-func (c *Coordinator) ClearFetching()                 { c.Overview.Fetching = overview.FetchNone }
-func (c *Coordinator) IsDiffMode() bool               { return c.Overview.Mode == overview.DetailModeDiff }
+func (c *Coordinator) SelectedPR() (pr.Item, bool) { return c.selectedPR() }
+func (c *Coordinator) ListRepo() string            { return c.Repo }
+func (c *Coordinator) BeginFetchReview()           { c.Overview.Fetching = overview.FetchingReview }
+func (c *Coordinator) ClearFetching()              { c.Overview.Fetching = overview.FetchNone }
+func (c *Coordinator) IsDiffMode() bool            { return c.Overview.Mode == overview.DetailModeDiff }
 
 // --- その他の state メソッド ---
 
@@ -237,12 +237,12 @@ func (c *Coordinator) refreshOverviewPreview() {
 	}
 }
 
-func (c *Coordinator) selectedPR() (model.Item, bool) {
+func (c *Coordinator) selectedPR() (pr.Item, bool) {
 	if len(c.Items) == 0 {
-		return model.Item{}, false
+		return pr.Item{}, false
 	}
 	if c.Selected < 0 || c.Selected >= len(c.Items) {
-		return model.Item{}, false
+		return pr.Item{}, false
 	}
 	return c.Items[c.Selected], true
 }

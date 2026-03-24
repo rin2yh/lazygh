@@ -9,7 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr"
 	"github.com/rin2yh/lazygh/internal/pr/overview"
 	testfactory "github.com/rin2yh/lazygh/pkg/test/factory"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
@@ -43,7 +43,7 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 	tests := []struct {
 		name         string
 		client       *testmock.GHClient
-		pr           model.Item
+		pr           pr.Item
 		switchToDiff bool
 		wantMode     overview.DetailMode
 		wantContent  string
@@ -74,7 +74,7 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.coord.ApplyPRsResult("owner/repo", []model.Item{tt.pr}, nil)
+			g.coord.ApplyPRsResult("owner/repo", []pr.Item{tt.pr}, nil)
 			if tt.switchToDiff {
 				g.switchToDiff()
 			}
@@ -104,7 +104,7 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 func TestGuiApplyPRsResult(t *testing.T) {
 	type want struct {
 		repo   string
-		prs    []model.Item
+		prs    []pr.Item
 		detail string
 	}
 
@@ -117,11 +117,11 @@ func TestGuiApplyPRsResult(t *testing.T) {
 			name: "success",
 			msg: prsLoadedMsg{
 				repo: "owner/repo",
-				prs:  []model.Item{{Number: 1, Title: "Fix bug", Status: "OPEN", Assignees: []string{"alice"}}},
+				prs:  []pr.Item{{Number: 1, Title: "Fix bug", Status: "OPEN", Assignees: []string{"alice"}}},
 			},
 			want: want{
 				repo:   "owner/repo",
-				prs:    []model.Item{{Number: 1, Title: "Fix bug", Status: "OPEN", Assignees: []string{"alice"}}},
+				prs:    []pr.Item{{Number: 1, Title: "Fix bug", Status: "OPEN", Assignees: []string{"alice"}}},
 				detail: "PR #1 Fix bug\nStatus: OPEN\nAssignee: alice",
 			},
 		},
@@ -218,7 +218,7 @@ func TestGuiApplyDetailResult(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.coord.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "Fix bug"}}, nil)
+			g.coord.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1, Title: "Fix bug"}}, nil)
 			g.coord.Overview.Fetching = overview.FetchingDetail
 
 			g.applyDetailResult(tt.msg)
@@ -238,7 +238,7 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.coord.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "Fix bug"}}, nil)
+	g.coord.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1, Title: "Fix bug"}}, nil)
 	g.switchToDiff()
 	g.coord.Overview.Fetching = overview.FetchingDetail
 

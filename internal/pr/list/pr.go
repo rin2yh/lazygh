@@ -3,7 +3,7 @@ package list
 import (
 	"strings"
 
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr"
 )
 
 // PRFilterMask is a bitmask for PR status filter selection.
@@ -59,11 +59,11 @@ func (m PRFilterMask) StateArg() string {
 // Matches returns true if the gh state string matches this filter mask.
 func (m PRFilterMask) Matches(state string) bool {
 	switch state {
-	case model.PRStatusOpen:
+	case pr.PRStatusOpen:
 		return m.Has(PRFilterOpen)
-	case model.PRStatusClosed:
+	case pr.PRStatusClosed:
 		return m.Has(PRFilterClosed)
-	case model.PRStatusMerged:
+	case pr.PRStatusMerged:
 		return m.Has(PRFilterMerged)
 	default:
 		return false

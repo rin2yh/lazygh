@@ -1,22 +1,22 @@
 package list
 
 import (
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr"
 	"testing"
 )
 
 func TestFormatItemSanitizeTitle(t *testing.T) {
-	pr := formatItem(model.Item{Number: 2, Title: "bad\x00title"})
+	pr := formatItem(pr.Item{Number: 2, Title: "bad\x00title"})
 	if pr != "#2 badtitle" {
 		t.Fatalf("unexpected pr format: %q", pr)
 	}
 }
 
 func TestFormatOverview(t *testing.T) {
-	pr := formatOverview(model.Item{
+	pr := formatOverview(pr.Item{
 		Number:    3,
 		Title:     "bad\x00title",
-		Status:    model.PRStatusDraft,
+		Status:    pr.PRStatusDraft,
 		Assignees: []string{"alice", "bob"},
 	})
 	want := "PR #3 badtitle\nStatus: DRAFT\nAssignee: alice (+1)"

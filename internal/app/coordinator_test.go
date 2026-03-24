@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr"
 	"github.com/rin2yh/lazygh/internal/pr/overview"
 )
 
@@ -18,14 +18,14 @@ func TestApplyPRsResult(t *testing.T) {
 	tests := []struct {
 		name string
 		repo string
-		prs  []model.Item
+		prs  []pr.Item
 		err  error
 		want want
 	}{
 		{
 			name: "success",
 			repo: "owner/repo",
-			prs:  []model.Item{{Number: 1, Title: "Fix bug"}},
+			prs:  []pr.Item{{Number: 1, Title: "Fix bug"}},
 			want: want{
 				repo:    "owner/repo",
 				prCount: 1,
@@ -99,7 +99,7 @@ func TestBeginFetchPRs_OnlySetsLoadingState(t *testing.T) {
 
 func TestNavigatePRs(t *testing.T) {
 	c := NewCoordinator()
-	c.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
+	c.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
 
 	changed := c.NavigateDown()
 	if !changed {
@@ -126,7 +126,7 @@ func TestNavigatePRs(t *testing.T) {
 
 func TestNavigatePRs_DiffModeDoesNotOverwriteContent(t *testing.T) {
 	c := NewCoordinator()
-	c.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
+	c.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
 	c.Overview.Content = "diff-body"
 	c.SwitchToDiff()
 
@@ -163,7 +163,7 @@ func TestPlanEnter_LoadPR(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCoordinator()
-			c.ApplyPRsResult("owner/repo", []model.Item{{Number: 7, Title: "Fix bug"}}, nil)
+			c.ApplyPRsResult("owner/repo", []pr.Item{{Number: 7, Title: "Fix bug"}}, nil)
 			if tt.switchDiff {
 				c.SwitchToDiff()
 			}
@@ -281,7 +281,7 @@ func TestApplyDiffResult(t *testing.T) {
 
 func TestSwitchMode(t *testing.T) {
 	c := NewCoordinator()
-	c.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "one"}}, nil)
+	c.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1, Title: "one"}}, nil)
 	c.Overview.Content = "from-overview"
 
 	if !c.SwitchToDiff() {
@@ -303,7 +303,7 @@ func TestSwitchMode(t *testing.T) {
 
 func TestShouldApplyDetailResult(t *testing.T) {
 	c := NewCoordinator()
-	c.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
+	c.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
 
 	if !c.ShouldApplyDetailResult(overview.DetailModeOverview, 1) {
 		t.Fatal("expected overview detail to apply")
@@ -323,7 +323,7 @@ func TestShouldApplyDetailResult(t *testing.T) {
 
 func TestBlocksPRSelectionChange(t *testing.T) {
 	c := NewCoordinator()
-	c.ApplyPRsResult("owner/repo", []model.Item{{Number: 5, Title: "x"}}, nil)
+	c.ApplyPRsResult("owner/repo", []pr.Item{{Number: 5, Title: "x"}}, nil)
 
 	// review hook が nil の場合はブロックしない
 	if c.BlocksPRSelectionChange() {
@@ -355,7 +355,7 @@ func TestApplyPRsResult_ResetsReview(t *testing.T) {
 	hook := &fakeReviewHook{}
 	c.SetReviewHook(hook)
 
-	c.ApplyPRsResult("owner/repo", []model.Item{{Number: 1}}, nil)
+	c.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1}}, nil)
 
 	if !hook.resetCalled {
 		t.Fatal("expected review.Reset() to be called")
