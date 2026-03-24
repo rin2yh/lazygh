@@ -204,33 +204,6 @@ func (c *Coordinator) PlanEnter(hasClient bool) EnterAction {
 	return EnterAction{Kind: EnterLoadPRDetail, Repo: c.Repo, Number: item.Number}
 }
 
-func (c *Coordinator) OpenFilterSelect() {
-	c.FilterOpen = true
-	c.FilterCursor = 0
-}
-
-func (c *Coordinator) CloseFilterSelect() {
-	c.FilterOpen = false
-}
-
-func (c *Coordinator) MoveFilterCursor(dir int) {
-	n := len(list.PRFilterOptions)
-	c.FilterCursor = (c.FilterCursor + dir + n) % n
-}
-
-// ToggleFilterAtCursor は選択中フィルタをトグルする（最低1つ必須）。
-func (c *Coordinator) ToggleFilterAtCursor() {
-	if c.FilterCursor < 0 || c.FilterCursor >= len(list.PRFilterOptions) {
-		return
-	}
-	opt := list.PRFilterOptions[c.FilterCursor]
-	next := c.Filter.Toggle(opt)
-	if next == 0 {
-		return
-	}
-	c.Filter = next
-}
-
 func (c *Coordinator) refreshOverviewPreview() {
 	if content, ok := c.SelectedOverview(); ok {
 		c.Overview.Content = content

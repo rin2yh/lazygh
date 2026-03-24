@@ -4,6 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/app/layout"
 	"github.com/rin2yh/lazygh/internal/config"
+	"github.com/rin2yh/lazygh/internal/pr/list"
 	"github.com/rin2yh/lazygh/internal/pr/overview"
 	"github.com/rin2yh/lazygh/internal/pr/review"
 )
@@ -232,23 +233,9 @@ func (s *screen) scrollDetailUp() {
 // --- フィルター入力 ---
 
 func (s *screen) handleFilterKey(msg tea.KeyMsg) tea.Cmd {
-	switch msg.String() {
-	case "esc":
-		s.gui.coord.CloseFilterSelect()
-		return nil
-	case "enter":
-		s.gui.coord.CloseFilterSelect()
+	if s.gui.coord.HandleFilterKey(msg.String()) == list.FilterKeyApply {
 		s.gui.coord.BeginFetchPRs()
 		return s.loadPRsCmd()
-	case "j", "down":
-		s.gui.coord.MoveFilterCursor(1)
-		return nil
-	case "k", "up":
-		s.gui.coord.MoveFilterCursor(-1)
-		return nil
-	case " ":
-		s.gui.coord.ToggleFilterAtCursor()
-		return nil
 	}
 	return nil
 }
