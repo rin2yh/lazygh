@@ -2,6 +2,7 @@ package review
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/pr"
 )
@@ -67,6 +68,8 @@ type Reader interface {
 // Handler はユーザー入力によるレビュー操作を処理する。
 type Handler interface {
 	EditorKey(msg tea.KeyMsg) (tea.Cmd, bool)
+	HandleInputKey(msg tea.KeyMsg) (tea.Cmd, bool)
+	HandleAction(action config.Action, isFocusDrawer bool) tea.Cmd
 	Submit() tea.Cmd
 	Discard() tea.Cmd
 	SaveComment() tea.Cmd

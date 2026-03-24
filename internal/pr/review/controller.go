@@ -12,6 +12,7 @@ import (
 // ReviewState (no *state.State reference).
 type Controller struct {
 	rs       *ReviewState
+	host     AppState
 	keys     config.KeyBindings
 	comment  *comment
 	summary  *summary
@@ -31,6 +32,7 @@ func NewController(cfg *config.Config, host AppState, client PendingReviewClient
 	v := newView(rs, host, c, s)
 	return &Controller{
 		rs:       rs,
+		host:     host,
 		keys:     cfg.KeyBindings,
 		comment:  c,
 		summary:  s,
@@ -277,6 +279,74 @@ func (c *Controller) BuildDrawerInput(showDrawer bool) *DrawerInput {
 		input.SummaryInputLines = c.summary.Lines()
 	}
 	return input
+}
+
+// HandleInputKey processes a key message when the review is in input mode.
+// It handles submit/discard/save shortcuts and falls through to the editor.
+func (c *Controller) HandleInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
+	action, ok := c.keys.ActionFor(msg)
+	if ok {
+		switch action {
+		case config.ActionReviewSubmit:
+			return c.Submit(), true
+		case config.ActionReviewDiscard:
+			return c.Discard(), true
+		case config.ActionReviewSave:
+			if c.rs.InputMode == InputComment {
+				if c.IsEditingComment() {
+					return c.SaveEditComment(), true
+				}
+				return c.SaveComment(), true
+			}
+		}
+	}
+	if cmd, handled := c.EditorKey(msg); handled {
+		return cmd, true
+	}
+	return nil, false
+}
+
+// HandleAction dispatches a review action. isFocusDrawer indicates whether
+// the review drawer currently has focus.
+func (c *Controller) HandleAction(action config.Action, isFocusDrawer bool) tea.Cmd {
+	switch action {
+	case config.ActionReviewRange:
+		return c.requireDiffMode("Review range selection is only available in diff view.", c.ToggleRangeSelection)
+	case config.ActionReviewComment:
+		return c.requireDiffMode("Review comments are only available in diff view.", c.BeginCommentFlow)
+	case config.ActionReviewSummary:
+		return c.requireDiffMode("Review summary is only available in diff view.", c.BeginSummaryInput)
+	case config.ActionReviewSubmit:
+		return c.Submit()
+	case config.ActionReviewDiscard:
+		return c.Discard()
+	case config.ActionReviewClearComment:
+		if c.rs.InputMode == InputComment {
+			c.ClearCommentInput()
+		}
+	case config.ActionReviewEvent:
+		if c.host.IsDiffMode() {
+			c.CycleReviewEvent()
+		}
+	case config.ActionReviewDeleteComment:
+		if isFocusDrawer {
+			return c.DeleteComment()
+		}
+	case config.ActionReviewEditComment:
+		if isFocusDrawer {
+			c.EditComment()
+		}
+	}
+	return nil
+}
+
+func (c *Controller) requireDiffMode(notice string, fn func()) tea.Cmd {
+	if !c.host.IsDiffMode() {
+		c.Notify(notice)
+		return nil
+	}
+	fn()
+	return nil
 }
 
 func splitLines(content string) []string {
