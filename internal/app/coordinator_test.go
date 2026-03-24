@@ -4,7 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr"
+	"github.com/rin2yh/lazygh/internal/pr/overview"
 )
 
 func TestApplyPRsResult(t *testing.T) {
@@ -17,14 +18,14 @@ func TestApplyPRsResult(t *testing.T) {
 	tests := []struct {
 		name string
 		repo string
-		prs  []model.Item
+		prs  []pr.Item
 		err  error
 		want want
 	}{
 		{
 			name: "success",
 			repo: "owner/repo",
-			prs:  []model.Item{{Number: 1, Title: "Fix bug"}},
+			prs:  []pr.Item{{Number: 1, Title: "Fix bug"}},
 			want: want{
 				repo:    "owner/repo",
 				prCount: 1,
@@ -60,8 +61,8 @@ func TestApplyPRsResult(t *testing.T) {
 			if c.Fetching {
 				t.Fatal("prs should not be loading")
 			}
-			if c.Overview.Fetching != model.FetchNone {
-				t.Fatalf("got %v, want %v", c.Overview.Fetching, model.FetchNone)
+			if c.Overview.Fetching != overview.FetchNone {
+				t.Fatalf("got %v, want %v", c.Overview.Fetching, overview.FetchNone)
 			}
 			if c.Repo != tt.want.repo {
 				t.Fatalf("got %q, want %q", c.Repo, tt.want.repo)
@@ -72,8 +73,8 @@ func TestApplyPRsResult(t *testing.T) {
 			if c.Overview.Content != tt.want.detail {
 				t.Fatalf("got %q, want %q", c.Overview.Content, tt.want.detail)
 			}
-			if c.Overview.Mode != model.DetailModeOverview {
-				t.Fatalf("got %v, want %v", c.Overview.Mode, model.DetailModeOverview)
+			if c.Overview.Mode != overview.DetailModeOverview {
+				t.Fatalf("got %v, want %v", c.Overview.Mode, overview.DetailModeOverview)
 			}
 		})
 	}
@@ -88,8 +89,8 @@ func TestBeginFetchPRs_OnlySetsLoadingState(t *testing.T) {
 	if !c.Fetching {
 		t.Fatal("expected PRsLoading to be true")
 	}
-	if c.Overview.Fetching != model.FetchingPRs {
-		t.Fatalf("got %v, want %v", c.Overview.Fetching, model.FetchingPRs)
+	if c.Overview.Fetching != overview.FetchingPRs {
+		t.Fatalf("got %v, want %v", c.Overview.Fetching, overview.FetchingPRs)
 	}
 	if c.Overview.Content != "keep" {
 		t.Fatalf("got %q, want %q", c.Overview.Content, "keep")
@@ -98,7 +99,7 @@ func TestBeginFetchPRs_OnlySetsLoadingState(t *testing.T) {
 
 func TestNavigatePRs(t *testing.T) {
 	c := NewCoordinator()
-	c.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
+	c.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
 
 	changed := c.NavigateDown()
 	if !changed {
@@ -125,7 +126,7 @@ func TestNavigatePRs(t *testing.T) {
 
 func TestNavigatePRs_DiffModeDoesNotOverwriteContent(t *testing.T) {
 	c := NewCoordinator()
-	c.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
+	c.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
 	c.Overview.Content = "diff-body"
 	c.SwitchToDiff()
 
@@ -145,24 +146,24 @@ func TestPlanEnter_LoadPR(t *testing.T) {
 	tests := []struct {
 		name       string
 		switchDiff bool
-		wantKind   model.EnterActionKind
+		wantKind   EnterActionKind
 	}{
 		{
 			name:       "overview",
 			switchDiff: false,
-			wantKind:   model.EnterLoadPRDetail,
+			wantKind:   EnterLoadPRDetail,
 		},
 		{
 			name:       "diff",
 			switchDiff: true,
-			wantKind:   model.EnterLoadPRDiff,
+			wantKind:   EnterLoadPRDiff,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCoordinator()
-			c.ApplyPRsResult("owner/repo", []model.Item{{Number: 7, Title: "Fix bug"}}, nil)
+			c.ApplyPRsResult("owner/repo", []pr.Item{{Number: 7, Title: "Fix bug"}}, nil)
 			if tt.switchDiff {
 				c.SwitchToDiff()
 			}
@@ -178,10 +179,10 @@ func TestPlanEnter_LoadPR(t *testing.T) {
 			if action.Number != 7 {
 				t.Fatalf("got %d, want %d", action.Number, 7)
 			}
-			if c.Overview.Fetching != model.FetchingDetail {
-				t.Fatalf("got %v, want %v", c.Overview.Fetching, model.FetchingDetail)
+			if c.Overview.Fetching != overview.FetchingDetail {
+				t.Fatalf("got %v, want %v", c.Overview.Fetching, overview.FetchingDetail)
 			}
-			if tt.wantKind == model.EnterLoadPRDetail {
+			if tt.wantKind == EnterLoadPRDetail {
 				if c.Overview.Content != before {
 					t.Fatalf("got %q, want %q", c.Overview.Content, before)
 				}
@@ -220,12 +221,12 @@ func TestApplyDetailResult(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCoordinator()
-			c.Overview.Fetching = model.FetchingDetail
+			c.Overview.Fetching = overview.FetchingDetail
 
 			c.ApplyDetailResult(tt.content, tt.err)
 
-			if c.Overview.Fetching != model.FetchNone {
-				t.Fatalf("got %v, want %v", c.Overview.Fetching, model.FetchNone)
+			if c.Overview.Fetching != overview.FetchNone {
+				t.Fatalf("got %v, want %v", c.Overview.Fetching, overview.FetchNone)
 			}
 			if c.Overview.Content != tt.want.detail {
 				t.Fatalf("got %q, want %q", c.Overview.Content, tt.want.detail)
@@ -264,12 +265,12 @@ func TestApplyDiffResult(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCoordinator()
-			c.Overview.Fetching = model.FetchingDetail
+			c.Overview.Fetching = overview.FetchingDetail
 
 			c.ApplyDiffResult(tt.content, tt.err)
 
-			if c.Overview.Fetching != model.FetchNone {
-				t.Fatalf("got %v, want %v", c.Overview.Fetching, model.FetchNone)
+			if c.Overview.Fetching != overview.FetchNone {
+				t.Fatalf("got %v, want %v", c.Overview.Fetching, overview.FetchNone)
 			}
 			if c.Overview.Content != tt.want.detail {
 				t.Fatalf("got %q, want %q", c.Overview.Content, tt.want.detail)
@@ -280,20 +281,20 @@ func TestApplyDiffResult(t *testing.T) {
 
 func TestSwitchMode(t *testing.T) {
 	c := NewCoordinator()
-	c.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "one"}}, nil)
+	c.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1, Title: "one"}}, nil)
 	c.Overview.Content = "from-overview"
 
 	if !c.SwitchToDiff() {
 		t.Fatal("expected switch to diff")
 	}
-	if c.Overview.Mode != model.DetailModeDiff {
-		t.Fatalf("got %v, want %v", c.Overview.Mode, model.DetailModeDiff)
+	if c.Overview.Mode != overview.DetailModeDiff {
+		t.Fatalf("got %v, want %v", c.Overview.Mode, overview.DetailModeDiff)
 	}
 	if !c.SwitchToOverview() {
 		t.Fatal("expected switch to overview")
 	}
-	if c.Overview.Mode != model.DetailModeOverview {
-		t.Fatalf("got %v, want %v", c.Overview.Mode, model.DetailModeOverview)
+	if c.Overview.Mode != overview.DetailModeOverview {
+		t.Fatalf("got %v, want %v", c.Overview.Mode, overview.DetailModeOverview)
 	}
 	if c.Overview.Content != "PR #1 one\nStatus: OPEN\nAssignee: unassigned" {
 		t.Fatalf("got %q, want %q", c.Overview.Content, "PR #1 one\nStatus: OPEN\nAssignee: unassigned")
@@ -302,27 +303,27 @@ func TestSwitchMode(t *testing.T) {
 
 func TestShouldApplyDetailResult(t *testing.T) {
 	c := NewCoordinator()
-	c.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
+	c.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1, Title: "one"}, {Number: 2, Title: "two"}}, nil)
 
-	if !c.ShouldApplyDetailResult(model.DetailModeOverview, 1) {
+	if !c.ShouldApplyDetailResult(overview.DetailModeOverview, 1) {
 		t.Fatal("expected overview detail to apply")
 	}
-	if c.ShouldApplyDetailResult(model.DetailModeDiff, 1) {
+	if c.ShouldApplyDetailResult(overview.DetailModeDiff, 1) {
 		t.Fatal("expected diff detail not to apply in overview mode")
 	}
 
 	c.SwitchToDiff()
-	if !c.ShouldApplyDetailResult(model.DetailModeDiff, 1) {
+	if !c.ShouldApplyDetailResult(overview.DetailModeDiff, 1) {
 		t.Fatal("expected diff detail to apply")
 	}
-	if c.ShouldApplyDetailResult(model.DetailModeDiff, 2) {
+	if c.ShouldApplyDetailResult(overview.DetailModeDiff, 2) {
 		t.Fatal("expected different PR detail not to apply")
 	}
 }
 
 func TestBlocksPRSelectionChange(t *testing.T) {
 	c := NewCoordinator()
-	c.ApplyPRsResult("owner/repo", []model.Item{{Number: 5, Title: "x"}}, nil)
+	c.ApplyPRsResult("owner/repo", []pr.Item{{Number: 5, Title: "x"}}, nil)
 
 	// review hook が nil の場合はブロックしない
 	if c.BlocksPRSelectionChange() {
@@ -354,7 +355,7 @@ func TestApplyPRsResult_ResetsReview(t *testing.T) {
 	hook := &fakeReviewHook{}
 	c.SetReviewHook(hook)
 
-	c.ApplyPRsResult("owner/repo", []model.Item{{Number: 1}}, nil)
+	c.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1}}, nil)
 
 	if !hook.resetCalled {
 		t.Fatal("expected review.Reset() to be called")

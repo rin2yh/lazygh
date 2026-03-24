@@ -3,44 +3,42 @@ package list
 import (
 	"strings"
 	"testing"
-
-	"github.com/rin2yh/lazygh/internal/model"
 )
 
 func TestFilterPanelLines(t *testing.T) {
 	tests := []struct {
 		name        string
-		filter      model.PRFilterMask
+		filter      PRFilterMask
 		cursor      int
 		wantContain []string
 	}{
 		{
 			name:        "returns lines and positive width",
-			filter:      model.PRFilterOpen,
+			filter:      PRFilterOpen,
 			cursor:      0,
 			wantContain: []string{"Open"},
 		},
 		{
 			name:        "all filter option labels present",
-			filter:      model.PRFilterOpen | model.PRFilterMerged,
+			filter:      PRFilterOpen | PRFilterMerged,
 			cursor:      0,
 			wantContain: []string{"Open", "Closed", "Merged"},
 		},
 		{
 			name:        "enabled filter shows checked marker",
-			filter:      model.PRFilterOpen,
+			filter:      PRFilterOpen,
 			cursor:      0,
 			wantContain: []string{"[x]", "[ ]"},
 		},
 		{
 			name:        "cursor row is marked",
-			filter:      model.PRFilterOpen,
+			filter:      PRFilterOpen,
 			cursor:      1,
 			wantContain: []string{">"},
 		},
 		{
 			name:        "footer hints present",
-			filter:      model.PRFilterOpen,
+			filter:      PRFilterOpen,
 			cursor:      0,
 			wantContain: []string{"toggle", "apply", "cancel"},
 		},
@@ -70,13 +68,13 @@ func TestFilterPanelLines(t *testing.T) {
 func TestBuildFilterContent(t *testing.T) {
 	tests := []struct {
 		name        string
-		filter      model.PRFilterMask
+		filter      PRFilterMask
 		wantChecked int
 	}{
 		{
 			name:        "all enabled",
-			filter:      model.PRFilterOpen | model.PRFilterClosed | model.PRFilterMerged,
-			wantChecked: len(model.PRFilterOptions),
+			filter:      PRFilterOpen | PRFilterClosed | PRFilterMerged,
+			wantChecked: len(PRFilterOptions),
 		},
 		{
 			name:        "none enabled",
@@ -85,7 +83,7 @@ func TestBuildFilterContent(t *testing.T) {
 		},
 		{
 			name:        "one enabled",
-			filter:      model.PRFilterOpen,
+			filter:      PRFilterOpen,
 			wantChecked: 1,
 		},
 	}

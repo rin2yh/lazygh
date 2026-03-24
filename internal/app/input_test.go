@@ -8,7 +8,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr"
 	"github.com/rin2yh/lazygh/internal/pr/review"
 	testfactory "github.com/rin2yh/lazygh/pkg/test/factory"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
@@ -19,7 +19,7 @@ func TestModelUpdate_VKeyTogglesRangeSelection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.coord.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
+	g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
 	g.switchToDiff()
 	g.updateDiffFiles(strings.Join([]string{
 		"diff --git a/a.txt b/a.txt",
@@ -52,7 +52,7 @@ func TestModelUpdate_EnterKeyUsesRangeFlowAfterV(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.coord.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
+	g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
 	g.switchToDiff()
 	g.updateDiffFiles(strings.Join([]string{
 		"diff --git a/a.txt b/a.txt",
@@ -88,7 +88,7 @@ func TestModelUpdate_EscCancelsCommentAndClearsRangeHighlight(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.coord.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
+	g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
 	g.switchToDiff()
 	g.updateDiffFiles(strings.Join([]string{
 		"diff --git a/a.txt b/a.txt",
@@ -127,7 +127,7 @@ func TestModelUpdate_EscClearsRangeSelectionWithoutLeavingDiff(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.coord.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
+	g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
 	g.switchToDiff()
 	g.updateDiffFiles(strings.Join([]string{
 		"diff --git a/a.txt b/a.txt",
@@ -164,7 +164,7 @@ func TestModelUpdate_InputModeSubmitShortcutBypassesEditor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.coord.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
+	g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
 	g.switchToDiff()
 	rc := reviewCtrl(g)
 	rc.SetContext(1, "PR_kwDO123", "deadbeef", "PRR_kwDO456")
@@ -194,7 +194,7 @@ func TestModelUpdate_InputModeDiscardShortcutBypassesEditor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.coord.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
+	g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
 	g.switchToDiff()
 	rc := reviewCtrl(g)
 	rc.SetContext(1, "PR_kwDO123", "deadbeef", "PRR_kwDO456")
@@ -220,7 +220,7 @@ func TestModelUpdate_ReviewKeysIgnoredOutsideDiff(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.coord.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
+	g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
 	m := &screen{gui: g}
 
 	for _, key := range []tea.KeyMsg{

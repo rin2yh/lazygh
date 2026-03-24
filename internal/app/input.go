@@ -4,7 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/app/layout"
 	"github.com/rin2yh/lazygh/internal/config"
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr/overview"
 	"github.com/rin2yh/lazygh/internal/pr/review"
 )
 
@@ -149,10 +149,10 @@ func (s *screen) moveCursor(dir int) tea.Cmd {
 func (s *screen) openSelectedPR() tea.Cmd {
 	action := s.gui.coord.PlanEnter(s.gui.client != nil)
 	switch action.Kind {
-	case model.EnterLoadPRDiff:
-		return s.loadDetailCmd(action.Repo, action.Number, model.DetailModeDiff)
-	case model.EnterLoadPRDetail:
-		return s.loadDetailCmd(action.Repo, action.Number, model.DetailModeOverview)
+	case EnterLoadPRDiff:
+		return s.loadDetailCmd(action.Repo, action.Number, overview.DetailModeDiff)
+	case EnterLoadPRDetail:
+		return s.loadDetailCmd(action.Repo, action.Number, overview.DetailModeOverview)
 	default:
 		return nil
 	}

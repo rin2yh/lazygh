@@ -1,12 +1,12 @@
 package list
 
 import (
+	"github.com/rin2yh/lazygh/internal/pr"
 	"strings"
 	"testing"
 
 	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/rin2yh/lazygh/internal/app/layout"
-	"github.com/rin2yh/lazygh/internal/model"
 	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
@@ -15,10 +15,10 @@ func TestStatusPrefix(t *testing.T) {
 		status string
 		want   string
 	}{
-		{model.PRStatusOpen, widget.Colorize("O", "green")},
-		{model.PRStatusDraft, widget.Colorize("D", "gray")},
-		{model.PRStatusClosed, widget.Colorize("C", "red")},
-		{model.PRStatusMerged, widget.Colorize("M", "purple")},
+		{pr.PRStatusOpen, widget.Colorize("O", "green")},
+		{pr.PRStatusDraft, widget.Colorize("D", "gray")},
+		{pr.PRStatusClosed, widget.Colorize("C", "red")},
+		{pr.PRStatusMerged, widget.Colorize("M", "purple")},
 		{"", widget.Colorize("O", "green")},
 		{"UNKNOWN", widget.Colorize("O", "green")},
 	}
@@ -34,7 +34,7 @@ func TestRenderLeftPanelsSeparated(t *testing.T) {
 	screen := layout.New(80, 10, false, false)
 	input := PanelInput{
 		Repo:     "owner/repo",
-		Items:    []model.Item{{Number: 1, Title: "Fix bug"}},
+		Items:    []pr.Item{{Number: 1, Title: "Fix bug"}},
 		Selected: 0,
 		Filter:   "Open",
 	}

@@ -1,10 +1,9 @@
 package list
 
 import (
+	"github.com/rin2yh/lazygh/internal/pr"
 	"strings"
 	"testing"
-
-	"github.com/rin2yh/lazygh/internal/model"
 )
 
 func TestSelectedOverview(t *testing.T) {
@@ -21,24 +20,24 @@ func TestSelectedOverview(t *testing.T) {
 		},
 		{
 			name:   "selected out of range",
-			ls:     &ListState{Items: []model.Item{{Number: 1, Title: "PR 1"}}, Selected: 5},
+			ls:     &ListState{Items: []pr.Item{{Number: 1, Title: "PR 1"}}, Selected: 5},
 			wantOk: false,
 		},
 		{
 			name:   "selected negative",
-			ls:     &ListState{Items: []model.Item{{Number: 1, Title: "PR 1"}}, Selected: -1},
+			ls:     &ListState{Items: []pr.Item{{Number: 1, Title: "PR 1"}}, Selected: -1},
 			wantOk: false,
 		},
 		{
 			name:    "first item selected",
-			ls:      &ListState{Items: []model.Item{{Number: 1, Title: "Fix bug", Status: "OPEN"}}, Selected: 0},
+			ls:      &ListState{Items: []pr.Item{{Number: 1, Title: "Fix bug", Status: "OPEN"}}, Selected: 0},
 			wantOk:  true,
 			wantSub: "PR #1",
 		},
 		{
 			name: "second item selected",
 			ls: &ListState{
-				Items:    []model.Item{{Number: 1, Title: "First"}, {Number: 2, Title: "Second", Status: "MERGED"}},
+				Items:    []pr.Item{{Number: 1, Title: "First"}, {Number: 2, Title: "Second", Status: "MERGED"}},
 				Selected: 1,
 			},
 			wantOk:  true,

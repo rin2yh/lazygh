@@ -3,13 +3,23 @@ package app
 import (
 	"fmt"
 
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr"
 	"github.com/rin2yh/lazygh/internal/pr/list"
 	"github.com/rin2yh/lazygh/internal/pr/overview"
+	"github.com/rin2yh/lazygh/pkg/sanitize"
+)
+
+// EnterActionKind represents the type of action to take when entering a PR.
+type EnterActionKind int
+
+const (
+	EnterNone EnterActionKind = iota
+	EnterLoadPRDetail
+	EnterLoadPRDiff
 )
 
 type EnterAction struct {
-	Kind   model.EnterActionKind
+	Kind   EnterActionKind
 	Repo   string
 	Number int
 }
@@ -36,11 +46,11 @@ type Coordinator struct {
 func NewCoordinator() *Coordinator {
 	return &Coordinator{
 		ListState: list.ListState{
-			Items:  []model.Item{},
-			Filter: model.PRFilterOpen,
+			Items:  []pr.Item{},
+			Filter: list.PRFilterOpen,
 		},
 		Overview: overview.State{
-			Mode: model.DetailModeOverview,
+			Mode: overview.DetailModeOverview,
 		},
 	}
 }
@@ -55,13 +65,13 @@ func (c *Coordinator) SetReviewHook(h ReviewHook) {
 // BeginFetchPRs は PR 一覧ロード開始時にリスト・詳細の両状態を更新する。
 func (c *Coordinator) BeginFetchPRs() {
 	c.Fetching = true
-	c.Overview.Fetching = model.FetchingPRs
+	c.Overview.Fetching = overview.FetchingPRs
 }
 
 // ApplyPRsResult は PR 一覧結果を反映し、review をリセットする。
-func (c *Coordinator) ApplyPRsResult(repo string, items []model.Item, err error) {
+func (c *Coordinator) ApplyPRsResult(repo string, items []pr.Item, err error) {
 	c.Fetching = false
-	c.Overview.Fetching = model.FetchNone
+	c.Overview.Fetching = overview.FetchNone
 	if err != nil {
 		c.showError("Error fetching PRs", err)
 		if c.review != nil {
@@ -73,7 +83,7 @@ func (c *Coordinator) ApplyPRsResult(repo string, items []model.Item, err error)
 	c.Repo = repo
 	c.Items = items
 	c.Selected = 0
-	c.Overview.Mode = model.DetailModeOverview
+	c.Overview.Mode = overview.DetailModeOverview
 	if len(items) == 0 {
 		c.Overview.Content = "No pull requests"
 	} else if content, ok := c.SelectedOverview(); ok {
@@ -95,11 +105,11 @@ func (c *Coordinator) BlocksPRSelectionChange() bool {
 
 // --- review.AppState インターフェースの実装 ---
 
-func (c *Coordinator) SelectedPR() (model.Item, bool) { return c.selectedPR() }
-func (c *Coordinator) ListRepo() string               { return c.Repo }
-func (c *Coordinator) BeginFetchReview()              { c.Overview.Fetching = model.FetchingReview }
-func (c *Coordinator) ClearFetching()                 { c.Overview.Fetching = model.FetchNone }
-func (c *Coordinator) IsDiffMode() bool               { return c.Overview.Mode == model.DetailModeDiff }
+func (c *Coordinator) SelectedPR() (pr.Item, bool) { return c.selectedPR() }
+func (c *Coordinator) ListRepo() string            { return c.Repo }
+func (c *Coordinator) BeginFetchReview()           { c.Overview.Fetching = overview.FetchingReview }
+func (c *Coordinator) ClearFetching()              { c.Overview.Fetching = overview.FetchNone }
+func (c *Coordinator) IsDiffMode() bool            { return c.Overview.Mode == overview.DetailModeDiff }
 
 // --- その他の state メソッド ---
 
@@ -121,8 +131,8 @@ func (c *Coordinator) applyLoadedContent(errPrefix, content string, err error) {
 		c.showError(errPrefix, err)
 		return
 	}
-	c.Overview.Fetching = model.FetchNone
-	c.Overview.Content = model.SanitizeMultiline(content)
+	c.Overview.Fetching = overview.FetchNone
+	c.Overview.Content = sanitize.Multiline(content)
 }
 
 func (c *Coordinator) NavigateDown() bool {
@@ -131,7 +141,7 @@ func (c *Coordinator) NavigateDown() bool {
 		c.Selected++
 		changed = true
 	}
-	if changed && c.Overview.Mode == model.DetailModeOverview {
+	if changed && c.Overview.Mode == overview.DetailModeOverview {
 		c.refreshOverviewPreview()
 	}
 	return changed
@@ -143,32 +153,32 @@ func (c *Coordinator) NavigateUp() bool {
 		c.Selected--
 		changed = true
 	}
-	if changed && c.Overview.Mode == model.DetailModeOverview {
+	if changed && c.Overview.Mode == overview.DetailModeOverview {
 		c.refreshOverviewPreview()
 	}
 	return changed
 }
 
 func (c *Coordinator) SwitchToOverview() bool {
-	if c.Overview.Mode == model.DetailModeOverview {
+	if c.Overview.Mode == overview.DetailModeOverview {
 		return false
 	}
-	c.Overview.Mode = model.DetailModeOverview
-	c.Overview.Fetching = model.FetchNone
+	c.Overview.Mode = overview.DetailModeOverview
+	c.Overview.Fetching = overview.FetchNone
 	c.refreshOverviewPreview()
 	return true
 }
 
 func (c *Coordinator) SwitchToDiff() bool {
-	if c.Overview.Mode == model.DetailModeDiff {
+	if c.Overview.Mode == overview.DetailModeDiff {
 		return false
 	}
-	c.Overview.Mode = model.DetailModeDiff
-	c.Overview.Fetching = model.FetchNone
+	c.Overview.Mode = overview.DetailModeDiff
+	c.Overview.Fetching = overview.FetchNone
 	return true
 }
 
-func (c *Coordinator) ShouldApplyDetailResult(mode model.DetailMode, number int) bool {
+func (c *Coordinator) ShouldApplyDetailResult(mode overview.DetailMode, number int) bool {
 	if c.Overview.Mode != mode {
 		return false
 	}
@@ -187,11 +197,11 @@ func (c *Coordinator) PlanEnter(hasClient bool) EnterAction {
 	if !ok {
 		return EnterAction{}
 	}
-	c.Overview.Fetching = model.FetchingDetail
-	if c.Overview.Mode == model.DetailModeDiff {
-		return EnterAction{Kind: model.EnterLoadPRDiff, Repo: c.Repo, Number: item.Number}
+	c.Overview.Fetching = overview.FetchingDetail
+	if c.Overview.Mode == overview.DetailModeDiff {
+		return EnterAction{Kind: EnterLoadPRDiff, Repo: c.Repo, Number: item.Number}
 	}
-	return EnterAction{Kind: model.EnterLoadPRDetail, Repo: c.Repo, Number: item.Number}
+	return EnterAction{Kind: EnterLoadPRDetail, Repo: c.Repo, Number: item.Number}
 }
 
 func (c *Coordinator) OpenFilterSelect() {
@@ -204,16 +214,16 @@ func (c *Coordinator) CloseFilterSelect() {
 }
 
 func (c *Coordinator) MoveFilterCursor(dir int) {
-	n := len(model.PRFilterOptions)
+	n := len(list.PRFilterOptions)
 	c.FilterCursor = (c.FilterCursor + dir + n) % n
 }
 
 // ToggleFilterAtCursor は選択中フィルタをトグルする（最低1つ必須）。
 func (c *Coordinator) ToggleFilterAtCursor() {
-	if c.FilterCursor < 0 || c.FilterCursor >= len(model.PRFilterOptions) {
+	if c.FilterCursor < 0 || c.FilterCursor >= len(list.PRFilterOptions) {
 		return
 	}
-	opt := model.PRFilterOptions[c.FilterCursor]
+	opt := list.PRFilterOptions[c.FilterCursor]
 	next := c.Filter.Toggle(opt)
 	if next == 0 {
 		return
@@ -227,17 +237,17 @@ func (c *Coordinator) refreshOverviewPreview() {
 	}
 }
 
-func (c *Coordinator) selectedPR() (model.Item, bool) {
+func (c *Coordinator) selectedPR() (pr.Item, bool) {
 	if len(c.Items) == 0 {
-		return model.Item{}, false
+		return pr.Item{}, false
 	}
 	if c.Selected < 0 || c.Selected >= len(c.Items) {
-		return model.Item{}, false
+		return pr.Item{}, false
 	}
 	return c.Items[c.Selected], true
 }
 
 func (c *Coordinator) showError(msg string, err error) {
-	c.Overview.Fetching = model.FetchNone
-	c.Overview.Content = model.SanitizeMultiline(fmt.Sprintf("%s: %v", msg, err))
+	c.Overview.Fetching = overview.FetchNone
+	c.Overview.Content = sanitize.Multiline(fmt.Sprintf("%s: %v", msg, err))
 }
