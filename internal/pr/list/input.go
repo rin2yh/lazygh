@@ -4,12 +4,9 @@ package list
 type FilterKeyResult int
 
 const (
-	// FilterKeyNoop means the key was not handled.
-	FilterKeyNoop FilterKeyResult = iota
-	// FilterKeyHandled means the key was handled and state was updated.
-	FilterKeyHandled
-	// FilterKeyApply means the filter was applied and a PR fetch should begin.
-	FilterKeyApply
+	FilterKeyNoop    FilterKeyResult = iota
+	FilterKeyHandled                 // state updated, no further action needed
+	FilterKeyApply                   // filter applied, begin PR fetch
 )
 
 // HandleFilterKey processes a key event while the filter panel is open.
@@ -55,9 +52,6 @@ func (ls *ListState) MoveFilterCursor(dir int) {
 // ToggleFilterAtCursor toggles the filter option under the cursor.
 // At least one option must remain selected.
 func (ls *ListState) ToggleFilterAtCursor() {
-	if ls.FilterCursor < 0 || ls.FilterCursor >= len(PRFilterOptions) {
-		return
-	}
 	opt := PRFilterOptions[ls.FilterCursor]
 	next := ls.Filter.Toggle(opt)
 	if next == 0 {
