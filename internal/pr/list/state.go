@@ -21,3 +21,21 @@ func (ls *ListState) SelectedOverview() (string, bool) {
 	}
 	return formatOverview(ls.Items[ls.Selected]), true
 }
+
+// NavigateDown moves the selection down by one. Returns true if selection changed.
+func (ls *ListState) NavigateDown() bool {
+	if ls.Selected >= len(ls.Items)-1 {
+		return false
+	}
+	ls.Selected++
+	return true
+}
+
+// NavigateUp moves the selection up by one. Returns true if selection changed.
+func (ls *ListState) NavigateUp() bool {
+	if ls.Selected <= 0 {
+		return false
+	}
+	ls.Selected--
+	return true
+}
