@@ -30,6 +30,18 @@ func (ls *State) SelectedOverview() (string, bool) {
 	return formatOverview(ls.Items[ls.Selected]), true
 }
 
+// SetFetching sets the fetching state.
+func (ls *State) SetFetching(v bool) { ls.Fetching = v }
+
+// SetRepo sets the repository name.
+func (ls *State) SetRepo(repo string) { ls.Repo = repo }
+
+// SetItems replaces the PR item list.
+func (ls *State) SetItems(items []pr.Item) { ls.Items = items }
+
+// SetSelected sets the selected index.
+func (ls *State) SetSelected(i int) { ls.Selected = i }
+
 // NavigateDown moves the selection down by one. Returns true if selection changed.
 func (ls *State) NavigateDown() bool {
 	if ls.Selected >= len(ls.Items)-1 {

@@ -59,14 +59,14 @@ func (c *Coordinator) SetReviewHook(h ReviewHook) {
 
 // BeginFetchPRs は PR 一覧ロード開始時にリスト・詳細の両状態を更新する。
 func (c *Coordinator) BeginFetchPRs() {
-	c.Fetching = true
-	c.Overview.Fetching = overview.FetchingPRs
+	c.State.SetFetching(true)
+	c.Overview.SetFetching(overview.FetchingPRs)
 }
 
 // ApplyPRsResult は PR 一覧結果を反映し、review をリセットする。
 func (c *Coordinator) ApplyPRsResult(repo string, items []pr.Item, err error) {
-	c.Fetching = false
-	c.Overview.Fetching = overview.FetchNone
+	c.State.SetFetching(false)
+	c.Overview.SetFetching(overview.FetchNone)
 	if err != nil {
 		c.showError("Error fetching PRs", err)
 		if c.review != nil {
@@ -75,14 +75,14 @@ func (c *Coordinator) ApplyPRsResult(repo string, items []pr.Item, err error) {
 		return
 	}
 
-	c.Repo = repo
-	c.Items = items
-	c.Selected = 0
-	c.Overview.Mode = overview.DetailModeOverview
+	c.State.SetRepo(repo)
+	c.State.SetItems(items)
+	c.State.SetSelected(0)
+	c.Overview.SetMode(overview.DetailModeOverview)
 	if len(items) == 0 {
-		c.Overview.Content = "No pull requests"
+		c.Overview.SetContent("No pull requests")
 	} else if content, ok := c.SelectedOverview(); ok {
-		c.Overview.Content = content
+		c.Overview.SetContent(content)
 	}
 	if c.review != nil {
 		c.review.Reset()
@@ -102,8 +102,8 @@ func (c *Coordinator) BlocksPRSelectionChange() bool {
 
 func (c *Coordinator) SelectedPR() (pr.Item, bool) { return c.selectedPR() }
 func (c *Coordinator) ListRepo() string            { return c.Repo }
-func (c *Coordinator) BeginFetchReview()           { c.Overview.Fetching = overview.FetchingReview }
-func (c *Coordinator) ClearFetching()              { c.Overview.Fetching = overview.FetchNone }
+func (c *Coordinator) BeginFetchReview()           { c.Overview.SetFetching(overview.FetchingReview) }
+func (c *Coordinator) ClearFetching()              { c.Overview.SetFetching(overview.FetchNone) }
 func (c *Coordinator) IsDiffMode() bool            { return c.Overview.Mode == overview.DetailModeDiff }
 
 // --- その他の state メソッド ---
@@ -126,8 +126,8 @@ func (c *Coordinator) applyLoadedContent(errPrefix, content string, err error) {
 		c.showError(errPrefix, err)
 		return
 	}
-	c.Overview.Fetching = overview.FetchNone
-	c.Overview.Content = sanitize.Multiline(content)
+	c.Overview.SetFetching(overview.FetchNone)
+	c.Overview.SetContent(sanitize.Multiline(content))
 }
 
 func (c *Coordinator) NavigateDown() bool {
@@ -150,8 +150,8 @@ func (c *Coordinator) SwitchToOverview() bool {
 	if c.Overview.Mode == overview.DetailModeOverview {
 		return false
 	}
-	c.Overview.Mode = overview.DetailModeOverview
-	c.Overview.Fetching = overview.FetchNone
+	c.Overview.SetMode(overview.DetailModeOverview)
+	c.Overview.SetFetching(overview.FetchNone)
 	c.refreshOverviewPreview()
 	return true
 }
@@ -160,8 +160,8 @@ func (c *Coordinator) SwitchToDiff() bool {
 	if c.Overview.Mode == overview.DetailModeDiff {
 		return false
 	}
-	c.Overview.Mode = overview.DetailModeDiff
-	c.Overview.Fetching = overview.FetchNone
+	c.Overview.SetMode(overview.DetailModeDiff)
+	c.Overview.SetFetching(overview.FetchNone)
 	return true
 }
 
@@ -184,7 +184,7 @@ func (c *Coordinator) PlanEnter(hasClient bool) EnterAction {
 	if !ok {
 		return EnterAction{}
 	}
-	c.Overview.Fetching = overview.FetchingDetail
+	c.Overview.SetFetching(overview.FetchingDetail)
 	if c.Overview.Mode == overview.DetailModeDiff {
 		return EnterAction{Kind: EnterLoadPRDiff, Repo: c.Repo, Number: item.Number}
 	}
@@ -193,7 +193,7 @@ func (c *Coordinator) PlanEnter(hasClient bool) EnterAction {
 
 func (c *Coordinator) refreshOverviewPreview() {
 	if content, ok := c.SelectedOverview(); ok {
-		c.Overview.Content = content
+		c.Overview.SetContent(content)
 	}
 }
 
@@ -208,6 +208,6 @@ func (c *Coordinator) selectedPR() (pr.Item, bool) {
 }
 
 func (c *Coordinator) showError(msg string, err error) {
-	c.Overview.Fetching = overview.FetchNone
-	c.Overview.Content = sanitize.Multiline(fmt.Sprintf("%s: %v", msg, err))
+	c.Overview.SetFetching(overview.FetchNone)
+	c.Overview.SetContent(sanitize.Multiline(fmt.Sprintf("%s: %v", msg, err)))
 }

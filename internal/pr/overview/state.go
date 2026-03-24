@@ -32,3 +32,12 @@ type State struct {
 	Content  string
 	Fetching FetchKind
 }
+
+// SetMode sets the detail display mode.
+func (s *State) SetMode(m DetailMode) { s.Mode = m }
+
+// SetContent sets the overview content string.
+func (s *State) SetContent(content string) { s.Content = content }
+
+// SetFetching sets the fetch kind.
+func (s *State) SetFetching(k FetchKind) { s.Fetching = k }
