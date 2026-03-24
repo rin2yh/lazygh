@@ -216,3 +216,55 @@ func TestHandleSubmit_SavesSummaryIfInSummaryMode(t *testing.T) {
 		t.Fatalf("input mode not cleared, got %v", c.rs.InputMode)
 	}
 }
+
+func TestMarkStaleComments_MarksOrphaned(t *testing.T) {
+	c, _, _ := setupControllerWithPR(&testmock.GHClient{}, reviewstub.Selection{})
+	// Add two comments: one whose position still exists, one that is orphaned.
+	c.rs.AddComment(Comment{Path: "a.go", Side: string(gh.DiffSideRight), Line: 10})
+	c.rs.AddComment(Comment{Path: "b.go", Side: string(gh.DiffSideRight), Line: 5})
+
+	files := []gh.DiffFile{
+		{
+			Path: "a.go",
+			Lines: []gh.DiffLine{
+				{Path: "a.go", Kind: gh.DiffLineKindAdd, Side: gh.DiffSideRight, NewLine: 10, Commentable: true},
+			},
+		},
+		// b.go is absent from the refreshed diff.
+	}
+	c.MarkStaleComments(files)
+
+	if c.rs.Comments[0].Stale {
+		t.Fatal("a.go:10 should not be stale")
+	}
+	if !c.rs.Comments[1].Stale {
+		t.Fatal("b.go:5 should be stale (file not in diff)")
+	}
+}
+
+func TestHasAnchorConflict_DifferentFile(t *testing.T) {
+	sel := reviewstub.Selection{
+		File: gh.DiffFile{Path: "b.go"},
+		Line: gh.DiffLine{Path: "b.go", Commentable: true, Side: gh.DiffSideRight, NewLine: 1},
+	}
+	c, _, _ := setupControllerWithPR(&testmock.GHClient{}, sel)
+	// Range start is on a.go, cursor is on b.go → conflict.
+	c.rs.MarkRangeStart(Range{Path: "a.go", Index: 0, Line: 5})
+
+	if !c.rng.HasConflict() {
+		t.Fatal("expected anchor conflict when files differ")
+	}
+}
+
+func TestHasAnchorConflict_SameFile(t *testing.T) {
+	sel := reviewstub.Selection{
+		File: gh.DiffFile{Path: "a.go"},
+		Line: gh.DiffLine{Path: "a.go", Commentable: true, Side: gh.DiffSideRight, NewLine: 5},
+	}
+	c, _, _ := setupControllerWithPR(&testmock.GHClient{}, sel)
+	c.rs.MarkRangeStart(Range{Path: "a.go", Index: 0, Line: 1})
+
+	if c.rng.HasConflict() {
+		t.Fatal("expected no conflict when files are the same")
+	}
+}

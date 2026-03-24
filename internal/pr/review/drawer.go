@@ -1,6 +1,7 @@
 package review
 
 import (
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 
 const (
 	commentSummaryMaxLen      = 48
+	commentStalePrefix        = "[stale] "
 	CommentModeSingleLine     = "single-line"
 	CommentModeRangeSelecting = "range-selecting"
 )
@@ -23,7 +25,7 @@ func (r DrawerRange) String() string {
 	if r.Path == "" || r.Line <= 0 {
 		return ""
 	}
-	return r.Path + ":" + strconv.Itoa(r.Line)
+	return filepath.Base(r.Path) + ":" + strconv.Itoa(r.Line)
 }
 
 type DrawerComment struct {
@@ -31,6 +33,7 @@ type DrawerComment struct {
 	Line      int
 	StartLine int
 	Body      string
+	Stale     bool
 }
 
 func (c DrawerComment) Summary() string {
@@ -42,7 +45,11 @@ func (c DrawerComment) Summary() string {
 	if len(body) > commentSummaryMaxLen {
 		body = body[:commentSummaryMaxLen] + "..."
 	}
-	return location + " " + body
+	summary := location + " " + body
+	if c.Stale {
+		summary = commentStalePrefix + summary
+	}
+	return summary
 }
 
 func (c DrawerComment) sanitize() string {
@@ -54,6 +61,7 @@ type Input struct {
 	CommentModeLabel   string
 	EventLabel         string
 	RangeStart         *DrawerRange
+	AnchorConflict     bool
 	Comments           []DrawerComment
 	SelectedCommentIdx int
 	Notice             string
@@ -81,7 +89,11 @@ func RenderDrawer(input Input, style widget.PanelStyle, width, height int) []str
 	}
 	if input.RangeStart != nil {
 		if label := input.RangeStart.String(); label != "" {
-			lines = append(lines, "Range start: "+label)
+			if input.AnchorConflict {
+				lines = append(lines, "Range start: "+label+" [different file – range will be cleared]")
+			} else {
+				lines = append(lines, "Range start: "+label)
+			}
 		}
 	}
 	if len(input.Comments) == 0 {
