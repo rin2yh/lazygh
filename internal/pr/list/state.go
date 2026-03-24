@@ -1,14 +1,14 @@
 package list
 
-import "github.com/rin2yh/lazygh/internal/model"
+import "github.com/rin2yh/lazygh/internal/pr"
 
 // ListState holds PR list, selection, and filter state.
 type ListState struct {
 	Repo         string
-	Items        []model.Item
+	Items        []pr.Item
 	Fetching     bool
 	Selected     int
-	Filter       model.PRFilterMask
+	Filter       PRFilterMask
 	FilterOpen   bool
 	FilterCursor int
 }

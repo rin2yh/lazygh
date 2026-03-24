@@ -6,7 +6,7 @@ import (
 
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 	reviewstub "github.com/rin2yh/lazygh/pkg/test/stub/pr/review"
 )
@@ -16,16 +16,16 @@ func defaultTestConfig() *config.Config { return config.Default() }
 // fakeHost implements AppState for tests.
 type fakeHost struct {
 	repo string
-	pr   *model.Item
+	pr   *pr.Item
 	// fetching call counts
 	beginFetchReviewCalls int
 	clearFetchingCalls    int
 	diffMode              bool
 }
 
-func (h *fakeHost) SelectedPR() (model.Item, bool) {
+func (h *fakeHost) SelectedPR() (pr.Item, bool) {
 	if h.pr == nil {
-		return model.Item{}, false
+		return pr.Item{}, false
 	}
 	return *h.pr, true
 }
@@ -37,7 +37,7 @@ func (h *fakeHost) IsDiffMode() bool  { return h.diffMode }
 func setupControllerWithPR(client *testmock.GHClient, sel reviewstub.Selection) (*Controller, *fakeHost, *FocusTarget) {
 	host := &fakeHost{
 		repo: "owner/repo",
-		pr:   &model.Item{Number: 1, Title: "PR"},
+		pr:   &pr.Item{Number: 1, Title: "PR"},
 	}
 	focus := FocusDiffContent
 	c := NewController(defaultTestConfig(), host, client, sel, func(f FocusTarget) { focus = f })

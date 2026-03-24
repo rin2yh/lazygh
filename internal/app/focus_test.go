@@ -8,14 +8,14 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr"
 	testfactory "github.com/rin2yh/lazygh/pkg/test/factory"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 )
 
 func TestNavigatePRList(t *testing.T) {
 	g := mustNewGui(t, &testmock.GHClient{})
-	g.coord.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "a"), testfactory.NewItem(2, "b")}, nil)
+	g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "a"), testfactory.NewItem(2, "b")}, nil)
 
 	g.navigateDown()
 	if g.coord.Selected != 1 {
@@ -33,7 +33,7 @@ func TestCycleFocus_DiffMode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.coord.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
+	g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
 	g.switchToDiff()
 	g.diff.SetFiles([]gh.DiffFile{{Path: "a.txt", Content: "x"}})
 
@@ -152,7 +152,7 @@ func TestModelUpdateFocusKeysInDiffMode(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.coord.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
+			g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
 			g.switchToDiff()
 			g.diff.SetFiles(tt.files)
 			g.focus = tt.start
@@ -221,7 +221,7 @@ func TestModelUpdateFocusKeysInOverviewMode(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.coord.ApplyPRsResult("owner/repo", []model.Item{testfactory.NewItem(1, "x")}, nil)
+			g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
 			g.focus = tt.start
 			m := &screen{gui: g}
 

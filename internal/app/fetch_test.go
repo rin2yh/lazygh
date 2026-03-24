@@ -9,7 +9,8 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr"
+	"github.com/rin2yh/lazygh/internal/pr/overview"
 	testfactory "github.com/rin2yh/lazygh/pkg/test/factory"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 )
@@ -42,9 +43,9 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 	tests := []struct {
 		name         string
 		client       *testmock.GHClient
-		pr           model.Item
+		pr           pr.Item
 		switchToDiff bool
-		wantMode     model.DetailMode
+		wantMode     overview.DetailMode
 		wantContent  string
 		wantNumber   int
 	}{
@@ -52,7 +53,7 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 			name:        "overview",
 			client:      &testmock.GHClient{PRView: "detail"},
 			pr:          testfactory.NewItem(1, "x"),
-			wantMode:    model.DetailModeOverview,
+			wantMode:    overview.DetailModeOverview,
 			wantContent: "detail",
 			wantNumber:  1,
 		},
@@ -61,7 +62,7 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 			client:       &testmock.GHClient{PRDiff: "diff"},
 			pr:           testfactory.NewItem(2, "x"),
 			switchToDiff: true,
-			wantMode:     model.DetailModeDiff,
+			wantMode:     overview.DetailModeDiff,
 			wantContent:  "diff",
 			wantNumber:   2,
 		},
@@ -73,7 +74,7 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.coord.ApplyPRsResult("owner/repo", []model.Item{tt.pr}, nil)
+			g.coord.ApplyPRsResult("owner/repo", []pr.Item{tt.pr}, nil)
 			if tt.switchToDiff {
 				g.switchToDiff()
 			}
@@ -103,7 +104,7 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 func TestGuiApplyPRsResult(t *testing.T) {
 	type want struct {
 		repo   string
-		prs    []model.Item
+		prs    []pr.Item
 		detail string
 	}
 
@@ -116,11 +117,11 @@ func TestGuiApplyPRsResult(t *testing.T) {
 			name: "success",
 			msg: prsLoadedMsg{
 				repo: "owner/repo",
-				prs:  []model.Item{{Number: 1, Title: "Fix bug", Status: "OPEN", Assignees: []string{"alice"}}},
+				prs:  []pr.Item{{Number: 1, Title: "Fix bug", Status: "OPEN", Assignees: []string{"alice"}}},
 			},
 			want: want{
 				repo:   "owner/repo",
-				prs:    []model.Item{{Number: 1, Title: "Fix bug", Status: "OPEN", Assignees: []string{"alice"}}},
+				prs:    []pr.Item{{Number: 1, Title: "Fix bug", Status: "OPEN", Assignees: []string{"alice"}}},
 				detail: "PR #1 Fix bug\nStatus: OPEN\nAssignee: alice",
 			},
 		},
@@ -161,8 +162,8 @@ func TestGuiApplyPRsResult(t *testing.T) {
 			if g.coord.Fetching {
 				t.Fatal("expected PRsLoading=false")
 			}
-			if g.coord.Overview.Fetching != model.FetchNone {
-				t.Fatalf("got %v, want %v", g.coord.Overview.Fetching, model.FetchNone)
+			if g.coord.Overview.Fetching != overview.FetchNone {
+				t.Fatalf("got %v, want %v", g.coord.Overview.Fetching, overview.FetchNone)
 			}
 			if g.coord.Repo != tt.want.repo {
 				t.Fatalf("got %q, want %q", g.coord.Repo, tt.want.repo)
@@ -190,7 +191,7 @@ func TestGuiApplyDetailResult(t *testing.T) {
 		{
 			name: "success",
 			msg: detailLoadedMsg{
-				mode:    model.DetailModeOverview,
+				mode:    overview.DetailModeOverview,
 				number:  1,
 				content: "hello",
 			},
@@ -201,7 +202,7 @@ func TestGuiApplyDetailResult(t *testing.T) {
 		{
 			name: "error",
 			msg: detailLoadedMsg{
-				mode:   model.DetailModeOverview,
+				mode:   overview.DetailModeOverview,
 				number: 1,
 				err:    errors.New("boom"),
 			},
@@ -217,13 +218,13 @@ func TestGuiApplyDetailResult(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.coord.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "Fix bug"}}, nil)
-			g.coord.Overview.Fetching = model.FetchingDetail
+			g.coord.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1, Title: "Fix bug"}}, nil)
+			g.coord.Overview.Fetching = overview.FetchingDetail
 
 			g.applyDetailResult(tt.msg)
 
-			if g.coord.Overview.Fetching != model.FetchNone {
-				t.Fatalf("got %v, want %v", g.coord.Overview.Fetching, model.FetchNone)
+			if g.coord.Overview.Fetching != overview.FetchNone {
+				t.Fatalf("got %v, want %v", g.coord.Overview.Fetching, overview.FetchNone)
 			}
 			if g.coord.Overview.Content != tt.want.detail {
 				t.Fatalf("got %q, want %q", g.coord.Overview.Content, tt.want.detail)
@@ -237,9 +238,9 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.coord.ApplyPRsResult("owner/repo", []model.Item{{Number: 1, Title: "Fix bug"}}, nil)
+	g.coord.ApplyPRsResult("owner/repo", []pr.Item{{Number: 1, Title: "Fix bug"}}, nil)
 	g.switchToDiff()
-	g.coord.Overview.Fetching = model.FetchingDetail
+	g.coord.Overview.Fetching = overview.FetchingDetail
 
 	raw := strings.Join([]string{
 		"diff --git a/a.txt b/a.txt",
@@ -251,7 +252,7 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 	}, "\n")
 
 	g.applyDetailResult(detailLoadedMsg{
-		mode:    model.DetailModeDiff,
+		mode:    overview.DetailModeDiff,
 		number:  1,
 		content: raw,
 	})

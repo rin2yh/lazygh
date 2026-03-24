@@ -6,7 +6,7 @@ import (
 
 	"github.com/rin2yh/lazygh/internal/config"
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr"
 	testmock "github.com/rin2yh/lazygh/pkg/test/mock"
 	reviewstub "github.com/rin2yh/lazygh/pkg/test/stub/pr/review"
 )
@@ -14,7 +14,7 @@ import (
 func TestApplyCommentResult_PersistsPendingReviewContextOnError(t *testing.T) {
 	host := &fakeHost{
 		repo: "owner/repo",
-		pr:   &model.Item{Number: 1, Title: "Fix bug"},
+		pr:   &pr.Item{Number: 1, Title: "Fix bug"},
 	}
 	controller := NewController(config.Default(), host, &testmock.GHClient{}, reviewstub.Selection{}, func(FocusTarget) {})
 

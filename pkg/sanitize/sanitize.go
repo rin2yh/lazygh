@@ -1,8 +1,10 @@
-package model
+// Package sanitize provides string sanitization utilities for safe display.
+package sanitize
 
 import "strings"
 
-func SanitizeSingleLine(s string) string {
+// SingleLine replaces newlines and tabs with spaces and removes dangerous control characters.
+func SingleLine(s string) string {
 	var b strings.Builder
 	for _, r := range s {
 		switch {
@@ -17,7 +19,8 @@ func SanitizeSingleLine(s string) string {
 	return b.String()
 }
 
-func SanitizeMultiline(s string) string {
+// Multiline strips carriage returns and removes dangerous control characters while preserving newlines.
+func Multiline(s string) string {
 	var b strings.Builder
 	for _, r := range s {
 		switch {

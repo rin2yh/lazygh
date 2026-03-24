@@ -3,7 +3,7 @@ package review
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/gh"
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr"
 )
 
 // FocusTarget identifies which UI panel should receive focus.
@@ -24,7 +24,7 @@ type Selection interface {
 // AppState is the minimal interface the review package needs from the host
 // application state (list/detail state).
 type AppState interface {
-	SelectedPR() (model.Item, bool)
+	SelectedPR() (pr.Item, bool)
 	ListRepo() string
 	BeginFetchReview()
 	ClearFetching()

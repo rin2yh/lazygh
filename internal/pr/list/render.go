@@ -2,7 +2,7 @@ package list
 
 import (
 	"github.com/rin2yh/lazygh/internal/app/layout"
-	"github.com/rin2yh/lazygh/internal/model"
+	"github.com/rin2yh/lazygh/internal/pr"
 	"github.com/rin2yh/lazygh/pkg/gui/widget"
 )
 
@@ -10,7 +10,7 @@ import (
 type PanelInput struct {
 	Repo     string
 	Fetching bool
-	Items    []model.Item
+	Items    []pr.Item
 	Selected int
 	Filter   string
 }
@@ -24,11 +24,11 @@ var (
 
 func statusPrefix(status string) string {
 	switch status {
-	case model.PRStatusDraft:
+	case pr.PRStatusDraft:
 		return prefixDraft
-	case model.PRStatusClosed:
+	case pr.PRStatusClosed:
 		return prefixClosed
-	case model.PRStatusMerged:
+	case pr.PRStatusMerged:
 		return prefixMerged
 	default:
 		return prefixOpen
