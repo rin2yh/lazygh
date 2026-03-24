@@ -1,10 +1,12 @@
-package app
+package app_test
 
 import (
 	"strings"
 	"testing"
 
+	"github.com/rin2yh/lazygh/internal/app"
 	"github.com/rin2yh/lazygh/internal/app/layout"
+	apptest "github.com/rin2yh/lazygh/internal/app/test"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/pr"
@@ -54,22 +56,22 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInOverviewMode(t *testing.T
 	prs := []pr.Item{testfactory.NewItem(1, "one"), testfactory.NewItem(2, "two")}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := mustNewGui(t, &testmock.GHClient{})
-			g.coord.ApplyPRsResult("owner/repo", prs, nil)
-			g.focus = tt.startFocus
-			g.coord.Selected = tt.startIndex
-			g.coord.Overview.Content = "PR #1 one\nStatus: \nAssignee: -"
-			m := &screen{gui: g}
+			g := apptest.NewGui(t, &testmock.GHClient{})
+			app.GuiCoord(g).ApplyPRsResult("owner/repo", prs, nil)
+			app.SetGuiFocus(g, tt.startFocus)
+			app.GuiCoord(g).Selected = tt.startIndex
+			app.GuiCoord(g).Overview.Content = "PR #1 one\nStatus: \nAssignee: -"
+			m := app.NewScreen(g)
 
 			_, cmd := m.Update(tt.key)
 			if (cmd != nil) != tt.wantCmd {
 				t.Fatalf("cmd returned = %v, want %v", cmd != nil, tt.wantCmd)
 			}
-			if g.coord.Selected != tt.wantIndex {
-				t.Fatalf("got selected %d, want %d", g.coord.Selected, tt.wantIndex)
+			if app.GuiCoord(g).Selected != tt.wantIndex {
+				t.Fatalf("got selected %d, want %d", app.GuiCoord(g).Selected, tt.wantIndex)
 			}
-			if g.coord.Overview.Content != tt.wantDetail {
-				t.Fatalf("got detail %q, want %q", g.coord.Overview.Content, tt.wantDetail)
+			if app.GuiCoord(g).Overview.Content != tt.wantDetail {
+				t.Fatalf("got detail %q, want %q", app.GuiCoord(g).Overview.Content, tt.wantDetail)
 			}
 		})
 	}
@@ -80,53 +82,53 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 
 	t.Run("j on prs returns reload command", func(t *testing.T) {
 		client := &testmock.GHClient{PRDiff: "diff for two"}
-		g := mustNewGui(t, client)
-		g.coord.ApplyPRsResult("owner/repo", prs, nil)
-		g.switchToDiff()
-		g.focus = layout.FocusPRs
-		m := &screen{gui: g}
+		g := apptest.NewGui(t, client)
+		app.GuiCoord(g).ApplyPRsResult("owner/repo", prs, nil)
+		app.GuiSwitchToDiff(g)
+		app.SetGuiFocus(g, layout.FocusPRs)
+		m := app.NewScreen(g)
 
 		_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
 		if cmd == nil {
 			t.Fatal("expected reload command")
 		}
-		if g.coord.Selected != 1 {
-			t.Fatalf("got selected %d, want %d", g.coord.Selected, 1)
+		if app.GuiCoord(g).Selected != 1 {
+			t.Fatalf("got selected %d, want %d", app.GuiCoord(g).Selected, 1)
 		}
 
-		msg := cmd().(detailLoadedMsg)
-		if msg.err != nil {
-			t.Fatalf("unexpected error: %v", msg.err)
+		number, content, _, err := app.CastDetailLoadedMsg(cmd)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
 		}
-		if msg.number != 2 {
-			t.Fatalf("got number %d, want %d", msg.number, 2)
+		if number != 2 {
+			t.Fatalf("got number %d, want %d", number, 2)
 		}
-		if msg.content != "diff for two" {
-			t.Fatalf("got content %q, want %q", msg.content, "diff for two")
+		if content != "diff for two" {
+			t.Fatalf("got content %q, want %q", content, "diff for two")
 		}
 	})
 
 	t.Run("j on repo does nothing", func(t *testing.T) {
-		g := mustNewGui(t, &testmock.GHClient{PRDiff: "diff for two"})
-		g.coord.ApplyPRsResult("owner/repo", prs, nil)
-		g.switchToDiff()
-		g.focus = layout.FocusRepo
-		m := &screen{gui: g}
+		g := apptest.NewGui(t, &testmock.GHClient{PRDiff: "diff for two"})
+		app.GuiCoord(g).ApplyPRsResult("owner/repo", prs, nil)
+		app.GuiSwitchToDiff(g)
+		app.SetGuiFocus(g, layout.FocusRepo)
+		m := app.NewScreen(g)
 
 		_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
 		if cmd != nil {
 			t.Fatal("did not expect command")
 		}
-		if g.coord.Selected != 0 {
-			t.Fatalf("got selected %d, want %d", g.coord.Selected, 0)
+		if app.GuiCoord(g).Selected != 0 {
+			t.Fatalf("got selected %d, want %d", app.GuiCoord(g).Selected, 0)
 		}
 	})
 
 	t.Run("j on diff content scrolls without changing prs", func(t *testing.T) {
-		g := mustNewGui(t, &testmock.GHClient{PRDiff: "diff for two"})
-		g.coord.ApplyPRsResult("owner/repo", prs, nil)
-		g.switchToDiff()
-		g.updateDiffFiles(strings.Join([]string{
+		g := apptest.NewGui(t, &testmock.GHClient{PRDiff: "diff for two"})
+		app.GuiCoord(g).ApplyPRsResult("owner/repo", prs, nil)
+		app.GuiSwitchToDiff(g)
+		app.GuiUpdateDiffFiles(g, strings.Join([]string{
 			"diff --git a/a.txt b/a.txt",
 			"--- a/a.txt",
 			"+++ b/a.txt",
@@ -134,18 +136,18 @@ func TestModelUpdate_JKMovesPRsOnlyWhenPRPanelFocusedInDiffMode(t *testing.T) {
 			"-old",
 			"+new",
 		}, "\n"))
-		g.focus = layout.FocusDiffContent
-		g.diff.SetLineSelected(0)
-		m := &screen{gui: g}
+		app.SetGuiFocus(g, layout.FocusDiffContent)
+		app.GuiDiff(g).SetLineSelected(0)
+		m := app.NewScreen(g)
 
 		_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
 		if cmd != nil {
 			t.Fatal("did not expect command")
 		}
-		if g.coord.Selected != 0 {
-			t.Fatalf("got selected %d, want %d", g.coord.Selected, 0)
+		if app.GuiCoord(g).Selected != 0 {
+			t.Fatalf("got selected %d, want %d", app.GuiCoord(g).Selected, 0)
 		}
-		if g.diff.LineSelected() == 0 {
+		if app.GuiDiff(g).LineSelected() == 0 {
 			t.Fatal("expected diff line selection to move")
 		}
 	})

@@ -166,7 +166,7 @@ func TestModelUpdate_InputModeSubmitShortcutBypassesEditor(t *testing.T) {
 	}
 	g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
 	g.switchToDiff()
-	rc := reviewCtrl(g)
+	rc := ReviewCtrl(g)
 	rc.SetContext(1, "PR_kwDO123", "deadbeef", "PRR_kwDO456")
 	rc.BeginCommentInput()
 	rc.SetCommentValue("draft")
@@ -196,7 +196,7 @@ func TestModelUpdate_InputModeDiscardShortcutBypassesEditor(t *testing.T) {
 	}
 	g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
 	g.switchToDiff()
-	rc := reviewCtrl(g)
+	rc := ReviewCtrl(g)
 	rc.SetContext(1, "PR_kwDO123", "deadbeef", "PRR_kwDO456")
 	rc.BeginCommentInput()
 	rc.SetCommentValue("draft")

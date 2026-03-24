@@ -1,9 +1,11 @@
-package app
+package app_test
 
 import (
 	"testing"
 
+	"github.com/rin2yh/lazygh/internal/app"
 	"github.com/rin2yh/lazygh/internal/app/layout"
+	apptest "github.com/rin2yh/lazygh/internal/app/test"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/config"
@@ -14,48 +16,48 @@ import (
 )
 
 func TestNavigatePRList(t *testing.T) {
-	g := mustNewGui(t, &testmock.GHClient{})
-	g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "a"), testfactory.NewItem(2, "b")}, nil)
+	g := apptest.NewGui(t, &testmock.GHClient{})
+	app.GuiCoord(g).ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "a"), testfactory.NewItem(2, "b")}, nil)
 
-	g.navigateDown()
-	if g.coord.Selected != 1 {
-		t.Fatalf("got %d, want %d", g.coord.Selected, 1)
+	app.GuiNavigateDown(g)
+	if app.GuiCoord(g).Selected != 1 {
+		t.Fatalf("got %d, want %d", app.GuiCoord(g).Selected, 1)
 	}
 
-	g.navigateUp()
-	if g.coord.Selected != 0 {
-		t.Fatalf("got %d, want %d", g.coord.Selected, 0)
+	app.GuiNavigateUp(g)
+	if app.GuiCoord(g).Selected != 0 {
+		t.Fatalf("got %d, want %d", app.GuiCoord(g).Selected, 0)
 	}
 }
 
 func TestCycleFocus_DiffMode(t *testing.T) {
-	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+	g, err := app.NewGui(config.Default(), app.NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
-	g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
-	g.switchToDiff()
-	g.diff.SetFiles([]gh.DiffFile{{Path: "a.txt", Content: "x"}})
+	app.GuiCoord(g).ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
+	app.GuiSwitchToDiff(g)
+	app.GuiDiff(g).SetFiles([]gh.DiffFile{{Path: "a.txt", Content: "x"}})
 
-	if g.focus != layout.FocusDiffFiles {
-		t.Fatalf("got %v, want %v", g.focus, layout.FocusDiffFiles)
+	if app.GuiFocus(g) != layout.FocusDiffFiles {
+		t.Fatalf("got %v, want %v", app.GuiFocus(g), layout.FocusDiffFiles)
 	}
 
-	g.cycleFocus()
-	if g.focus != layout.FocusDiffContent {
-		t.Fatalf("got %v, want %v", g.focus, layout.FocusDiffContent)
+	app.GuiCycleFocus(g)
+	if app.GuiFocus(g) != layout.FocusDiffContent {
+		t.Fatalf("got %v, want %v", app.GuiFocus(g), layout.FocusDiffContent)
 	}
-	g.cycleFocus()
-	if g.focus != layout.FocusRepo {
-		t.Fatalf("got %v, want %v", g.focus, layout.FocusRepo)
+	app.GuiCycleFocus(g)
+	if app.GuiFocus(g) != layout.FocusRepo {
+		t.Fatalf("got %v, want %v", app.GuiFocus(g), layout.FocusRepo)
 	}
-	g.cycleFocus()
-	if g.focus != layout.FocusPRs {
-		t.Fatalf("got %v, want %v", g.focus, layout.FocusPRs)
+	app.GuiCycleFocus(g)
+	if app.GuiFocus(g) != layout.FocusPRs {
+		t.Fatalf("got %v, want %v", app.GuiFocus(g), layout.FocusPRs)
 	}
-	g.cycleFocus()
-	if g.focus != layout.FocusDiffFiles {
-		t.Fatalf("got %v, want %v", g.focus, layout.FocusDiffFiles)
+	app.GuiCycleFocus(g)
+	if app.GuiFocus(g) != layout.FocusDiffFiles {
+		t.Fatalf("got %v, want %v", app.GuiFocus(g), layout.FocusDiffFiles)
 	}
 }
 
@@ -148,23 +150,23 @@ func TestModelUpdateFocusKeysInDiffMode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+			g, err := app.NewGui(config.Default(), app.NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
-			g.switchToDiff()
-			g.diff.SetFiles(tt.files)
-			g.focus = tt.start
-			reviewCtrl(g).OpenDrawer()
-			m := &screen{gui: g}
+			app.GuiCoord(g).ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
+			app.GuiSwitchToDiff(g)
+			app.GuiDiff(g).SetFiles(tt.files)
+			app.SetGuiFocus(g, tt.start)
+			app.ReviewCtrl(g).OpenDrawer()
+			m := app.NewScreen(g)
 
 			_, cmd := m.Update(tt.key)
 			if cmd != nil {
 				t.Fatal("did not expect command")
 			}
-			if g.focus != tt.wantFocus {
-				t.Fatalf("got %v, want %v", g.focus, tt.wantFocus)
+			if app.GuiFocus(g) != tt.wantFocus {
+				t.Fatalf("got %v, want %v", app.GuiFocus(g), tt.wantFocus)
 			}
 		})
 	}
@@ -217,20 +219,20 @@ func TestModelUpdateFocusKeysInOverviewMode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+			g, err := app.NewGui(config.Default(), app.NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
-			g.coord.ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
-			g.focus = tt.start
-			m := &screen{gui: g}
+			app.GuiCoord(g).ApplyPRsResult("owner/repo", []pr.Item{testfactory.NewItem(1, "x")}, nil)
+			app.SetGuiFocus(g, tt.start)
+			m := app.NewScreen(g)
 
 			_, cmd := m.Update(tt.key)
 			if cmd != nil {
 				t.Fatal("did not expect command")
 			}
-			if g.focus != tt.wantFocus {
-				t.Fatalf("got %v, want %v", g.focus, tt.wantFocus)
+			if app.GuiFocus(g) != tt.wantFocus {
+				t.Fatalf("got %v, want %v", app.GuiFocus(g), tt.wantFocus)
 			}
 		})
 	}
