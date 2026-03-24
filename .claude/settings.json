@@ -22,26 +22,16 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash(git add:*)",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "agent",
-            "prompt": "/simplify"
+            "prompt": "実行しようとしている Bash コマンドを確認してください。コマンドに 'git add' が含まれている場合（&& チェーンの一部でも可）、/simplify を実行して変更済みコードを整理してください。含まれていない場合は何もせず即座に終了してください。"
           }
         ]
       }
     ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash(git add:*)",
-        "hooks": [
-          {
-            "type": "agent",
-            "prompt": "/simplify"
-          }
-        ]
-      }
-    ]
+    "PostToolUse": []
   },
   "permissions": {
     "allow": [
