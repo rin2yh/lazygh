@@ -136,11 +136,7 @@ func (c *Coordinator) applyLoadedContent(errPrefix, content string, err error) {
 }
 
 func (c *Coordinator) NavigateDown() bool {
-	changed := false
-	if c.Selected < len(c.Items)-1 {
-		c.Selected++
-		changed = true
-	}
+	changed := c.ListState.NavigateDown()
 	if changed && c.Overview.Mode == overview.DetailModeOverview {
 		c.refreshOverviewPreview()
 	}
@@ -148,11 +144,7 @@ func (c *Coordinator) NavigateDown() bool {
 }
 
 func (c *Coordinator) NavigateUp() bool {
-	changed := false
-	if c.Selected > 0 {
-		c.Selected--
-		changed = true
-	}
+	changed := c.ListState.NavigateUp()
 	if changed && c.Overview.Mode == overview.DetailModeOverview {
 		c.refreshOverviewPreview()
 	}
