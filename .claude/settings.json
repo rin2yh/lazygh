@@ -21,17 +21,7 @@
       }
     ],
     "PreToolUse": [],
-    "PostToolUse": [
-      {
-        "matcher": "Bash(go build:*)",
-        "hooks": [
-          {
-            "type": "agent",
-            "prompt": "/simplify を実行して変更済みコードを整理してください。"
-          }
-        ]
-      }
-    ]
+    "PostToolUse": []
   },
   "permissions": {
     "allow": [
