@@ -21,7 +21,7 @@ func TestRenderCommentSummary(t *testing.T) {
 }
 
 func TestRenderReviewDrawer_RendersMultilineSummaryWithoutBreakingLayout(t *testing.T) {
-	lines := RenderDrawer(DrawerInput{
+	lines := RenderDrawer(Input{
 		SummaryLines:     []string{"first line", "second line"},
 		CommentModeLabel: CommentModeSingleLine,
 	}, widget.PanelStyle{BorderColor: "green", TitleColor: "green"}, 40, 8)

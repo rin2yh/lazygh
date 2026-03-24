@@ -32,7 +32,7 @@ func TestStatusPrefix(t *testing.T) {
 
 func TestRenderLeftPanelsSeparated(t *testing.T) {
 	screen := layout.New(80, 10, false, false)
-	input := PanelInput{
+	input := Input{
 		Repo:     "owner/repo",
 		Items:    []pr.Item{{Number: 1, Title: "Fix bug"}},
 		Selected: 0,

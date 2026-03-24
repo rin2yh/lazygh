@@ -240,9 +240,9 @@ func (c *Controller) BeginCommentFlow() {
 	c.setFocus(FocusReviewDrawer)
 }
 
-// BuildDrawerInput assembles a DrawerInput from the current review state.
+// BuildDrawerInput assembles an Input from the current review state.
 // Returns nil when showDrawer is false.
-func (c *Controller) BuildDrawerInput(showDrawer bool) *DrawerInput {
+func (c *Controller) BuildDrawerInput(showDrawer bool) *Input {
 	if !showDrawer {
 		return nil
 	}
@@ -251,7 +251,7 @@ func (c *Controller) BuildDrawerInput(showDrawer bool) *DrawerInput {
 	if inputMode == InputSummary {
 		summary = c.summary.Text()
 	}
-	input := &DrawerInput{
+	input := &Input{
 		SummaryLines:     splitLines(summary),
 		CommentModeLabel: CommentModeSingleLine,
 		EventLabel:       c.rs.Event.Label(),

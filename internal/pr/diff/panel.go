@@ -15,7 +15,7 @@ type ContentLine struct {
 	InRange  bool
 }
 
-type PanelInput struct {
+type Input struct {
 	DiffMode         bool
 	OverviewTitle    string
 	OverviewLines    []string
@@ -24,7 +24,7 @@ type PanelInput struct {
 	DiffContentLines []ContentLine
 }
 
-func RenderFiles(input PanelInput, style widget.PanelStyle, width, height int) []string {
+func RenderFiles(input Input, style widget.PanelStyle, width, height int) []string {
 	if len(input.DiffFiles) == 0 {
 		return widget.FramePanel("Files", []string{"No changed files"}, width, height, style)
 	}
@@ -43,7 +43,7 @@ func RenderFiles(input PanelInput, style widget.PanelStyle, width, height int) [
 	return widget.FramePanel("Files", lines, width, height, style)
 }
 
-func RenderContent(input PanelInput, style widget.PanelStyle, width, height int) []string {
+func RenderContent(input Input, style widget.PanelStyle, width, height int) []string {
 	if len(input.DiffContentLines) == 0 {
 		return widget.FramePanel("Diff", input.OverviewLines, width, height, style)
 	}
@@ -52,7 +52,7 @@ func RenderContent(input PanelInput, style widget.PanelStyle, width, height int)
 	return widget.FramePanel("Diff", lines, width, height, style)
 }
 
-func ContentLines(input PanelInput, height int) []string {
+func ContentLines(input Input, height int) []string {
 	if len(input.DiffContentLines) == 0 {
 		return nil
 	}
