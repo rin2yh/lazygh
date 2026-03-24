@@ -10,25 +10,25 @@ import (
 func TestNavigateDown(t *testing.T) {
 	tests := []struct {
 		name    string
-		ls      ListState
+		ls      State
 		wantOk  bool
 		wantSel int
 	}{
 		{
 			name:    "empty list",
-			ls:      ListState{},
+			ls:      State{},
 			wantOk:  false,
 			wantSel: 0,
 		},
 		{
 			name:    "at last item",
-			ls:      ListState{Items: []pr.Item{{}, {}}, Selected: 1},
+			ls:      State{Items: []pr.Item{{}, {}}, Selected: 1},
 			wantOk:  false,
 			wantSel: 1,
 		},
 		{
 			name:    "normal move",
-			ls:      ListState{Items: []pr.Item{{}, {}}, Selected: 0},
+			ls:      State{Items: []pr.Item{{}, {}}, Selected: 0},
 			wantOk:  true,
 			wantSel: 1,
 		},
@@ -49,19 +49,19 @@ func TestNavigateDown(t *testing.T) {
 func TestNavigateUp(t *testing.T) {
 	tests := []struct {
 		name    string
-		ls      ListState
+		ls      State
 		wantOk  bool
 		wantSel int
 	}{
 		{
 			name:    "at top",
-			ls:      ListState{Items: []pr.Item{{}, {}}, Selected: 0},
+			ls:      State{Items: []pr.Item{{}, {}}, Selected: 0},
 			wantOk:  false,
 			wantSel: 0,
 		},
 		{
 			name:    "normal move",
-			ls:      ListState{Items: []pr.Item{{}, {}}, Selected: 1},
+			ls:      State{Items: []pr.Item{{}, {}}, Selected: 1},
 			wantOk:  true,
 			wantSel: 0,
 		},
@@ -82,34 +82,34 @@ func TestNavigateUp(t *testing.T) {
 func TestSelectedOverview(t *testing.T) {
 	tests := []struct {
 		name    string
-		ls      *ListState
+		ls      *State
 		wantOk  bool
 		wantSub string
 	}{
 		{
 			name:   "empty items",
-			ls:     &ListState{},
+			ls:     &State{},
 			wantOk: false,
 		},
 		{
 			name:   "selected out of range",
-			ls:     &ListState{Items: []pr.Item{{Number: 1, Title: "PR 1"}}, Selected: 5},
+			ls:     &State{Items: []pr.Item{{Number: 1, Title: "PR 1"}}, Selected: 5},
 			wantOk: false,
 		},
 		{
 			name:   "selected negative",
-			ls:     &ListState{Items: []pr.Item{{Number: 1, Title: "PR 1"}}, Selected: -1},
+			ls:     &State{Items: []pr.Item{{Number: 1, Title: "PR 1"}}, Selected: -1},
 			wantOk: false,
 		},
 		{
 			name:    "first item selected",
-			ls:      &ListState{Items: []pr.Item{{Number: 1, Title: "Fix bug", Status: "OPEN"}}, Selected: 0},
+			ls:      &State{Items: []pr.Item{{Number: 1, Title: "Fix bug", Status: "OPEN"}}, Selected: 0},
 			wantOk:  true,
 			wantSub: "PR #1",
 		},
 		{
 			name: "second item selected",
-			ls: &ListState{
+			ls: &State{
 				Items:    []pr.Item{{Number: 1, Title: "First"}, {Number: 2, Title: "Second", Status: "MERGED"}},
 				Selected: 1,
 			},

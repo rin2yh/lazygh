@@ -11,7 +11,7 @@ const (
 
 // HandleFilterKey processes a key event while the filter panel is open.
 // It returns a FilterKeyResult indicating whether a PR fetch is needed.
-func (ls *ListState) HandleFilterKey(key string) FilterKeyResult {
+func (ls *State) HandleFilterKey(key string) FilterKeyResult {
 	switch key {
 	case "esc":
 		ls.CloseFilterSelect()
@@ -33,25 +33,25 @@ func (ls *ListState) HandleFilterKey(key string) FilterKeyResult {
 }
 
 // OpenFilterSelect opens the filter selection panel.
-func (ls *ListState) OpenFilterSelect() {
+func (ls *State) OpenFilterSelect() {
 	ls.FilterOpen = true
 	ls.FilterCursor = 0
 }
 
 // CloseFilterSelect closes the filter selection panel.
-func (ls *ListState) CloseFilterSelect() {
+func (ls *State) CloseFilterSelect() {
 	ls.FilterOpen = false
 }
 
 // MoveFilterCursor moves the filter cursor by dir steps (wraps around).
-func (ls *ListState) MoveFilterCursor(dir int) {
+func (ls *State) MoveFilterCursor(dir int) {
 	n := len(PRFilterOptions)
 	ls.FilterCursor = (ls.FilterCursor + dir + n) % n
 }
 
 // ToggleFilterAtCursor toggles the filter option under the cursor.
 // At least one option must remain selected.
-func (ls *ListState) ToggleFilterAtCursor() {
+func (ls *State) ToggleFilterAtCursor() {
 	opt := PRFilterOptions[ls.FilterCursor]
 	next := ls.Filter.Toggle(opt)
 	if next == 0 {

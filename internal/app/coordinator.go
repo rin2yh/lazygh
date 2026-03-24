@@ -33,7 +33,7 @@ type ReviewHook interface {
 
 // Coordinator はアプリ全体の状態と機能間協調ロジックを保持する。
 type Coordinator struct {
-	list.ListState
+	list.State
 
 	Overview overview.State
 
@@ -45,7 +45,7 @@ type Coordinator struct {
 
 func NewCoordinator() *Coordinator {
 	return &Coordinator{
-		ListState: list.ListState{
+		State: list.State{
 			Items:  []pr.Item{},
 			Filter: list.PRFilterOpen,
 		},
@@ -136,7 +136,7 @@ func (c *Coordinator) applyLoadedContent(errPrefix, content string, err error) {
 }
 
 func (c *Coordinator) NavigateDown() bool {
-	changed := c.ListState.NavigateDown()
+	changed := c.State.NavigateDown()
 	if changed && c.Overview.Mode == overview.DetailModeOverview {
 		c.refreshOverviewPreview()
 	}
@@ -144,7 +144,7 @@ func (c *Coordinator) NavigateDown() bool {
 }
 
 func (c *Coordinator) NavigateUp() bool {
-	changed := c.ListState.NavigateUp()
+	changed := c.State.NavigateUp()
 	if changed && c.Overview.Mode == overview.DetailModeOverview {
 		c.refreshOverviewPreview()
 	}

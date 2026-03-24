@@ -31,7 +31,7 @@ type Gui struct {
 	focus    layout.Focus
 	showHelp bool
 
-	diff   diff.Selection
+	diff   diff.State
 	detail viewport.Viewport
 
 	review reviewController
