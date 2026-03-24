@@ -10,7 +10,7 @@ import (
 )
 
 func TestRenderRightPanels_DiffModeHasFilesPanel(t *testing.T) {
-	input := PanelInput{
+	input := Input{
 		DiffMode: true,
 		DiffFiles: []gh.DiffFile{
 			{Path: "a.txt", Status: gh.DiffFileStatusModified, Additions: 1, Deletions: 1},
@@ -24,7 +24,7 @@ func TestRenderRightPanels_DiffModeHasFilesPanel(t *testing.T) {
 }
 
 func TestRenderRightPanels_NarrowDiffModeFallsBackToOverviewLines(t *testing.T) {
-	input := PanelInput{
+	input := Input{
 		DiffMode:      true,
 		OverviewLines: []string{"@@ -1 +1 @@", "+raw diff line"},
 	}
@@ -40,7 +40,7 @@ func TestRenderRightPanels_NarrowDiffModeFallsBackToOverviewLines(t *testing.T) 
 }
 
 func TestRenderRightPanels_NarrowDiffModePrefersStructuredDiffLines(t *testing.T) {
-	input := PanelInput{
+	input := Input{
 		DiffMode:         true,
 		OverviewLines:    []string{"+raw diff line"},
 		DiffContentLines: []ContentLine{{Location: "+1", Text: "+new", Selected: true}},

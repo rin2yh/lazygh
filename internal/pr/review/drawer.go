@@ -49,7 +49,7 @@ func (c DrawerComment) sanitize() string {
 	return strings.TrimSpace(sanitize.SingleLine(c.Body))
 }
 
-type DrawerInput struct {
+type Input struct {
 	SummaryLines       []string
 	CommentModeLabel   string
 	EventLabel         string
@@ -61,7 +61,7 @@ type DrawerInput struct {
 	SummaryInputLines  []string
 }
 
-func RenderDrawer(input DrawerInput, style widget.PanelStyle, width, height int) []string {
+func RenderDrawer(input Input, style widget.PanelStyle, width, height int) []string {
 	if height <= 0 {
 		return nil
 	}

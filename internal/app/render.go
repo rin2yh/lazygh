@@ -26,7 +26,7 @@ func (gui *Gui) render() string {
 		Keys:      gui.config.KeyBindings,
 	}.String()
 
-	leftInput := list.PanelInput{
+	leftInput := list.Input{
 		Repo:     gui.coord.Repo,
 		Fetching: gui.coord.Fetching,
 		Items:    gui.coord.Items,
@@ -40,7 +40,7 @@ func (gui *Gui) render() string {
 	} else {
 		rightLines = gui.currentDetailLines(screen, gui.coord.Overview.Content)
 	}
-	rightInput := diff.PanelInput{
+	rightInput := diff.Input{
 		DiffMode:      isDiff,
 		OverviewTitle: "Overview",
 		OverviewLines: rightLines,
@@ -84,7 +84,7 @@ func (gui *Gui) render() string {
 	return b.String()
 }
 
-func (gui *Gui) renderRight(input diff.PanelInput, screen layout.Screen, focus layout.Focus) []string {
+func (gui *Gui) renderRight(input diff.Input, screen layout.Screen, focus layout.Focus) []string {
 	diffActive := focus == layout.FocusDiffContent
 	if !input.DiffMode {
 		return widget.FramePanel(input.OverviewTitle, input.OverviewLines, screen.RightWidth, screen.MainHeight, gui.style(diffActive))
