@@ -19,6 +19,13 @@ const (
 	FetchingReview
 )
 
+// NewState returns an initialized overview State with default mode.
+func NewState() State {
+	return State{
+		Mode: DetailModeOverview,
+	}
+}
+
 // State holds overview panel display and fetching state.
 type State struct {
 	Mode     DetailMode

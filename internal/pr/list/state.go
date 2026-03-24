@@ -2,6 +2,14 @@ package list
 
 import "github.com/rin2yh/lazygh/internal/pr"
 
+// NewState returns an initialized list State with default filter and empty items.
+func NewState() State {
+	return State{
+		Items:  []pr.Item{},
+		Filter: PRFilterOpen,
+	}
+}
+
 // State holds PR list, selection, and filter state.
 type State struct {
 	Repo         string
