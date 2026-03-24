@@ -4,30 +4,30 @@ import (
 	"strings"
 
 	"github.com/rin2yh/lazygh/internal/gh"
-	pr "github.com/rin2yh/lazygh/internal/pr"
+	"github.com/rin2yh/lazygh/internal/pr"
 )
 
 // Convert transforms a slice of gh.PRItem into pr.Item, filtering by the given mask.
-func Convert(ghprs []gh.PRItem, filter PRFilterMask) []pr.Item {
-	items := make([]pr.Item, 0, len(ghprs))
-	for _, ghpr := range ghprs {
-		if !filter.Matches(ghpr.State) {
+func Convert(prs []gh.PRItem, filter PRFilterMask) []pr.Item {
+	items := make([]pr.Item, 0, len(prs))
+	for _, p := range prs {
+		if !filter.Matches(p.State) {
 			continue
 		}
-		status := ghpr.State
-		if ghpr.IsDraft {
+		status := p.State
+		if p.IsDraft {
 			status = pr.PRStatusDraft
 		}
-		assignees := make([]string, 0, len(ghpr.Assignees))
-		for _, user := range ghpr.Assignees {
+		assignees := make([]string, 0, len(p.Assignees))
+		for _, user := range p.Assignees {
 			name := strings.TrimSpace(user.Login)
 			if name != "" {
 				assignees = append(assignees, name)
 			}
 		}
 		items = append(items, pr.Item{
-			Number:    ghpr.Number,
-			Title:     ghpr.Title,
+			Number:    p.Number,
+			Title:     p.Title,
 			Status:    status,
 			Assignees: assignees,
 		})
