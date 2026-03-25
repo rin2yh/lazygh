@@ -15,7 +15,7 @@ import (
 )
 
 func TestModelUpdate_VKeyTogglesRangeSelection(t *testing.T) {
-	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{}, nil)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
@@ -48,7 +48,7 @@ func TestModelUpdate_VKeyTogglesRangeSelection(t *testing.T) {
 }
 
 func TestModelUpdate_EnterKeyUsesRangeFlowAfterV(t *testing.T) {
-	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{}, nil)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
@@ -84,7 +84,7 @@ func TestModelUpdate_EnterKeyUsesRangeFlowAfterV(t *testing.T) {
 }
 
 func TestModelUpdate_EscCancelsCommentAndClearsRangeHighlight(t *testing.T) {
-	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{}, nil)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
@@ -123,7 +123,7 @@ func TestModelUpdate_EscCancelsCommentAndClearsRangeHighlight(t *testing.T) {
 }
 
 func TestModelUpdate_EscClearsRangeSelectionWithoutLeavingDiff(t *testing.T) {
-	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{}, nil)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
@@ -160,7 +160,7 @@ func TestModelUpdate_EscClearsRangeSelectionWithoutLeavingDiff(t *testing.T) {
 
 func TestModelUpdate_InputModeSubmitShortcutBypassesEditor(t *testing.T) {
 	mc := &testmock.GHClient{}
-	g, err := NewGui(config.Default(), NewCoordinator(), mc, mc)
+	g, err := NewGui(config.Default(), NewCoordinator(), mc, mc, mc)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
@@ -190,7 +190,7 @@ func TestModelUpdate_InputModeSubmitShortcutBypassesEditor(t *testing.T) {
 
 func TestModelUpdate_InputModeDiscardShortcutBypassesEditor(t *testing.T) {
 	mc := &testmock.GHClient{}
-	g, err := NewGui(config.Default(), NewCoordinator(), mc, mc)
+	g, err := NewGui(config.Default(), NewCoordinator(), mc, mc, mc)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
@@ -216,7 +216,7 @@ func TestModelUpdate_InputModeDiscardShortcutBypassesEditor(t *testing.T) {
 }
 
 func TestModelUpdate_ReviewKeysIgnoredOutsideDiff(t *testing.T) {
-	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{}, nil)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}

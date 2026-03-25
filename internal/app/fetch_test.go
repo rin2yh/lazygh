@@ -17,7 +17,7 @@ import (
 
 func TestModelInitLoadsPRs(t *testing.T) {
 	mc := &testmock.GHClient{Repo: "owner/repo", PRs: []gh.PRItem{testfactory.NewGHPRItem(2, "p")}}
-	g, err := NewGui(config.Default(), NewCoordinator(), mc, mc)
+	g, err := NewGui(config.Default(), NewCoordinator(), mc, mc, mc)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestScreenOpenSelectedPR(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), NewCoordinator(), tt.client, tt.client)
+			g, err := NewGui(config.Default(), NewCoordinator(), tt.client, tt.client, nil)
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
@@ -151,7 +151,7 @@ func TestGuiApplyPRsResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+			g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{}, nil)
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
@@ -214,7 +214,7 @@ func TestGuiApplyDetailResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+			g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{}, nil)
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
@@ -234,7 +234,7 @@ func TestGuiApplyDetailResult(t *testing.T) {
 }
 
 func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
-	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{}, nil)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
@@ -272,7 +272,7 @@ func TestApplyDetailResult_DiffUsesSanitizedContent(t *testing.T) {
 }
 
 func TestUpdateDiffFiles(t *testing.T) {
-	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{}, nil)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}

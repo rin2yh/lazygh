@@ -3,10 +3,12 @@ package app
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rin2yh/lazygh/internal/app/layout"
+	"github.com/rin2yh/lazygh/internal/gh"
 	"github.com/rin2yh/lazygh/internal/pr"
 	"github.com/rin2yh/lazygh/internal/pr/diff"
 	"github.com/rin2yh/lazygh/internal/pr/list"
 	"github.com/rin2yh/lazygh/internal/pr/overview"
+	"github.com/rin2yh/lazygh/internal/pr/review"
 )
 
 type prsLoadedMsg struct {
@@ -20,6 +22,12 @@ type detailLoadedMsg struct {
 	number  int
 	content string
 	err     error
+}
+
+type threadsLoadedMsg struct {
+	prNumber int
+	threads  []gh.ReviewThread
+	err      error
 }
 
 func (s *screen) loadPRsCmd() tea.Cmd {
@@ -53,26 +61,49 @@ func (s *screen) loadDetailCmd(repo string, number int, mode overview.DetailMode
 	}
 }
 
+func (s *screen) loadThreadsCmd(repo string, number int) tea.Cmd {
+	tc := s.gui.threadClient
+	if tc == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		threads, err := tc.GetReviewThreads(repo, number)
+		return threadsLoadedMsg{prNumber: number, threads: threads, err: err}
+	}
+}
+
+func (gui *Gui) applyThreadsResult(msg threadsLoadedMsg) {
+	item, ok := gui.coord.SelectedPR()
+	if !ok || item.Number != msg.prNumber {
+		return
+	}
+	gui.review.ThreadsResult(review.ThreadsLoadedMsg{
+		Threads: msg.threads,
+		Err:     msg.err,
+	})
+}
+
 func (gui *Gui) applyPRsResult(msg prsLoadedMsg) {
 	gui.coord.ApplyPRsResult(msg.repo, msg.prs, msg.err)
 	gui.focus = layout.FocusPRs
 }
 
-func (gui *Gui) applyDetailResult(msg detailLoadedMsg) {
+func (gui *Gui) applyDetailResult(msg detailLoadedMsg) tea.Cmd {
 	if !gui.coord.ShouldApplyDetailResult(msg.mode, msg.number) {
-		return
+		return nil
 	}
 	if msg.mode == overview.DetailModeDiff {
 		gui.coord.ApplyDiffResult(msg.content, msg.err)
 		if msg.err != nil {
 			gui.diff.Reset()
 			gui.resetDiffFocusIfOnFiles()
-			return
+			return nil
 		}
 		gui.updateDiffFiles(gui.coord.Overview.Content())
-		return
+		return nil
 	}
 	gui.coord.ApplyDetailResult(msg.content, msg.err)
+	return nil
 }
 
 func (gui *Gui) currentDiffContent() string {

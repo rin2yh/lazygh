@@ -24,9 +24,10 @@ type reviewController interface {
 }
 
 type Gui struct {
-	config *config.Config
-	coord  *Coordinator
-	client prClient
+	config       *config.Config
+	coord        *Coordinator
+	client       prClient
+	threadClient review.ThreadClient
 
 	focus    layout.Focus
 	showHelp bool
@@ -37,16 +38,18 @@ type Gui struct {
 	review reviewController
 }
 
-func NewGui(cfg *config.Config, coord *Coordinator, prClient prClient, reviewClient review.PendingReviewClient) (*Gui, error) {
+func NewGui(cfg *config.Config, coord *Coordinator, prClient prClient, reviewClient review.PendingReviewClient, threadClient review.ThreadClient) (*Gui, error) {
 	vp := viewport.New()
 	g := &Gui{
-		config: cfg,
-		coord:  coord,
-		client: prClient,
-		focus:  layout.FocusPRs,
-		detail: &vp,
+		config:       cfg,
+		coord:        coord,
+		client:       prClient,
+		threadClient: threadClient,
+		focus:        layout.FocusPRs,
+		detail:       &vp,
 	}
 	revCtrl := review.NewController(cfg, coord, reviewClient, &g.diff, g.setReviewFocus)
+	revCtrl.SetThreadClient(threadClient)
 	g.review = revCtrl
 	coord.SetReviewHook(revCtrl)
 	return g, nil

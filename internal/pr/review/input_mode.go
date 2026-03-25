@@ -7,4 +7,5 @@ const (
 	InputNone InputMode = iota
 	InputComment
 	InputSummary
+	InputThreadReply
 )

@@ -17,7 +17,7 @@ func main() {
 		os.Exit(1)
 	}
 	client := gh.NewClient()
-	g, err := app.NewGui(cfg, a.Coordinator, client, client)
+	g, err := app.NewGui(cfg, a.Coordinator, client, client, client)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)

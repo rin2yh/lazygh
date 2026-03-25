@@ -37,6 +37,17 @@ type DiscardedMsg struct {
 	Err error
 }
 
+// ThreadsLoadedMsg is returned after GetReviewThreads completes.
+type ThreadsLoadedMsg struct {
+	Threads []gh.ReviewThread
+	Err     error
+}
+
+// ThreadReplyMsg is returned after AddReplyToReviewThread completes.
+type ThreadReplyMsg struct {
+	Err error
+}
+
 type pending struct {
 	rs        *ReviewState
 	app       AppState
