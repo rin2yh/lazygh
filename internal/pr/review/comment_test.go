@@ -146,7 +146,7 @@ func TestHandleEditorKey_EscCancelsCommentAndClearsRange(t *testing.T) {
 	c.setFocus = func(target FocusTarget) { focus = target }
 	c.SetCommentValue("draft")
 
-	_, handled := c.EditorKey(tea.KeyMsg{Type: tea.KeyEsc})
+	_, handled := c.editorKey(tea.KeyMsg{Type: tea.KeyEsc})
 	if !handled {
 		t.Fatal("expected key handled")
 	}
