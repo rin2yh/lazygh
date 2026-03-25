@@ -29,7 +29,7 @@ func TestNavigatePRList(t *testing.T) {
 }
 
 func TestCycleFocus_DiffMode(t *testing.T) {
-	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+	g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{}, nil)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
@@ -148,7 +148,7 @@ func TestModelUpdateFocusKeysInDiffMode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+			g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{}, nil)
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}
@@ -217,7 +217,7 @@ func TestModelUpdateFocusKeysInOverviewMode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{})
+			g, err := NewGui(config.Default(), NewCoordinator(), &testmock.GHClient{}, &testmock.GHClient{}, nil)
 			if err != nil {
 				t.Fatalf("NewGui failed: %v", err)
 			}

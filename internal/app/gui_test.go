@@ -29,7 +29,7 @@ func TestGuiRun_LoadsPRsAndDetail(t *testing.T) {
 		ReleasePRs:     releasePRs,
 		ReleaseDetail:  releaseDetail,
 	}
-	g, err := NewGui(config.Default(), NewCoordinator(), client, client)
+	g, err := NewGui(config.Default(), NewCoordinator(), client, client, client)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}
@@ -102,7 +102,7 @@ func waitUntil(t *testing.T, cond func() bool, msg string) {
 
 func mustNewGui(t *testing.T, client *testmock.GHClient) *Gui {
 	t.Helper()
-	g, err := NewGui(config.Default(), NewCoordinator(), client, client)
+	g, err := NewGui(config.Default(), NewCoordinator(), client, client, client)
 	if err != nil {
 		t.Fatalf("NewGui failed: %v", err)
 	}

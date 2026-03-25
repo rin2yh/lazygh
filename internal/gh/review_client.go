@@ -6,6 +6,25 @@ import (
 	"strings"
 )
 
+// ReviewThreadComment is a single comment within a review thread.
+type ReviewThreadComment struct {
+	ID        string `json:"id"`
+	Author    string
+	Body      string `json:"body"`
+	CreatedAt string `json:"createdAt"`
+}
+
+// ReviewThread represents an existing review thread on a PR.
+type ReviewThread struct {
+	ID         string `json:"id"`
+	Path       string `json:"path"`
+	Line       int    `json:"line"`
+	DiffSide   string `json:"diffSide"`
+	IsResolved bool   `json:"isResolved"`
+	IsOutdated bool   `json:"isOutdated"`
+	Comments   []ReviewThreadComment
+}
+
 // ReviewContext holds the identifiers needed to start or interact with a GitHub PR review.
 type ReviewContext struct {
 	PullRequestID string
@@ -188,6 +207,95 @@ func (c *Client) SubmitReview(_ string, reviewID string, event ReviewEvent, body
 		mutationSubmitReview,
 		"-f", "pullRequestReviewId="+reviewID,
 		"-f", "event="+string(event),
+		"-f", "body="+body,
+	)
+}
+
+func (c *Client) GetReviewThreads(repo string, number int) ([]ReviewThread, error) {
+	owner, name, err := splitRepo(repo)
+	if err != nil {
+		return nil, err
+	}
+	var resp struct {
+		Data struct {
+			Repository struct {
+				PullRequest struct {
+					ReviewThreads struct {
+						Nodes []struct {
+							ID         string `json:"id"`
+							Path       string `json:"path"`
+							Line       int    `json:"line"`
+							DiffSide   string `json:"diffSide"`
+							IsResolved bool   `json:"isResolved"`
+							IsOutdated bool   `json:"isOutdated"`
+							Comments   struct {
+								Nodes []struct {
+									ID     string `json:"id"`
+									Author struct {
+										Login string `json:"login"`
+									} `json:"author"`
+									Body      string `json:"body"`
+									CreatedAt string `json:"createdAt"`
+								} `json:"nodes"`
+							} `json:"comments"`
+						} `json:"nodes"`
+					} `json:"reviewThreads"`
+				} `json:"pullRequest"`
+			} `json:"repository"`
+		} `json:"data"`
+	}
+	if err := c.api.RunGraphQL(
+		&resp,
+		queryGetReviewThreads,
+		"-f", "owner="+owner,
+		"-f", "name="+name,
+		"-F", "number="+strconv.Itoa(number),
+	); err != nil {
+		return nil, err
+	}
+	nodes := resp.Data.Repository.PullRequest.ReviewThreads.Nodes
+	threads := make([]ReviewThread, 0, len(nodes))
+	for _, n := range nodes {
+		comments := make([]ReviewThreadComment, 0, len(n.Comments.Nodes))
+		for _, c := range n.Comments.Nodes {
+			comments = append(comments, ReviewThreadComment{
+				ID:        c.ID,
+				Author:    c.Author.Login,
+				Body:      c.Body,
+				CreatedAt: c.CreatedAt,
+			})
+		}
+		threads = append(threads, ReviewThread{
+			ID:         n.ID,
+			Path:       n.Path,
+			Line:       n.Line,
+			DiffSide:   n.DiffSide,
+			IsResolved: n.IsResolved,
+			IsOutdated: n.IsOutdated,
+			Comments:   comments,
+		})
+	}
+	return threads, nil
+}
+
+func (c *Client) AddReplyToReviewThread(threadID string, body string) error {
+	if strings.TrimSpace(threadID) == "" {
+		return fmt.Errorf("thread id is empty")
+	}
+	if strings.TrimSpace(body) == "" {
+		return fmt.Errorf("reply body is empty")
+	}
+	var resp struct {
+		Data struct {
+			AddPullRequestReviewThreadReply struct {
+				Comment struct {
+					ID string `json:"id"`
+				} `json:"comment"`
+			} `json:"addPullRequestReviewThreadReply"`
+		} `json:"data"`
+	}
+	return c.api.RunGraphQL(&resp, mutationAddReplyToReviewThread,
+		"-f", "threadId="+threadID,
 		"-f", "body="+body,
 	)
 }

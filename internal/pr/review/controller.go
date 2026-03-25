@@ -11,15 +11,18 @@ import (
 // Controller orchestrates the pending-review workflow and directly owns
 // ReviewState (no *state.State reference).
 type Controller struct {
-	rs         *ReviewState
-	isDiffMode func() bool
-	keys       config.KeyBindings
-	comment    *comment
-	summary    *summary
-	rng        *rangeState
-	pending    *pending
-	view       *view
-	setFocus   func(FocusTarget)
+	rs           *ReviewState
+	isDiffMode   func() bool
+	keys         config.KeyBindings
+	comment      *comment
+	summary      *summary
+	rng          *rangeState
+	pending      *pending
+	view         *view
+	setFocus     func(FocusTarget)
+	threadClient ThreadClient
+	app          AppState
+	threadReply  *threadReply
 }
 
 // NewController creates a Controller. app provides list/detail context;
@@ -30,17 +33,25 @@ func NewController(cfg *config.Config, app AppState, client PendingReviewClient,
 	s := newSummary(rs)
 	rng := newRange(rs, selection)
 	v := newView(rs, app, c, s)
+	tr := newThreadReply(cfg, rs)
 	return &Controller{
-		rs:         rs,
-		isDiffMode: app.IsDiffMode,
-		keys:       cfg.KeyBindings,
-		comment:    c,
-		summary:    s,
-		rng:        rng,
-		pending:    newPending(rs, app, client, selection, c, s),
-		view:       v,
-		setFocus:   setFocus,
+		rs:          rs,
+		isDiffMode:  app.IsDiffMode,
+		keys:        cfg.KeyBindings,
+		comment:     c,
+		summary:     s,
+		rng:         rng,
+		pending:     newPending(rs, app, client, selection, c, s),
+		view:        v,
+		setFocus:    setFocus,
+		app:         app,
+		threadReply: tr,
 	}
+}
+
+// SetThreadClient injects the client used to fetch and reply to review threads.
+func (c *Controller) SetThreadClient(tc ThreadClient) {
+	c.threadClient = tc
 }
 
 // --- Reader interface ---
@@ -94,6 +105,29 @@ func (c *Controller) BuildDrawerInput(showDrawer bool) *Input {
 	if inputMode == InputSummary {
 		input.SummaryInputLines = c.summary.Lines()
 	}
+	threads := c.rs.Threads
+	input.Threads = make([]DrawerThread, 0, len(threads))
+	for _, t := range threads {
+		dt := DrawerThread{
+			Path:       t.Path,
+			Line:       t.Line,
+			DiffSide:   t.DiffSide,
+			IsResolved: t.IsResolved,
+			IsOutdated: t.IsOutdated,
+			Comments:   make([]DrawerThreadComment, 0, len(t.Comments)),
+		}
+		for _, tc := range t.Comments {
+			dt.Comments = append(dt.Comments, DrawerThreadComment{
+				Author: tc.Author,
+				Body:   tc.Body,
+			})
+		}
+		input.Threads = append(input.Threads, dt)
+	}
+	input.SelectedThreadIdx = c.rs.SelectedThreadIdx
+	if inputMode == InputThreadReply {
+		input.ThreadReplyLines = c.threadReply.InputLines()
+	}
 	return input
 }
 
@@ -118,6 +152,12 @@ func (c *Controller) HandleCancel() bool {
 		c.setFocus(FocusDiffContent)
 		return true
 	}
+	if c.rs.InputMode == InputThreadReply {
+		c.threadReply.StopInput()
+		c.rs.StopInput()
+		c.setFocus(FocusReviewDrawer)
+		return true
+	}
 	if c.rs.InputMode != InputNone {
 		c.view.StopInput()
 		c.setFocus(FocusDiffContent)
@@ -140,6 +180,9 @@ func (c *Controller) HandleInputKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 					return c.pending.HandleEditCommentSave(), true
 				}
 				return c.pending.HandleCommentSave(), true
+			}
+			if c.rs.InputMode == InputThreadReply {
+				return c.handleThreadReplySave(), true
 			}
 		}
 	}
@@ -173,12 +216,16 @@ func (c *Controller) HandleAction(action config.Action) tea.Cmd {
 		return c.pending.HandleDeleteComment()
 	case config.ActionReviewEditComment:
 		c.editComment()
+	case config.ActionReviewReplyThread:
+		c.beginThreadReply()
 	}
 	return nil
 }
 
 func (c *Controller) SelectNextComment() { c.pending.SelectNextComment() }
 func (c *Controller) SelectPrevComment() { c.pending.SelectPrevComment() }
+func (c *Controller) SelectNextThread()  { c.rs.SelectNextThread() }
+func (c *Controller) SelectPrevThread()  { c.rs.SelectPrevThread() }
 
 // --- Applier interface ---
 
@@ -211,6 +258,27 @@ func (c *Controller) EditCommentResult(msg CommentUpdatedMsg) {
 	if msg.Err == nil {
 		c.setFocus(FocusReviewDrawer)
 	}
+}
+
+func (c *Controller) ThreadsResult(msg ThreadsLoadedMsg) {
+	c.app.ClearFetching()
+	if msg.Err != nil {
+		c.rs.Notify(msg.Err.Error())
+		return
+	}
+	c.rs.LoadThreads(msg.Threads)
+}
+
+func (c *Controller) ThreadReplyResult(msg ThreadReplyMsg) {
+	c.app.ClearFetching()
+	c.threadReply.StopInput()
+	c.rs.StopInput()
+	if msg.Err != nil {
+		c.rs.Notify(msg.Err.Error())
+		return
+	}
+	c.rs.Notify("Reply posted.")
+	c.setFocus(FocusReviewDrawer)
 }
 
 // MarkStaleComments marks pending comments whose anchor position no longer
@@ -292,6 +360,8 @@ func (c *Controller) editorKey(msg tea.KeyMsg) (tea.Cmd, bool) {
 		return c.comment.HandleKey(msg)
 	case InputSummary:
 		return c.summary.HandleKey(msg)
+	case InputThreadReply:
+		return c.threadReply.HandleKey(msg)
 	default:
 		return nil, false
 	}
@@ -323,6 +393,38 @@ func (c *Controller) editComment() bool {
 
 func (c *Controller) saveComment() tea.Cmd { return c.pending.HandleCommentSave() }
 func (c *Controller) submit() tea.Cmd      { return c.pending.HandleSubmit() }
+
+func (c *Controller) beginThreadReply() {
+	if _, ok := c.rs.SelectedThread(); !ok {
+		c.rs.Notify("No thread selected.")
+		return
+	}
+	c.threadReply.BeginInput()
+	c.setFocus(FocusReviewDrawer)
+}
+
+func (c *Controller) handleThreadReplySave() tea.Cmd {
+	thread, ok := c.rs.SelectedThread()
+	if !ok {
+		c.rs.Notify("No thread selected.")
+		return nil
+	}
+	body := strings.TrimSpace(c.threadReply.CurrentValue())
+	if body == "" {
+		c.rs.Notify("Reply body is empty.")
+		return nil
+	}
+	if c.threadClient == nil {
+		c.rs.Notify("Thread client not available.")
+		return nil
+	}
+	threadID := thread.ID
+	c.app.BeginFetchReview()
+	return func() tea.Msg {
+		err := c.threadClient.AddReplyToReviewThread(threadID, body)
+		return ThreadReplyMsg{Err: err}
+	}
+}
 
 func (c *Controller) requireDiffMode(notice string, fn func()) tea.Cmd {
 	if !c.isDiffMode() {

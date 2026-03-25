@@ -1,6 +1,9 @@
 package review
 
-import "github.com/rin2yh/lazygh/pkg/sanitize"
+import (
+	"github.com/rin2yh/lazygh/internal/gh"
+	"github.com/rin2yh/lazygh/pkg/sanitize"
+)
 
 const noEditingComment = -1
 
@@ -19,6 +22,9 @@ type ReviewState struct {
 	Notice             string
 	SelectedCommentIdx int
 	EditingCommentIdx  int
+
+	Threads           []gh.ReviewThread
+	SelectedThreadIdx int
 }
 
 func newReviewState() *ReviewState {
@@ -174,6 +180,45 @@ func (rs *ReviewState) CycleEvent() {
 
 func (rs *ReviewState) ClearRangeStart() {
 	rs.RangeStart = nil
+}
+
+// LoadThreads stores fetched review threads.
+func (rs *ReviewState) LoadThreads(threads []gh.ReviewThread) {
+	rs.Threads = threads
+	rs.SelectedThreadIdx = 0
+}
+
+// SelectNextThread moves the thread selection down.
+func (rs *ReviewState) SelectNextThread() {
+	if len(rs.Threads) == 0 {
+		return
+	}
+	if rs.SelectedThreadIdx < len(rs.Threads)-1 {
+		rs.SelectedThreadIdx++
+	}
+}
+
+// SelectPrevThread moves the thread selection up.
+func (rs *ReviewState) SelectPrevThread() {
+	if rs.SelectedThreadIdx > 0 {
+		rs.SelectedThreadIdx--
+	}
+}
+
+// SelectedThread returns the currently selected review thread.
+func (rs *ReviewState) SelectedThread() (gh.ReviewThread, bool) {
+	idx := rs.SelectedThreadIdx
+	if idx < 0 || idx >= len(rs.Threads) {
+		return gh.ReviewThread{}, false
+	}
+	return rs.Threads[idx], true
+}
+
+// BeginThreadReplyInput switches to thread-reply input mode.
+func (rs *ReviewState) BeginThreadReplyInput() {
+	rs.DrawerOpen = true
+	rs.InputMode = InputThreadReply
+	rs.ClearNotice()
 }
 
 // Reset clears the review state entirely (e.g. when PR list reloads).

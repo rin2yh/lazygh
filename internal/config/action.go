@@ -30,6 +30,7 @@ const (
 	ActionReviewEditComment
 	ActionShowHelp
 	ActionFilterPRs
+	ActionReviewReplyThread
 )
 
 // ActionSpec holds an action's canonical name and default key bindings.
@@ -66,4 +67,5 @@ var actionSpecs = []ActionSpec{
 	{Action: ActionReviewEditComment, Name: "Review Edit Comment", DefaultKeys: []string{"i"}},
 	{Action: ActionShowHelp, Name: "Show Help", DefaultKeys: []string{"?"}},
 	{Action: ActionFilterPRs, Name: "Filter PRs", DefaultKeys: []string{"/"}},
+	{Action: ActionReviewReplyThread, Name: "Review Reply Thread", DefaultKeys: []string{"p"}},
 }

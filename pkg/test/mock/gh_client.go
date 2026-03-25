@@ -15,10 +15,12 @@ type GHClient struct {
 	PendingReviewID  string
 	PendingCommentID string
 	ReviewComments   []gh.ReviewComment
+	ReviewThreads    []gh.ReviewThread
 	SubmittedReviews []string
 	DeletedReviews   []string
 	DeletedComments  []string
 	UpdatedComments  []string
+	ThreadReplies    []string
 	Err              error
 }
 
@@ -83,6 +85,18 @@ func (m *GHClient) DeletePendingReview(_ string, reviewID string) error {
 		return m.Err
 	}
 	m.DeletedReviews = append(m.DeletedReviews, reviewID)
+	return nil
+}
+
+func (m *GHClient) GetReviewThreads(_ string, _ int) ([]gh.ReviewThread, error) {
+	return m.ReviewThreads, m.Err
+}
+
+func (m *GHClient) AddReplyToReviewThread(threadID string, body string) error {
+	if m.Err != nil {
+		return m.Err
+	}
+	m.ThreadReplies = append(m.ThreadReplies, threadID+":"+body)
 	return nil
 }
 
@@ -199,5 +213,13 @@ func (c *ControlledGHClient) SubmitReview(_ string, _ string, _ gh.ReviewEvent, 
 }
 
 func (c *ControlledGHClient) DeletePendingReview(_ string, _ string) error {
+	return c.Err
+}
+
+func (c *ControlledGHClient) GetReviewThreads(_ string, _ int) ([]gh.ReviewThread, error) {
+	return nil, c.Err
+}
+
+func (c *ControlledGHClient) AddReplyToReviewThread(_ string, _ string) error {
 	return c.Err
 }

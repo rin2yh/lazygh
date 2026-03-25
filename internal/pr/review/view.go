@@ -25,7 +25,7 @@ func (f *view) ShouldShowDrawer() bool {
 		return false
 	}
 	rs := f.rs
-	return rs.DrawerOpen || rs.InputMode != InputNone || rs.HasPendingReview() || len(rs.Comments) > 0 || rs.Summary != "" || rs.RangeStart != nil
+	return rs.DrawerOpen || rs.InputMode != InputNone || rs.HasPendingReview() || len(rs.Comments) > 0 || rs.Summary != "" || rs.RangeStart != nil || len(rs.Threads) > 0
 }
 
 // StopInput stops any active input and returns the FocusTarget to move to

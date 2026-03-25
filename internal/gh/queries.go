@@ -84,4 +84,42 @@ const (
 				clientMutationId
 			}
 		}`
+
+	queryGetReviewThreads = `
+		query($owner: String!, $name: String!, $number: Int!) {
+			repository(owner: $owner, name: $name) {
+				pullRequest(number: $number) {
+					reviewThreads(first: 100) {
+						nodes {
+							id
+							path
+							line
+							diffSide
+							isResolved
+							isOutdated
+							comments(first: 50) {
+								nodes {
+									id
+									author { login }
+									body
+									createdAt
+								}
+							}
+						}
+					}
+				}
+			}
+		}`
+
+	mutationAddReplyToReviewThread = `
+		mutation($threadId: ID!, $body: String!) {
+			addPullRequestReviewThreadReply(input: {
+				pullRequestReviewThreadId: $threadId,
+				body: $body
+			}) {
+				comment {
+					id
+				}
+			}
+		}`
 )

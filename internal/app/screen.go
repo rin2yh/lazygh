@@ -2,6 +2,7 @@ package app
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rin2yh/lazygh/internal/pr/overview"
 	"github.com/rin2yh/lazygh/internal/pr/review"
 )
 
@@ -26,8 +27,11 @@ func (s *screen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		s.gui.applyPRsResult(msg)
 		return s, nil
 	case detailLoadedMsg:
-		s.gui.applyDetailResult(msg)
-		return s, nil
+		cmd := s.gui.applyDetailResult(msg)
+		if msg.mode == overview.DetailModeDiff && msg.err == nil {
+			return s, tea.Batch(cmd, s.loadThreadsCmd(s.gui.coord.ListRepo(), msg.number))
+		}
+		return s, cmd
 	case review.CommentSavedMsg:
 		s.gui.review.CommentResult(msg)
 		return s, nil
@@ -42,6 +46,12 @@ func (s *screen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return s, nil
 	case review.DiscardedMsg:
 		s.gui.review.DiscardResult(msg)
+		return s, nil
+	case threadsLoadedMsg:
+		s.gui.applyThreadsResult(msg)
+		return s, nil
+	case review.ThreadReplyMsg:
+		s.gui.review.ThreadReplyResult(msg)
 		return s, nil
 	case tea.KeyMsg:
 		if s.gui.showHelp {

@@ -43,6 +43,12 @@ type PendingReviewClient interface {
 	UpdatePendingReviewComment(commentID string, body string) error
 }
 
+// ThreadClient handles GitHub API calls for fetching and replying to review threads.
+type ThreadClient interface {
+	GetReviewThreads(repo string, number int) ([]gh.ReviewThread, error)
+	AddReplyToReviewThread(threadID string, body string) error
+}
+
 // Reader はGUIレイヤーが参照するレビュー状態の読み取りインターフェース。
 // BuildDrawerInput が描画用DTOを一括提供するため、個々の状態フィールドは含めない。
 type Reader interface {
@@ -63,6 +69,8 @@ type Handler interface {
 	HandleCancel() bool
 	SelectNextComment()
 	SelectPrevComment()
+	SelectNextThread()
+	SelectPrevThread()
 	Notify(msg string)
 }
 
@@ -74,4 +82,6 @@ type Applier interface {
 	SubmitResult(msg SubmittedMsg)
 	DiscardResult(msg DiscardedMsg)
 	MarkStaleComments(files []gh.DiffFile)
+	ThreadsResult(msg ThreadsLoadedMsg)
+	ThreadReplyResult(msg ThreadReplyMsg)
 }

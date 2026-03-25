@@ -56,6 +56,41 @@ func (c DrawerComment) sanitize() string {
 	return strings.TrimSpace(sanitize.SingleLine(c.Body))
 }
 
+// DrawerThreadComment holds display data for a single comment within a thread.
+type DrawerThreadComment struct {
+	Author string
+	Body   string
+}
+
+// DrawerThread holds display data for an existing review thread.
+type DrawerThread struct {
+	Path       string
+	Line       int
+	DiffSide   string
+	IsResolved bool
+	IsOutdated bool
+	Comments   []DrawerThreadComment
+}
+
+func (t DrawerThread) Summary() string {
+	status := "open"
+	if t.IsResolved {
+		status = "resolved"
+	} else if t.IsOutdated {
+		status = "outdated"
+	}
+	location := DrawerRange{Path: t.Path, Line: t.Line}.String()
+	replies := len(t.Comments)
+	if replies == 0 {
+		return location + " [" + status + "] (no comments)"
+	}
+	first := strings.TrimSpace(sanitize.SingleLine(t.Comments[0].Body))
+	if len(first) > commentSummaryMaxLen {
+		first = first[:commentSummaryMaxLen] + "..."
+	}
+	return location + " [" + status + "] " + first + " (" + strconv.Itoa(replies) + ")"
+}
+
 type Input struct {
 	SummaryLines       []string
 	CommentModeLabel   string
@@ -67,6 +102,9 @@ type Input struct {
 	Notice             string
 	CommentInputLines  []string
 	SummaryInputLines  []string
+	Threads            []DrawerThread
+	SelectedThreadIdx  int
+	ThreadReplyLines   []string
 }
 
 func RenderDrawer(input Input, style widget.PanelStyle, width, height int) []string {
@@ -121,6 +159,37 @@ func RenderDrawer(input Input, style widget.PanelStyle, width, height int) []str
 		lines = append(lines, "")
 		lines = append(lines, "Summary Input [Ctrl+S save / Esc cancel]")
 		lines = append(lines, input.SummaryInputLines...)
+	}
+	if len(input.Threads) == 0 {
+		lines = append(lines, "")
+		lines = append(lines, "Threads: none")
+	} else {
+		lines = append(lines, "")
+		lines = append(lines, "Threads:")
+		for i, thread := range input.Threads {
+			prefix := "  - "
+			if i == input.SelectedThreadIdx {
+				prefix = "  > "
+			}
+			lines = append(lines, prefix+thread.Summary())
+			if i == input.SelectedThreadIdx {
+				for _, c := range thread.Comments {
+					author := c.Author
+					if author == "" {
+						author = "unknown"
+					}
+					body := strings.TrimSpace(c.Body)
+					for _, l := range strings.Split(body, "\n") {
+						lines = append(lines, "    ["+author+"] "+l)
+					}
+				}
+			}
+		}
+	}
+	if len(input.ThreadReplyLines) > 0 {
+		lines = append(lines, "")
+		lines = append(lines, "Reply Input [Ctrl+S save / Esc cancel]")
+		lines = append(lines, input.ThreadReplyLines...)
 	}
 	return widget.FramePanel("Review", lines, width, height, style)
 }
